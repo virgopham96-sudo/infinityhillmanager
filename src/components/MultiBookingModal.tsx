@@ -170,8 +170,6 @@ export default function MultiBookingModal({
       return false;
     }
 
-    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
-
     const conflictMessages: string[] = [];
 
     selectedRoomIds.forEach((id) => {
@@ -181,11 +179,13 @@ export default function MultiBookingModal({
       let overlapReason: string | null = null;
 
       const overlappingRes = room.reservations?.find((res) => {
-        // Skip overlap check for reservations belonging to this exact group (name & dates match exactly, or just name)
+        // Skip overlap check for reservations belonging to this exact group
         // This allows updating an existing reservation
         if (
-          res.guestName.toLowerCase() === guestName.toLowerCase() ||
-          res.guestName.toLowerCase() === targetNameToFilter.toLowerCase()
+          selectedGroup &&
+          res.guestName.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+          res.checkInTime === selectedGroup.checkIn &&
+          res.checkOutTime === selectedGroup.checkOut
         ) {
           return false;
         }
@@ -205,9 +205,13 @@ export default function MultiBookingModal({
       ) {
         // If it's already reserved for THIS group, it's not a conflict for checking in/updating
         if (
-          !(room.status === "reserved" &&
-          (room.guestName?.toLowerCase() === guestName.toLowerCase() ||
-           room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase()))
+          !(
+            selectedGroup &&
+            room.status === "reserved" &&
+            room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+            room.checkInTime === selectedGroup.checkIn &&
+            room.checkOutTime === selectedGroup.checkOut
+          )
         ) {
           const mainIn = new Date(room.checkInTime || "");
           const mainOut = new Date(room.checkOutTime || "");
@@ -233,7 +237,8 @@ export default function MultiBookingModal({
   const handleCancelGroup = () => {
     if (!selectedGroup) return;
 
-    const targetNameToFilter = selectedGroup.guestName;
+    const isEditingGroup = !!selectedGroup;
+
     const updatedRooms = rooms.map((room) => {
       let newStatus = room.status;
       let newGuestName = room.guestName;
@@ -242,8 +247,11 @@ export default function MultiBookingModal({
       let newCheckOutTime = room.checkOutTime;
 
       if (
+        isEditingGroup &&
         room.status === "reserved" &&
-        room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase()
+        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+        room.checkInTime === selectedGroup.checkIn &&
+        room.checkOutTime === selectedGroup.checkOut
       ) {
         newStatus = "available";
         newGuestName = undefined;
@@ -252,9 +260,16 @@ export default function MultiBookingModal({
         newCheckOutTime = undefined;
       }
 
-      const filteredReservations = (room.reservations || []).filter(
-        (r) => r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase()
-      );
+      const filteredReservations = isEditingGroup
+        ? (room.reservations || []).filter(
+            (r) =>
+              !(
+                r.guestName.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+                r.checkInTime === selectedGroup.checkIn &&
+                r.checkOutTime === selectedGroup.checkOut
+              )
+          )
+        : room.reservations || [];
 
       return {
         ...room,
@@ -277,7 +292,7 @@ export default function MultiBookingModal({
     const depositPerRoom =
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
-    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
+    const isEditingGroup = !!selectedGroup;
 
     const updatedRooms = rooms.map((room) => {
       let newStatus = room.status;
@@ -287,9 +302,11 @@ export default function MultiBookingModal({
       let newCheckOutTime = room.checkOutTime;
 
       if (
+        isEditingGroup &&
         room.status === "reserved" &&
-        (room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase() ||
-         room.guestName?.toLowerCase() === guestName.toLowerCase())
+        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+        room.checkInTime === selectedGroup.checkIn &&
+        room.checkOutTime === selectedGroup.checkOut
       ) {
         newStatus = "available";
         newGuestName = undefined;
@@ -298,11 +315,16 @@ export default function MultiBookingModal({
         newCheckOutTime = undefined;
       }
 
-      const filteredReservations = (room.reservations || []).filter(
-        (r) =>
-          r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase() &&
-          r.guestName.toLowerCase() !== guestName.toLowerCase()
-      );
+      const filteredReservations = isEditingGroup
+        ? (room.reservations || []).filter(
+            (r) =>
+              !(
+                r.guestName.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+                r.checkInTime === selectedGroup.checkIn &&
+                r.checkOutTime === selectedGroup.checkOut
+              )
+          )
+        : room.reservations || [];
 
       if (!selectedRoomIds.includes(room.id)) {
         return {
@@ -351,18 +373,19 @@ export default function MultiBookingModal({
   const handleCheckIn = () => {
     if (!validateDatesAndOverlaps()) return;
 
-    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
-
     const notAvailableRooms = selectedRoomIds.filter((id) => {
       const room = rooms.find((r) => r.id === id);
       if (!room) return true;
       if (room.status === "available") return false;
       if (
+        selectedGroup &&
         room.status === "reserved" &&
-        (room.guestName?.toLowerCase() === guestName.toLowerCase() ||
-         room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase())
-      )
+        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+        room.checkInTime === selectedGroup.checkIn &&
+        room.checkOutTime === selectedGroup.checkOut
+      ) {
         return false;
+      }
 
       // If it's a future reservation, we can check them in NOW if room is available
       return true;
@@ -380,6 +403,8 @@ export default function MultiBookingModal({
     const depositPerRoom =
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
+    const isEditingGroup = !!selectedGroup;
+
     const updatedRooms = rooms.map((room) => {
       let newStatus = room.status;
       let newGuestName = room.guestName;
@@ -389,9 +414,11 @@ export default function MultiBookingModal({
 
       // Remove current group from future reservations and main status
       if (
+        isEditingGroup &&
         room.status === "reserved" &&
-        (room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase() ||
-         room.guestName?.toLowerCase() === guestName.toLowerCase())
+        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+        room.checkInTime === selectedGroup.checkIn &&
+        room.checkOutTime === selectedGroup.checkOut
       ) {
             newStatus = "available";
             newGuestName = undefined;
@@ -400,11 +427,16 @@ export default function MultiBookingModal({
             newCheckOutTime = undefined;
       }
       
-      const filteredReservations = (room.reservations || []).filter(
-          (r) => 
-              r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase() && 
-              r.guestName.toLowerCase() !== guestName.toLowerCase()
-      );
+      const filteredReservations = isEditingGroup
+        ? (room.reservations || []).filter(
+            (r) =>
+              !(
+                r.guestName.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+                r.checkInTime === selectedGroup.checkIn &&
+                r.checkOutTime === selectedGroup.checkOut
+              )
+          )
+        : room.reservations || [];
 
       if (!selectedRoomIds.includes(room.id)) {
         return {
@@ -591,12 +623,13 @@ export default function MultiBookingModal({
                 Tổng tiền cọc trả trước (VNĐ)
               </label>
               <input
-                type="number"
-                value={totalDeposit}
-                min="0"
-                step="10000"
-                onChange={(e) => setTotalDeposit(Number(e.target.value))}
-                placeholder="Nhập tổng số tiền khách cọc"
+                type="text"
+                value={totalDeposit === 0 ? "" : new Intl.NumberFormat("vi-VN").format(totalDeposit)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  setTotalDeposit(raw ? parseInt(raw, 10) : 0);
+                }}
+                placeholder="VD: 500.000"
                 className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
               />
             </div>

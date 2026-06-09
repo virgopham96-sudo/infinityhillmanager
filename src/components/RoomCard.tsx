@@ -111,7 +111,7 @@ export default function RoomCard({ room, onClick }: RoomCardProps) {
         {totalReservations > 0 && (
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs font-medium text-amber-600 bg-amber-50 px-1.5 sm:px-2 py-1 rounded-lg border border-amber-100">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-            <span className="truncate">{totalReservations} đặt</span>
+            <span className="truncate">{String(totalReservations).padStart(2, '0')} đã đặt</span>
           </div>
         )}
       </div>

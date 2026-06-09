@@ -16,6 +16,7 @@ import {
   subYears,
 } from "date-fns";
 import { vi } from "date-fns/locale";
+import * as xlsx from "xlsx";
 import {
   Calendar,
   TrendingUp,
@@ -23,6 +24,7 @@ import {
   ArrowRight,
   Receipt,
   Trash2,
+  Download,
 } from "lucide-react";
 
 interface RevenueReportProps {
@@ -230,8 +232,27 @@ export default function RevenueReport({
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
+        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center">
           <h3 className="font-semibold text-slate-800">Lịch sử giao dịch</h3>
+          <button
+            onClick={() => {
+              const exportData = completedBookings.map((b) => ({
+                Phòng: b.roomId,
+                "Khách hàng": b.guestName,
+                "Thời gian nhận phòng": format(parseISO(b.checkIn), "dd/MM/yyyy HH:mm"),
+                "Thời gian trả phòng": format(parseISO(b.checkOut), "dd/MM/yyyy HH:mm"),
+                "Doanh thu (VNĐ)": b.totalPrice,
+              }));
+              const worksheet = xlsx.utils.json_to_sheet(exportData);
+              const workbook = xlsx.utils.book_new();
+              xlsx.utils.book_append_sheet(workbook, worksheet, "DoanhThu");
+              xlsx.writeFile(workbook, `Doanh_Thu_${format(new Date(), "yyyy_MM_dd")}.xlsx`);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Xuất Excel
+          </button>
         </div>
 
         {completedBookings.length > 0 ? (
@@ -239,7 +260,6 @@ export default function RevenueReport({
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold">
                 <tr>
-                  <th className="px-6 py-4">Mã Booking</th>
                   <th className="px-6 py-4">Phòng</th>
                   <th className="px-6 py-4">Khách hàng</th>
                   <th className="px-6 py-4">Thời gian</th>
@@ -253,9 +273,6 @@ export default function RevenueReport({
                     key={booking.id}
                     className="hover:bg-slate-50/50 transition-colors"
                   >
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                      {booking.id}
-                    </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">
                         {booking.roomId}

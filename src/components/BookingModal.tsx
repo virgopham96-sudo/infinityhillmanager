@@ -456,12 +456,13 @@ export default function BookingModal({
                     Đã đặt cọc (VNĐ)
                   </label>
                   <input
-                    type="number"
-                    value={deposit}
-                    onChange={(e) => setDeposit(Number(e.target.value))}
-                    min="0"
-                    step="10000"
-                    placeholder="VD: 500000"
+                    type="text"
+                    value={deposit === 0 ? "" : new Intl.NumberFormat("vi-VN").format(deposit)}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      setDeposit(raw ? parseInt(raw, 10) : 0);
+                    }}
+                    placeholder="VD: 500.000"
                     className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white"
                   />
                 </div>
@@ -618,13 +619,12 @@ export default function BookingModal({
                         Giá trị đền bù (VNĐ)
                       </label>
                       <input
-                        type="number"
-                        value={compensation}
-                        onChange={(e) =>
-                          setCompensation(Number(e.target.value))
-                        }
-                        min="0"
-                        step="10000"
+                        type="text"
+                        value={compensation === 0 ? "" : new Intl.NumberFormat("vi-VN").format(compensation)}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          setCompensation(raw ? parseInt(raw, 10) : 0);
+                        }}
                         placeholder="Nhập số tiền đền bù nếu có..."
                         className="w-full border-slate-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white shadow-sm"
                       />
@@ -691,13 +691,13 @@ export default function BookingModal({
                         Tiền cọc (VNĐ)
                       </label>
                       <input
-                        type="number"
-                        value={futureDeposit}
-                        onChange={(e) =>
-                          setFutureDeposit(Number(e.target.value))
-                        }
-                        min="0"
-                        step="10000"
+                        type="text"
+                        value={futureDeposit === 0 ? "" : new Intl.NumberFormat("vi-VN").format(futureDeposit)}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          setFutureDeposit(raw ? parseInt(raw, 10) : 0);
+                        }}
+                        placeholder="VD: 500.000"
                         className="w-full border-slate-200 rounded-md p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none border bg-white"
                       />
                     </div>
