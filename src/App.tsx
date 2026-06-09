@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar";
 import RoomGrid from "./components/RoomGrid";
 import RevenueReport from "./components/RevenueReport";
 import RoomSchedule from "./components/RoomSchedule";
+import GuestView from "./components/GuestView";
 import BookingModal from "./components/BookingModal";
 import MultiBookingModal from "./components/MultiBookingModal";
 import { useStore } from "./store";
@@ -25,7 +26,7 @@ export default function App() {
     removeBooking,
   } = useStore();
   const [currentView, setCurrentView] = useState<
-    "dashboard" | "revenue" | "schedule"
+    "dashboard" | "revenue" | "schedule" | "guests"
   >("dashboard");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -169,6 +170,7 @@ export default function App() {
               {currentView === "dashboard" && "Sơ đồ phòng"}
               {currentView === "revenue" && "Doanh thu"}
               {currentView === "schedule" && "Lịch đặt"}
+              {currentView === "guests" && "Khách đặt"}
             </h1>
           </div>
 
@@ -221,6 +223,7 @@ export default function App() {
               />
             )}
             {currentView === "schedule" && <RoomSchedule rooms={rooms} />}
+            {currentView === "guests" && <GuestView />}
           </div>
         </div>
       </main>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Room } from "../types";
 import { formatCurrency, calculateTotalPrice, cn } from "../lib/utils";
 import { format, addDays, set } from "date-fns";
-import { X, Clock, User, CreditCard, CheckSquare, Square } from "lucide-react";
+import { X, Clock, User, CreditCard, Users } from "lucide-react";
 
 interface MultiBookingModalProps {
   rooms: Room[];
@@ -46,90 +46,232 @@ export default function MultiBookingModal({
     return () => window.removeEventListener("keydown", handleEsc);
   }, [onClose]);
 
-  const availableRooms = rooms.filter((r) => r.status === "available");
+  const selectableRooms = rooms.filter((r) => r.status !== "maintenance");
 
-  const handleReserve = () => {
+  const existingGroups = (() => {
+    const groups: Record<
+      string,
+      {
+        guestName: string;
+        roomIds: string[];
+        totalDeposit: number;
+        checkIn: string;
+        checkOut: string;
+      }
+    > = {};
+
+    rooms.forEach((room) => {
+      if (room.status === "reserved" && room.guestName) {
+        const key = `${room.guestName}_${room.checkInTime}_${room.checkOutTime}`;
+        if (!groups[key]) {
+          groups[key] = {
+            guestName: room.guestName,
+            roomIds: [],
+            totalDeposit: 0,
+            checkIn: room.checkInTime || "",
+            checkOut: room.checkOutTime || "",
+          };
+        }
+        groups[key].roomIds.push(room.id);
+        // Only add up if it wasn't already added (we don't have total deposit per group reliably without dividing, but deposit is per room now)
+        // Wait, deposit in room is PER ROOM. So total is sum of deposits
+        groups[key].totalDeposit += room.deposit || 0;
+      }
+
+      if (room.reservations) {
+        room.reservations.forEach((res) => {
+          const key = `${res.guestName}_${res.checkInTime}_${res.checkOutTime}`;
+          if (!groups[key]) {
+            groups[key] = {
+              guestName: res.guestName,
+              roomIds: [],
+              totalDeposit: 0,
+              checkIn: res.checkInTime,
+              checkOut: res.checkOutTime,
+            };
+          }
+          if (!groups[key].roomIds.includes(room.id)) {
+            groups[key].roomIds.push(room.id);
+            groups[key].totalDeposit += res.deposit || 0;
+          }
+        });
+      }
+    });
+
+    return Object.values(groups).sort(
+      (a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime(),
+    );
+  })();
+
+  const handleSelectGroup = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const idx = e.target.value;
+    if (idx === "") {
+      setGuestName("");
+      setTotalDeposit(0);
+      setSelectedRoomIds([]);
+      setCheckIn(format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"));
+      setCheckOut(format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"));
+      return;
+    }
+    const group = existingGroups[Number(idx)];
+    if (group) {
+      setGuestName(group.guestName);
+      setTotalDeposit(group.totalDeposit);
+      setSelectedRoomIds(group.roomIds);
+      if (group.checkIn) {
+        setCheckIn(format(new Date(group.checkIn), "yyyy-MM-dd'T'HH:mm"));
+      }
+      if (group.checkOut) {
+        setCheckOut(format(new Date(group.checkOut), "yyyy-MM-dd'T'HH:mm"));
+      }
+      setError(null);
+    }
+  };
+
+  const validateDatesAndOverlaps = () => {
     setError(null);
     if (!guestName) {
       setError("Vui lòng nhập tên khách hàng");
-      return;
+      return false;
     }
     if (selectedRoomIds.length === 0) {
       setError("Vui lòng chọn ít nhất 1 phòng");
-      return;
+      return false;
     }
 
     const inDate = new Date(checkIn);
     const outDate = new Date(checkOut);
     if (inDate >= outDate) {
       setError("Thời gian Check-in phải trước Check-out.");
-      return;
+      return false;
     }
 
     const conflictingRooms = selectedRoomIds.filter((id) => {
       const room = rooms.find((r) => r.id === id);
-      return room?.reservations?.some((res) => {
+      if (!room) return false;
+
+      let isOverlap = room.reservations?.some((res) => {
+        // Skip overlap check for reservations belonging to this exact group (name & dates match exactly, or just name)
+        // This allows updating an existing reservation
+        if (
+          res.guestName === guestName ||
+          res.guestName.toLowerCase() === guestName.toLowerCase()
+        ) {
+          return false;
+        }
+
         const resIn = new Date(res.checkInTime);
         const resOut = new Date(res.checkOutTime);
         return inDate < resOut && resIn < outDate;
       });
+
+      if (
+        !isOverlap &&
+        (room.status === "occupied" || room.status === "reserved")
+      ) {
+        // If it's already reserved for THIS group, it's not a conflict for checking in/updating
+        if (
+          room.guestName?.toLowerCase() === guestName.toLowerCase() &&
+          room.status === "reserved"
+        ) {
+          return false;
+        }
+
+        const mainIn = new Date(room.checkInTime || "");
+        const mainOut = new Date(room.checkOutTime || "");
+        if (inDate < mainOut && mainIn < outDate) {
+          isOverlap = true;
+        }
+      }
+
+      return isOverlap;
     });
 
     if (conflictingRooms.length > 0) {
-      setError(
-        `Các phòng sau bị trùng lịch đặt trước: ${conflictingRooms.join(", ")}`,
-      );
-      return;
+      setError(`Các phòng sau bị trùng lịch: ${conflictingRooms.join(", ")}`);
+      return false;
     }
+
+    return true;
+  };
+
+  const handleReserve = () => {
+    if (!validateDatesAndOverlaps()) return;
 
     const depositPerRoom =
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
-    const updatedRooms = availableRooms
-      .filter((r) => selectedRoomIds.includes(r.id))
-      .map((room) => ({
-        ...room,
-        status: "reserved" as const,
-        guestName,
-        deposit: depositPerRoom,
-        checkInTime: new Date(checkIn).toISOString(),
-        checkOutTime: new Date(checkOut).toISOString(),
-      }));
+    const updatedRooms = rooms.map((room) => {
+      if (!selectedRoomIds.includes(room.id)) {
+        // If this room WAS reserved for this group but is no longer selected, we should theoretically remove it
+        // but for simplicity, we'll leave it or let manual removal handle it.
+        return room;
+      }
+
+      // We are updating or creating reservations
+      if (
+        room.status === "available" ||
+        (room.status === "reserved" &&
+          room.guestName?.toLowerCase() === guestName.toLowerCase())
+      ) {
+        // If room is empty or already booked by this exact group as main
+        return {
+          ...room,
+          status: "reserved" as const,
+          guestName,
+          deposit: depositPerRoom,
+          checkInTime: new Date(checkIn).toISOString(),
+          checkOutTime: new Date(checkOut).toISOString(),
+        };
+      } else {
+        // Push to future reservations
+        // First filter out old one if matches
+        const otherReservations = (room.reservations || []).filter(
+          (r) => r.guestName.toLowerCase() !== guestName.toLowerCase(),
+        );
+
+        return {
+          ...room,
+          reservations: [
+            ...otherReservations,
+            {
+              id: `R${Date.now()}_${room.id}`,
+              guestName,
+              deposit: depositPerRoom,
+              checkInTime: new Date(checkIn).toISOString(),
+              checkOutTime: new Date(checkOut).toISOString(),
+            },
+          ],
+        };
+      }
+    });
 
     onUpdateRooms(updatedRooms);
     onClose();
   };
 
   const handleCheckIn = () => {
-    setError(null);
-    if (!guestName) {
-      setError("Vui lòng nhập tên khách hàng");
-      return;
-    }
-    if (selectedRoomIds.length === 0) {
-      setError("Vui lòng chọn ít nhất 1 phòng");
-      return;
-    }
+    if (!validateDatesAndOverlaps()) return;
 
-    const inDate = new Date(checkIn);
-    const outDate = new Date(checkOut);
-    if (inDate >= outDate) {
-      setError("Thời gian Check-in phải trước Check-out.");
-      return;
-    }
-
-    const conflictingRooms = selectedRoomIds.filter((id) => {
+    const notAvailableRooms = selectedRoomIds.filter((id) => {
       const room = rooms.find((r) => r.id === id);
-      return room?.reservations?.some((res) => {
-        const resIn = new Date(res.checkInTime);
-        const resOut = new Date(res.checkOutTime);
-        return inDate < resOut && resIn < outDate;
-      });
+      if (!room) return true;
+      if (room.status === "available") return false;
+      if (
+        room.status === "reserved" &&
+        room.guestName?.toLowerCase() === guestName.toLowerCase()
+      )
+        return false;
+
+      // If it's a future reservation, we can check them in NOW if room is available
+      return true;
     });
 
-    if (conflictingRooms.length > 0) {
+    if (notAvailableRooms.length > 0) {
       setError(
-        `Các phòng sau bị trùng lịch đặt trước: ${conflictingRooms.join(", ")}`,
+        `Không thể nhận phòng. Các phòng sau không khả dụng (đang có khách khác): ${notAvailableRooms.join(
+          ", ",
+        )}`,
       );
       return;
     }
@@ -137,16 +279,23 @@ export default function MultiBookingModal({
     const depositPerRoom =
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
-    const updatedRooms = availableRooms
-      .filter((r) => selectedRoomIds.includes(r.id))
-      .map((room) => ({
+    const updatedRooms = rooms.map((room) => {
+      if (!selectedRoomIds.includes(room.id)) return room;
+
+      const filteredReservations = (room.reservations || []).filter(
+        (res) => res.guestName.toLowerCase() !== guestName.toLowerCase(),
+      );
+
+      return {
         ...room,
         status: "occupied" as const,
         guestName,
         deposit: depositPerRoom,
         checkInTime: new Date(checkIn).toISOString(),
         checkOutTime: new Date(checkOut).toISOString(),
-      }));
+        reservations: filteredReservations,
+      };
+    });
 
     onUpdateRooms(updatedRooms);
     onClose();
@@ -159,7 +308,7 @@ export default function MultiBookingModal({
   };
 
   const totalExpectedPrice = selectedRoomIds.reduce((total, id) => {
-    const room = availableRooms.find((r) => r.id === id);
+    const room = selectableRooms.find((r) => r.id === id);
     if (!room) return total;
     return (
       total +
@@ -177,7 +326,7 @@ export default function MultiBookingModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
           <h2 className="text-xl font-semibold text-slate-800">
-            Đặt nhiều phòng
+            Đặt nhiều phòng / Check-in đoàn
           </h2>
           <button
             onClick={onClose}
@@ -199,6 +348,29 @@ export default function MultiBookingModal({
               </button>
             </div>
           )}
+
+          {existingGroups.length > 0 && (
+            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <Users className="w-4 h-4 text-blue-500" />
+                Chọn đoàn đã đặt trước (Tùy chọn)
+              </label>
+              <select
+                onChange={handleSelectGroup}
+                className="w-full border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                defaultValue=""
+              >
+                <option value="">-- Chọn khách/đoàn đã đặt trước --</option>
+                {existingGroups.map((group, idx) => (
+                  <option key={idx} value={idx}>
+                    {group.guestName} ({group.roomIds.length} phòng) - Từ{" "}
+                    {format(new Date(group.checkIn), "dd/MM HH:mm")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
@@ -261,33 +433,39 @@ export default function MultiBookingModal({
           <div>
             <div className="flex justify-between items-end mb-3">
               <label className="block text-sm font-medium text-slate-700">
-                Chọn phòng trống ({selectedRoomIds.length} đã chọn)
+                Chọn phòng ({selectedRoomIds.length} đã chọn)
               </label>
               <button
                 onClick={() =>
                   setSelectedRoomIds(
-                    selectedRoomIds.length === availableRooms.length
+                    selectedRoomIds.length === selectableRooms.length
                       ? []
-                      : availableRooms.map((r) => r.id),
+                      : selectableRooms.map((r) => r.id),
                   )
                 }
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                {selectedRoomIds.length === availableRooms.length
+                {selectedRoomIds.length === selectableRooms.length
                   ? "Bỏ chọn tất cả"
                   : "Chọn tất cả"}
               </button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 max-h-48 overflow-y-auto p-1">
-              {availableRooms.map((room) => {
+              {selectableRooms.map((room) => {
                 const isSelected = selectedRoomIds.includes(room.id);
+                // Muted/gray styling if room is occupied/reserved
+                const statusLabels: Record<string, string> = {
+                  available: "Trống",
+                  occupied: "Đang ở",
+                  reserved: "Đã đặt",
+                };
                 return (
                   <button
                     key={room.id}
                     onClick={() => toggleRoom(room.id)}
                     className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer",
+                      "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer relative",
                       isSelected
                         ? "border-blue-500 bg-blue-50 text-blue-700"
                         : "border-slate-200 bg-white text-slate-600 hover:border-blue-300",
@@ -297,12 +475,17 @@ export default function MultiBookingModal({
                     <span className="text-xs font-medium opacity-70">
                       {room.type}
                     </span>
+                    {room.status !== "available" && (
+                      <span className="text-[10px] mt-1 text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                        {statusLabels[room.status]}
+                      </span>
+                    )}
                   </button>
                 );
               })}
-              {availableRooms.length === 0 && (
+              {selectableRooms.length === 0 && (
                 <div className="col-span-full py-6 text-center text-slate-500 text-sm">
-                  Không còn phòng trống
+                  Không còn phòng
                 </div>
               )}
             </div>
@@ -353,7 +536,7 @@ export default function MultiBookingModal({
           <button
             onClick={handleCheckIn}
             disabled={selectedRoomIds.length === 0}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
             Đoàn nhận phòng
           </button>
@@ -362,3 +545,4 @@ export default function MultiBookingModal({
     </div>
   );
 }
+

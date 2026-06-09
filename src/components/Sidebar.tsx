@@ -9,8 +9,8 @@ import {
 import { cn } from "../lib/utils";
 
 interface SidebarProps {
-  currentView: "dashboard" | "revenue" | "schedule";
-  onChangeView: (view: "dashboard" | "revenue" | "schedule") => void;
+  currentView: "dashboard" | "revenue" | "schedule" | "guests";
+  onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests") => void;
 }
 
 export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
@@ -49,6 +49,18 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
         >
           <CalendarDays className="w-4 h-4" />
           Hiện trạng đặt phòng
+        </button>
+        <button
+          onClick={() => onChangeView("guests")}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
+            currentView === "guests"
+              ? "bg-slate-800 text-white"
+              : "hover:bg-slate-800/50 hover:text-white",
+          )}
+        >
+          <Users className="w-4 h-4" />
+          Xem theo khách đặt
         </button>
         <button
           onClick={() => onChangeView("revenue")}
