@@ -78,10 +78,13 @@ export default function RoomSchedule({ rooms }: RoomScheduleProps) {
       }
     }
 
-    // Check maintenance (if it's currently maintenance, show it from today onwards)
+    // Check maintenance (if it's currently maintenance, show it from checkInTime onwards)
     if (room.status === "maintenance") {
       const today = startOfDay(new Date());
-      if (checkDate >= today) {
+      const startDate = room.checkInTime
+        ? startOfDay(parseISO(room.checkInTime))
+        : today;
+      if (checkDate >= startDate) {
         return { status: "maintenance" };
       }
     }
@@ -98,7 +101,7 @@ export default function RoomSchedule({ rooms }: RoomScheduleProps) {
       case "reserved":
         return "bg-amber-400";
       case "maintenance":
-        return "bg-orange-500";
+        return "bg-red-500";
       default:
         return "bg-slate-200";
     }
@@ -140,7 +143,7 @@ export default function RoomSchedule({ rooms }: RoomScheduleProps) {
             trước
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-orange-500"></span> Bảo trì
+            <span className="w-3 h-3 rounded-sm bg-red-500"></span> Bảo trì
           </div>
         </div>
       </div>

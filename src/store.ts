@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
 import { Room, BookingRecord, RoomStatus } from "./types";
+import {
+  fetchRoomsFromFirebase,
+  fetchBookingsFromFirebase,
+  saveRoomToFirebase,
+  saveMultipleRoomsToFirebase,
+  saveBookingToFirebase,
+  deleteBookingFromFirebase,
+} from "./firebase";
+import { onSnapshot, collection } from "firebase/firestore";
+import { db, auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const ROOM_DATA: Record<
   string,
@@ -45,10 +56,6 @@ const INITIAL_ROOMS: Room[] = Array.from({ length: 4 }).flatMap(
     return Array.from({ length: 8 }).map((_, roomIndex) => {
       const roomNumber = `${floor}0${roomIndex + 1}`;
       let status: RoomStatus = "available";
-      // Add some initial mock data
-      if (roomNumber === "101") status = "occupied";
-      if (roomNumber === "204") status = "reserved";
-      if (roomNumber === "408") status = "maintenance";
 
       const data = ROOM_DATA[roomNumber] || {
         type: "G2",
@@ -63,122 +70,93 @@ const INITIAL_ROOMS: Room[] = Array.from({ length: 4 }).flatMap(
         type: data.type,
         weekdayPrice: data.weekday,
         weekendPrice: data.weekend,
-        guestName:
-          roomNumber === "101"
-            ? "Nguyễn Văn A"
-            : roomNumber === "204"
-              ? "Trần Thị B"
-              : undefined,
-        checkInTime:
-          roomNumber === "101"
-            ? new Date(Date.now() - 86400000).toISOString()
-            : undefined,
-        checkOutTime:
-          roomNumber === "101"
-            ? new Date(Date.now() + 86400000).toISOString()
-            : roomNumber === "204"
-              ? new Date(Date.now() + 172800000).toISOString()
-              : undefined,
       };
     });
   },
 );
 
-const INITIAL_BOOKINGS: BookingRecord[] = [
-  {
-    id: "B101",
-    roomId: "101",
-    guestName: "Nguyễn Văn A",
-    checkIn: new Date(Date.now() - 86400000).toISOString(),
-    checkOut: new Date(Date.now() + 86400000).toISOString(),
-    totalPrice: 1000000,
-    status: "active",
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export function useStore() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [user, setUser] = useState(auth.currentUser);
 
   useEffect(() => {
-    const storedRooms = localStorage.getItem("hotel_rooms");
-    const storedBookings = localStorage.getItem("hotel_bookings");
-
-    if (storedRooms) {
-      const parsed = JSON.parse(storedRooms) as Room[];
-      const migrated = parsed.map((r) => {
-        const data = ROOM_DATA[r.id] || {
-          type: "G2",
-          weekday: 1400000,
-          weekend: 1600000,
-        };
-        return {
-          ...r,
-          type: data.type,
-          weekdayPrice: data.weekday,
-          weekendPrice: data.weekend,
-        };
-      });
-      setRooms(migrated);
-    } else {
-      setRooms(INITIAL_ROOMS);
-      localStorage.setItem("hotel_rooms", JSON.stringify(INITIAL_ROOMS));
-    }
-
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    } else {
-      setBookings(INITIAL_BOOKINGS);
-      localStorage.setItem("hotel_bookings", JSON.stringify(INITIAL_BOOKINGS));
-    }
-
-    setIsLoaded(true);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+    });
+    return () => unsubscribeAuth();
   }, []);
 
-  const saveRooms = (newRooms: Room[]) => {
-    setRooms(newRooms);
-    localStorage.setItem("hotel_rooms", JSON.stringify(newRooms));
+  useEffect(() => {
+    const loadInitialData = async () => {
+      const fbRooms = await fetchRoomsFromFirebase();
+      if (fbRooms.length === 0) {
+        // Initialize if empty
+        await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
+        setRooms(INITIAL_ROOMS);
+      } else {
+        setRooms(fbRooms);
+      }
+
+      const fbBookings = await fetchBookingsFromFirebase();
+      setBookings(fbBookings);
+      setIsLoaded(true);
+    };
+
+    loadInitialData();
+
+    const unsubRooms = onSnapshot(collection(db, "rooms"), (snap) => {
+      if (!snap.empty) {
+        setRooms(
+          snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room),
+        );
+      }
+    });
+
+    const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
+      setBookings(
+        snap.docs.map(
+          (doc) => ({ ...doc.data(), id: doc.id }) as BookingRecord,
+        ),
+      );
+    });
+
+    return () => {
+      unsubRooms();
+      unsubBookings();
+    };
+  }, []);
+
+  const updateRoom = async (updatedRoom: Room) => {
+    await saveRoomToFirebase(updatedRoom);
   };
 
-  const saveBookings = (newBookings: BookingRecord[]) => {
-    setBookings(newBookings);
-    localStorage.setItem("hotel_bookings", JSON.stringify(newBookings));
+  const updateMultipleRooms = async (updatedRooms: Room[]) => {
+    await saveMultipleRoomsToFirebase(updatedRooms);
   };
 
-  const updateRoom = (updatedRoom: Room) => {
-    const newRooms = rooms.map((r) =>
-      r.id === updatedRoom.id ? updatedRoom : r,
-    );
-    saveRooms(newRooms);
+  const addBooking = async (booking: BookingRecord) => {
+    await saveBookingToFirebase(booking);
   };
 
-  const updateMultipleRooms = (updatedRooms: Room[]) => {
-    const updatedMap = new Map(updatedRooms.map((r) => [r.id, r]));
-    const newRooms = rooms.map((r) =>
-      updatedMap.has(r.id) ? updatedMap.get(r.id)! : r,
-    );
-    saveRooms(newRooms);
+  const updateBooking = async (updatedBooking: BookingRecord) => {
+    await saveBookingToFirebase(updatedBooking);
   };
 
-  const addBooking = (booking: BookingRecord) => {
-    saveBookings([...bookings, booking]);
-  };
-
-  const updateBooking = (updatedBooking: BookingRecord) => {
-    saveBookings(
-      bookings.map((b) => (b.id === updatedBooking.id ? updatedBooking : b)),
-    );
+  const removeBooking = async (id: string) => {
+    await deleteBookingFromFirebase(id);
   };
 
   return {
     rooms,
     bookings,
     isLoaded,
+    user,
     updateRoom,
     updateMultipleRooms,
     addBooking,
     updateBooking,
+    removeBooking,
   };
 }

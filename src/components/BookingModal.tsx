@@ -45,6 +45,7 @@ export default function BookingModal({
 
   const [guestName, setGuestName] = useState(room.guestName || "");
   const [deposit, setDeposit] = useState(room.deposit || 0);
+  const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
     room.checkInTime
       ? format(parseISO(room.checkInTime), "yyyy-MM-dd'T'HH:mm")
@@ -66,6 +67,27 @@ export default function BookingModal({
     format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
 
+  const [minibar, setMinibar] = useState<Record<string, number>>({});
+  const [compensation, setCompensation] = useState<number>(0);
+
+  const minibarItems = [
+    { id: "mi_coc", name: "Mì cốc Hảo Hảo", price: 20000 },
+    { id: "bim_bim", name: "Bim bim", price: 15000 },
+    { id: "snack_khoai_tay", name: "Snack khoai tây", price: 50000 },
+    { id: "mit_say", name: "Mít sấy", price: 70000 },
+    { id: "bo_kho", name: "Bò khô", price: 100000 },
+    { id: "nuoc_loc", name: "Nước lọc", price: 10000 },
+    { id: "red_bull", name: "Bò húc (Red Bull)", price: 20000 },
+    { id: "bia_halong", name: "Bia Hạ Long Bạc", price: 25000 },
+    { id: "oreo", name: "Bánh Oreo", price: 20000 },
+  ];
+
+  const minibarTotal = minibarItems.reduce(
+    (sum, item) => sum + item.price * (minibar[item.id] || 0),
+    0,
+  );
+  const totalSurcharge = minibarTotal + (compensation || 0);
+
   // Close on Escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -76,11 +98,12 @@ export default function BookingModal({
   }, [onClose]);
 
   const validatePrimaryDates = () => {
+    setError(null);
     const inDate = new Date(checkIn);
     const outDate = new Date(checkOut);
 
     if (inDate >= outDate) {
-      alert("Thời gian Check-in phải trước Check-out.");
+      setError("Thời gian Check-in phải trước Check-out.");
       return false;
     }
 
@@ -91,7 +114,7 @@ export default function BookingModal({
     });
 
     if (isOverlap) {
-      alert("Thời gian này bị trùng với một lịch đặt trước đã có.");
+      setError("Thời gian này bị trùng với một lịch đặt trước đã có.");
       return false;
     }
 
@@ -99,7 +122,10 @@ export default function BookingModal({
   };
 
   const handleReserve = () => {
-    if (!guestName) return alert("Vui lòng nhập tên khách hàng");
+    if (!guestName) {
+      setError("Vui lòng nhập tên khách hàng");
+      return;
+    }
     if (!validatePrimaryDates()) return;
     onUpdateRoom({
       ...room,
@@ -113,7 +139,10 @@ export default function BookingModal({
   };
 
   const handleCheckIn = () => {
-    if (!guestName) return alert("Vui lòng nhập tên khách hàng");
+    if (!guestName) {
+      setError("Vui lòng nhập tên khách hàng");
+      return;
+    }
     if (!validatePrimaryDates()) return;
     onUpdateRoom({
       ...room,
@@ -127,7 +156,10 @@ export default function BookingModal({
   };
 
   const handleUpdate = () => {
-    if (!guestName) return alert("Vui lòng nhập tên khách hàng");
+    if (!guestName) {
+      setError("Vui lòng nhập tên khách hàng");
+      return;
+    }
     if (!validatePrimaryDates()) return;
     onUpdateRoom({
       ...room,
@@ -140,34 +172,26 @@ export default function BookingModal({
   };
 
   const handleMaintenance = () => {
-    if (
-      confirm(
-        "Xác nhận chuyển phòng sang trạng thái bảo trì? Các thông tin đặt phòng hiện tại sẽ bị xóa.",
-      )
-    ) {
-      onUpdateRoom({
-        ...room,
-        status: "maintenance",
-        guestName: undefined,
-        checkInTime: undefined,
-        checkOutTime: undefined,
-      });
-      onClose();
-    }
+    onUpdateRoom({
+      ...room,
+      status: "maintenance",
+      guestName: "Bảo trì",
+      checkInTime: new Date().toISOString(),
+      checkOutTime: undefined,
+    });
+    onClose();
   };
 
   const handleAvailable = () => {
-    if (confirm("Xác nhận hủy và chuyển phòng về trạng thái trống?")) {
-      onUpdateRoom({
-        ...room,
-        status: "available",
-        guestName: undefined,
-        deposit: undefined,
-        checkInTime: undefined,
-        checkOutTime: undefined,
-      });
-      onClose();
-    }
+    onUpdateRoom({
+      ...room,
+      status: "available",
+      guestName: undefined,
+      deposit: undefined,
+      checkInTime: undefined,
+      checkOutTime: undefined,
+    });
+    onClose();
   };
 
   const handleCheckOut = () => {
@@ -181,7 +205,10 @@ export default function BookingModal({
       room.weekendPrice,
     );
 
-    const actualPaid = Math.max(0, totalPrice - (room.deposit || 0));
+    const actualPaid = Math.max(
+      0,
+      totalPrice + totalSurcharge - (room.deposit || 0),
+    );
 
     const newBooking: BookingRecord = {
       id: `B${Date.now()}`,
@@ -211,13 +238,17 @@ export default function BookingModal({
   };
 
   const handleAddFutureReservation = () => {
-    if (!futureGuestName) return alert("Vui lòng nhập tên khách hàng");
+    setError(null);
+    if (!futureGuestName) {
+      setError("Vui lòng nhập tên khách hàng");
+      return;
+    }
 
     const inDate = new Date(futureCheckIn);
     const outDate = new Date(futureCheckOut);
 
     if (inDate >= outDate) {
-      alert("Thời gian Check-in phải trước Check-out.");
+      setError("Thời gian Check-in phải trước Check-out.");
       return;
     }
 
@@ -227,7 +258,10 @@ export default function BookingModal({
       return inDate < resOut && resIn < outDate;
     });
 
-    if (!isOverlap && (room.status === "occupied" || room.status === "reserved")) {
+    if (
+      !isOverlap &&
+      (room.status === "occupied" || room.status === "reserved")
+    ) {
       const mainIn = new Date(checkIn);
       const mainOut = new Date(checkOut);
       if (inDate < mainOut && mainIn < outDate) {
@@ -236,7 +270,9 @@ export default function BookingModal({
     }
 
     if (isOverlap) {
-      alert("Thời gian này bị trùng với lịch hiện tại hoặc lịch đặt trước khác.");
+      setError(
+        "Thời gian này bị trùng với lịch hiện tại hoặc lịch đặt trước khác.",
+      );
       return;
     }
 
@@ -260,12 +296,10 @@ export default function BookingModal({
   };
 
   const handleRemoveReservation = (id: string) => {
-    if (confirm("Xác nhận hủy lịch đặt trước này?")) {
-      onUpdateRoom({
-        ...room,
-        reservations: (room.reservations || []).filter((r) => r.id !== id),
-      });
-    }
+    onUpdateRoom({
+      ...room,
+      reservations: (room.reservations || []).filter((r) => r.id !== id),
+    });
   };
 
   return (
@@ -300,6 +334,18 @@ export default function BookingModal({
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
+          {error && (
+            <div className="bg-rose-50 text-rose-600 p-3 rounded-lg text-sm mb-4 border border-rose-100 flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="text-rose-400 hover:text-rose-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {room.status === "maintenance" ? (
             <div className="flex flex-col items-center justify-center py-8 text-slate-500">
               <ShieldAlert className="w-16 h-16 text-slate-300 mb-4" />
@@ -390,29 +436,150 @@ export default function BookingModal({
                 </div>
                 <div className="pt-3 border-t border-blue-200/50 flex flex-col gap-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-slate-700">Tổng tiền dự kiến:</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      Tổng tiền phòng:
+                    </span>
                     <span className="font-semibold text-slate-800">
                       {formatCurrency(
-                        calculateTotalPrice(checkIn, checkOut, room.weekdayPrice, room.weekendPrice)
+                        calculateTotalPrice(
+                          checkIn,
+                          checkOut,
+                          room.weekdayPrice,
+                          room.weekendPrice,
+                        ),
                       )}
                     </span>
                   </div>
+                  {minibarTotal > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-slate-700">
+                        Minibar & Dịch vụ:
+                      </span>
+                      <span className="font-semibold text-slate-800">
+                        {formatCurrency(minibarTotal)}
+                      </span>
+                    </div>
+                  )}
+                  {compensation > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-slate-700">
+                        Đền bù:
+                      </span>
+                      <span className="font-semibold text-slate-800">
+                        {formatCurrency(compensation)}
+                      </span>
+                    </div>
+                  )}
                   {deposit > 0 && (
                     <div className="flex justify-between items-center text-amber-600">
                       <span className="text-sm font-medium">Đã cọc:</span>
-                      <span className="font-semibold">-{formatCurrency(deposit)}</span>
+                      <span className="font-semibold">
+                        -{formatCurrency(deposit)}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-2 border-t border-blue-200/50">
-                    <span className="text-sm font-medium text-slate-700">Còn lại (ước tính):</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      Còn lại{" "}
+                      {room.status === "occupied"
+                        ? "(cần thanh toán)"
+                        : "(ước tính)"}
+                      :
+                    </span>
                     <span className="font-bold text-emerald-700 text-lg">
                       {formatCurrency(
-                        Math.max(0, calculateTotalPrice(checkIn, checkOut, room.weekdayPrice, room.weekendPrice) - deposit)
+                        Math.max(
+                          0,
+                          calculateTotalPrice(
+                            checkIn,
+                            checkOut,
+                            room.weekdayPrice,
+                            room.weekendPrice,
+                          ) +
+                            totalSurcharge -
+                            deposit,
+                        ),
                       )}
                     </span>
                   </div>
                 </div>
               </div>
+
+              {room.status === "occupied" && (
+                <div className="pt-4 border-t border-slate-100">
+                  <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    Minibar & Dịch vụ thêm
+                  </h4>
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg flex flex-col gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
+                      {minibarItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex flex-col gap-1.5 p-2.5 bg-white rounded-md border border-slate-200 shadow-sm"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span
+                              className="text-xs font-semibold text-slate-700 truncate mr-2"
+                              title={item.name}
+                            >
+                              {item.name}
+                            </span>
+                            <span className="text-xs font-bold text-blue-600 shrink-0">
+                              {formatCurrency(item.price)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 mt-0.5">
+                            <button
+                              className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center font-medium transition-colors cursor-pointer"
+                              onClick={() =>
+                                setMinibar((prev) => ({
+                                  ...prev,
+                                  [item.id]: Math.max(
+                                    0,
+                                    (prev[item.id] || 0) - 1,
+                                  ),
+                                }))
+                              }
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-bold w-6 text-center text-slate-800 bg-slate-50 py-1 rounded">
+                              {minibar[item.id] || 0}
+                            </span>
+                            <button
+                              className="w-6 h-6 rounded-md bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-600 flex items-center justify-center font-medium transition-colors cursor-pointer"
+                              onClick={() =>
+                                setMinibar((prev) => ({
+                                  ...prev,
+                                  [item.id]: (prev[item.id] || 0) + 1,
+                                }))
+                              }
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-slate-200">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Giá trị đền bù (VNĐ)
+                      </label>
+                      <input
+                        type="number"
+                        value={compensation}
+                        onChange={(e) =>
+                          setCompensation(Number(e.target.value))
+                        }
+                        min="0"
+                        step="10000"
+                        placeholder="Nhập số tiền đền bù nếu có..."
+                        className="w-full border-slate-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Future Reservations Section */}
               <div className="pt-4 border-t border-slate-100">
@@ -474,7 +641,9 @@ export default function BookingModal({
                       <input
                         type="number"
                         value={futureDeposit}
-                        onChange={(e) => setFutureDeposit(Number(e.target.value))}
+                        onChange={(e) =>
+                          setFutureDeposit(Number(e.target.value))
+                        }
                         min="0"
                         step="10000"
                         className="w-full border-slate-200 rounded-md p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none border bg-white"
@@ -521,10 +690,10 @@ export default function BookingModal({
                         </div>
                         <button
                           onClick={() => handleRemoveReservation(res.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors sm:opacity-0 group-hover:opacity-100"
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
                           title="Hủy đặt phòng này"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     ))}

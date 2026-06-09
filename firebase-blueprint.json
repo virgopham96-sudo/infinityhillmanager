@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Room",
+      "description": "A hotel room",
+      "type": "object",
+      "properties": {
+        "floor": { "type": "number" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "guestName": { "type": "string" },
+        "checkInTime": { "type": "string" },
+        "checkOutTime": { "type": "string" },
+        "weekdayPrice": { "type": "number" },
+        "weekendPrice": { "type": "number" },
+        "deposit": { "type": "number" },
+        "reservations": { "type": "array" }
+      },
+      "required": ["floor", "type", "status", "weekdayPrice", "weekendPrice"]
+    },
+    "BookingRecord": {
+      "title": "BookingRecord",
+      "description": "A record of past bookings",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "guestName": { "type": "string" },
+        "checkIn": { "type": "string" },
+        "checkOut": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["roomId", "guestName", "checkIn", "checkOut", "totalPrice", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/Room" },
+      "description": "Hotel rooms"
+    },
+    "bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/BookingRecord" },
+      "description": "Booking records"
+    }
+  }
+}

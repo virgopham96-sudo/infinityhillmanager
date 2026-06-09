@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    function isValidRoom(data) {
+      return data.keys().hasAll(['floor', 'type', 'status', 'weekdayPrice', 'weekendPrice'])
+        && data.floor is number
+        && data.type is string && data.type.size() <= 100
+        && data.status is string && data.status.size() <= 50
+        && data.weekdayPrice is number
+        && data.weekendPrice is number
+        && (!data.keys().hasAny(['guestName']) || data.guestName == null || (data.guestName is string && data.guestName.size() <= 200))
+        && (!data.keys().hasAny(['checkInTime']) || data.checkInTime == null || (data.checkInTime is string && data.checkInTime.size() <= 50))
+        && (!data.keys().hasAny(['checkOutTime']) || data.checkOutTime == null || (data.checkOutTime is string && data.checkOutTime.size() <= 50))
+        && (!data.keys().hasAny(['deposit']) || data.deposit == null || data.deposit is number)
+        && (!data.keys().hasAny(['reservations']) || data.reservations == null || data.reservations is list);
+    }
+
+    function isValidBooking(data) {
+       return data.keys().hasAll(['roomId', 'guestName', 'checkIn', 'checkOut', 'totalPrice', 'status', 'createdAt'])
+        && data.roomId is string && data.roomId.size() <= 128
+        && data.guestName is string && data.guestName.size() <= 200
+        && data.checkIn is string && data.checkIn.size() <= 50
+        && data.checkOut is string && data.checkOut.size() <= 50
+        && data.totalPrice is number
+        && data.status is string && data.status.size() <= 50
+        && data.createdAt is string && data.createdAt.size() <= 50;
+    }
+
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create: if isValidId(roomId) && isValidRoom(incoming());
+      allow update: if isValidId(roomId) && isValidRoom(incoming());
+      allow delete: if isValidId(roomId);
+    }
+
+    match /bookings/{bookingId} {
+      allow read: if true;
+      allow create: if isValidId(bookingId) && isValidBooking(incoming());
+      allow update: if isValidId(bookingId) && isValidBooking(incoming());
+      allow delete: if isValidId(bookingId);
+    }
+  }
+}
