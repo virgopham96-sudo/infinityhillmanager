@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Room } from "../types";
 import { formatCurrency, calculateTotalPrice, cn } from "../lib/utils";
-import { format, addDays, set } from "date-fns";
+import { format, addDays, set, startOfDay } from "date-fns";
+import toast from "react-hot-toast";
 import { X, Clock, User, CreditCard, Users } from "lucide-react";
 
 interface MultiBookingModalProps {
@@ -199,6 +200,10 @@ export default function MultiBookingModal({
         overlapReason = `khách đặt trước: '${overlappingRes.guestName}'`;
       }
 
+      if (!overlapReason && room.status === "maintenance") {
+        overlapReason = `đang bảo trì`;
+      }
+
       if (
         !overlapReason &&
         (room.status === "occupied" || room.status === "reserved")
@@ -222,11 +227,12 @@ export default function MultiBookingModal({
       }
 
       if (overlapReason) {
-        conflictMessages.push(`Phòng ${room.id} trùng với ${overlapReason}`);
+        conflictMessages.push(`Phòng ${room.id} (${overlapReason})`);
       }
     });
 
     if (conflictMessages.length > 0) {
+      toast.error(`Có xung đột lịch: ${conflictMessages.join("; ")}`, { duration: 4000 });
       setError(`Vui lòng điều chỉnh thời gian. ${conflictMessages.join("; ")}`);
       return false;
     }
@@ -372,6 +378,13 @@ export default function MultiBookingModal({
 
   const handleCheckIn = () => {
     if (!validateDatesAndOverlaps()) return;
+
+    const checkInDate = startOfDay(new Date(checkIn));
+    const today = startOfDay(new Date());
+    if (checkInDate > today) {
+      toast.error("Không thể nhận phòng cho ngày trong tương lai! Vui lòng chọn 'Đặt trước'.");
+      return;
+    }
 
     const notAvailableRooms = selectedRoomIds.filter((id) => {
       const room = rooms.find((r) => r.id === id);

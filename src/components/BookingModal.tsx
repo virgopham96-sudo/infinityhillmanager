@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Room, BookingRecord, RoomStatus, Reservation } from "../types";
 import { cn, formatCurrency, calculateTotalPrice, getLiveRoomState } from "../lib/utils";
-import { format, parseISO, addDays, set } from "date-fns";
+import { format, parseISO, addDays, set, startOfDay } from "date-fns";
+import toast from "react-hot-toast";
 import {
   X,
   Clock,
@@ -113,6 +114,22 @@ export default function BookingModal({
       return false;
     }
 
+    if (room.status === "maintenance") {
+      toast.error("Phòng đang bảo trì, không thể đặt phòng vào thời điểm này!");
+      setError("Phòng đang bảo trì.");
+      return false;
+    }
+
+    if (isFromGrid && (room.status === "occupied" || room.status === "reserved") && room.checkInTime && room.checkOutTime) {
+      const mainIn = new Date(room.checkInTime);
+      const mainOut = new Date(room.checkOutTime);
+      if (inDate < mainOut && mainIn < outDate) {
+        toast.error(`Phòng đã được đặt trước hoặc đang có khách (${room.guestName})!`);
+        setError(`Trùng với lịch hiện tại của phòng (${room.guestName}).`);
+        return false;
+      }
+    }
+
     const overlappingRes = room.reservations?.find((res) => {
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
@@ -120,6 +137,7 @@ export default function BookingModal({
     });
 
     if (overlappingRes) {
+      toast.error(`Phòng đã được đặt trước bởi khách '${overlappingRes.guestName}' trong thời gian này!`);
       setError(`Thời gian này bị trùng với lịch đặt trước của '${overlappingRes.guestName}'.`);
       return false;
     }
@@ -172,6 +190,14 @@ export default function BookingModal({
       return;
     }
     if (!validatePrimaryDates()) return;
+
+    const checkInDate = startOfDay(new Date(checkIn));
+    const today = startOfDay(new Date());
+    if (checkInDate > today) {
+      setError("Chưa đến ngày nhận phòng. Vui lòng chọn 'Đặt trước'.");
+      toast.error("Không thể nhận phòng cho ngày trong tương lai!");
+      return;
+    }
     
     onUpdateRoom({
       ...room,
@@ -285,6 +311,12 @@ export default function BookingModal({
       return;
     }
 
+    if (room.status === "maintenance") {
+      toast.error("Phòng đang bảo trì, không thể thêm lịch đặt trước!");
+      setError("Phòng đang được bảo trì.");
+      return;
+    }
+
     let overlappingRes = room.reservations?.find((res) => {
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
@@ -294,16 +326,19 @@ export default function BookingModal({
     let overlapWithMain = false;
     if (
       !overlappingRes &&
-      (room.status === "occupied" || room.status === "reserved")
+      (room.status === "occupied" || room.status === "reserved") &&
+      room.checkInTime &&
+      room.checkOutTime
     ) {
-      const mainIn = new Date(checkIn);
-      const mainOut = new Date(checkOut);
+      const mainIn = new Date(room.checkInTime);
+      const mainOut = new Date(room.checkOutTime);
       if (inDate < mainOut && mainIn < outDate) {
         overlapWithMain = true;
       }
     }
 
     if (overlappingRes) {
+      toast.error(`Phòng đã được đặt trước bởi khách '${overlappingRes.guestName}' trong thời gian này!`);
       setError(
         `Thời gian này bị trùng với lịch đặt trước khác (khách: '${overlappingRes.guestName}').`,
       );
@@ -311,6 +346,7 @@ export default function BookingModal({
     }
 
     if (overlapWithMain) {
+      toast.error(`Phòng đang có khách hoặc đã đặt trước (${room.guestName})!`);
       setError(
         `Thời gian này bị trùng với lịch hiện tại của phòng (khách: '${room.guestName || "Khách vãng lai"}').`,
       );
