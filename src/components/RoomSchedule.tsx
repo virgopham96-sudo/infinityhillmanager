@@ -102,7 +102,7 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
       case "reserved":
         return "bg-amber-400";
       case "maintenance":
-        return "bg-red-500";
+        return "bg-slate-900";
       default:
         return "bg-slate-200";
     }
@@ -144,7 +144,7 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
             trước
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-sm bg-red-500"></span> Bảo trì
+            <span className="w-3 h-3 rounded-sm bg-slate-900"></span> Bảo trì
           </div>
         </div>
       </div>
@@ -156,14 +156,46 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
               <th className="sticky left-0 bg-slate-50 p-3 font-semibold text-slate-700 border-b border-r border-slate-200 w-24 z-20 shadow-sm">
                 Số phòng
               </th>
-              {daysInMonth.map((day) => (
-                <th
-                  key={day.toISOString()}
-                  className="p-2 font-medium text-slate-600 border-b border-r border-slate-200 text-center min-w-[36px]"
-                >
-                  {format(day, "d")}
-                </th>
-              ))}
+              {daysInMonth.map((day) => {
+                const stats = rooms.reduce(
+                  (acc, room) => {
+                    const status = getCellData(room, day).status;
+                    if (status === "available") acc.available++;
+                    else if (status === "occupied") acc.occupied++;
+                    else if (status === "reserved") acc.reserved++;
+                    else if (status === "maintenance") acc.maintenance++;
+                    return acc;
+                  },
+                  { available: 0, occupied: 0, reserved: 0, maintenance: 0 },
+                );
+
+                return (
+                  <th
+                    key={day.toISOString()}
+                    className="p-2 font-medium text-slate-600 border-b border-r border-slate-200 text-center min-w-[36px] relative group cursor-help"
+                  >
+                    <span>{format(day, "d")}</span>
+                    <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 hidden group-hover:block w-36 bg-slate-800 text-white text-xs rounded-md shadow-xl p-2.5 text-left font-normal flex flex-col gap-1.5">
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Trống:</span>
+                        <span className="font-semibold text-emerald-400">{stats.available}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Đang ở:</span>
+                        <span className="font-semibold text-rose-400">{stats.occupied}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Đã đặt:</span>
+                        <span className="font-semibold text-amber-400">{stats.reserved}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Bảo trì:</span>
+                        <span className="font-semibold text-slate-400">{stats.maintenance}</span>
+                      </div>
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

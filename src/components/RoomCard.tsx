@@ -1,6 +1,6 @@
 import { Users, Info } from "lucide-react";
 import { Room } from "../types";
-import { cn, formatCurrency } from "../lib/utils";
+import { cn, formatCurrency, getLiveRoomState } from "../lib/utils";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -34,7 +34,11 @@ const statusConfig = {
 };
 
 export default function RoomCard({ room, onClick }: RoomCardProps) {
-  const config = statusConfig[room.status];
+  const liveState = getLiveRoomState(room);
+  const config = statusConfig[liveState.status];
+
+  // We should count total future reservations for display
+  const totalReservations = (room.reservations?.length || 0) + (room.status === "reserved" && room.checkInTime && new Date() < parseISO(room.checkInTime) ? 1 : 0);
 
   return (
     <button
@@ -71,11 +75,11 @@ export default function RoomCard({ room, onClick }: RoomCardProps) {
       </div>
 
       <div className="flex-1 mb-2 w-full">
-        {room.guestName ? (
+        {liveState.guestName ? (
           <div className="flex items-center gap-1 sm:gap-2 text-slate-700 mb-2">
             <Users className="w-3 h-3 sm:w-4 sm:h-4 text-slate-400 shrink-0" />
             <span className="font-medium text-xs sm:text-sm truncate">
-              {room.guestName}
+              {liveState.guestName}
             </span>
           </div>
         ) : (
@@ -84,13 +88,13 @@ export default function RoomCard({ room, onClick }: RoomCardProps) {
           </div>
         )}
 
-        {room.checkOutTime && room.status !== "maintenance" && (
+        {liveState.checkOutTime && liveState.status !== "maintenance" && (
           <div className="flex flex-col gap-0.5 sm:gap-1 mt-2 text-[10px] sm:text-xs text-slate-500 bg-white/60 p-1.5 sm:p-2 rounded-lg border border-slate-100">
             <div className="flex justify-between items-center gap-1">
               <span className="shrink-0">Đến:</span>
               <span className="font-medium text-slate-700 truncate">
                 {format(
-                  parseISO(room.checkInTime || new Date().toISOString()),
+                  parseISO(liveState.checkInTime || new Date().toISOString()),
                   "HH:mm-dd/MM",
                 )}
               </span>
@@ -98,16 +102,16 @@ export default function RoomCard({ room, onClick }: RoomCardProps) {
             <div className="flex justify-between items-center gap-1">
               <span className="shrink-0">Đi:</span>
               <span className="font-medium text-slate-700 truncate">
-                {format(parseISO(room.checkOutTime), "HH:mm-dd/MM")}
+                {format(parseISO(liveState.checkOutTime), "HH:mm-dd/MM")}
               </span>
             </div>
           </div>
         )}
 
-        {room.reservations && room.reservations.length > 0 && (
+        {totalReservations > 0 && (
           <div className="flex items-center gap-1 mt-1.5 text-[10px] sm:text-xs font-medium text-amber-600 bg-amber-50 px-1.5 sm:px-2 py-1 rounded-lg border border-amber-100">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-            <span className="truncate">{room.reservations.length} đặt</span>
+            <span className="truncate">{totalReservations} đặt</span>
           </div>
         )}
       </div>

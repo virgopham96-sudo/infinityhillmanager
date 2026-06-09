@@ -31,6 +31,7 @@ export default function MultiBookingModal({
   const [guestName, setGuestName] = useState("");
   const [totalDeposit, setTotalDeposit] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [checkIn, setCheckIn] = useState(
     format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"),
   );
@@ -231,7 +232,6 @@ export default function MultiBookingModal({
 
   const handleCancelGroup = () => {
     if (!selectedGroup) return;
-    if (!window.confirm("Bạn có chắc chắn muốn hủy toàn bộ đặt phòng của đoàn này?")) return;
 
     const targetNameToFilter = selectedGroup.guestName;
     const updatedRooms = rooms.map((room) => {
@@ -453,6 +453,46 @@ export default function MultiBookingModal({
     );
   }, 0);
 
+  if (showConfirmCancel) {
+    return (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+            <h3 className="font-semibold text-rose-600 flex items-center gap-2">
+              Xác nhận hủy
+            </h3>
+            <button
+              onClick={() => setShowConfirmCancel(false)}
+              className="p-1 hover:bg-slate-200 rounded-lg text-slate-500"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-5 text-sm text-slate-700">
+            Bạn có chắc chắn muốn hủy toàn bộ đặt phòng của đoàn này không?
+          </div>
+          <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center">
+            <button
+              onClick={() => setShowConfirmCancel(false)}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-200/50 text-sm font-medium rounded-lg transition-colors mr-auto"
+            >
+              Quay lại
+            </button>
+            <button
+              onClick={() => {
+                setShowConfirmCancel(false);
+                handleCancelGroup();
+              }}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+            >
+              Đồng ý hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -653,7 +693,7 @@ export default function MultiBookingModal({
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center">
           {selectedGroup && (
             <button
-              onClick={handleCancelGroup}
+              onClick={() => setShowConfirmCancel(true)}
               className="px-4 py-2.5 text-rose-600 hover:bg-rose-50 text-sm font-medium rounded-lg transition-colors border border-rose-200"
             >
               Hủy cả đoàn

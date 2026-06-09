@@ -1,6 +1,60 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { eachDayOfInterval, isWeekend, getDay } from "date-fns";
+import { eachDayOfInterval, isWeekend, getDay, parseISO } from "date-fns";
+import { Room, RoomStatus } from "../types";
+
+export function getLiveRoomState(room: Room): {
+  status: RoomStatus;
+  guestName?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+} {
+  const now = new Date();
+
+  if (room.status === "maintenance") {
+    return { status: "maintenance" };
+  }
+
+  // Check if main status applies right now
+  if (room.status === "occupied") {
+    return {
+      status: "occupied",
+      guestName: room.guestName,
+      checkInTime: room.checkInTime,
+      checkOutTime: room.checkOutTime,
+    };
+  }
+
+  if (room.status === "reserved" && room.checkInTime && room.checkOutTime) {
+    const inDate = parseISO(room.checkInTime);
+    if (now >= inDate) {
+      return {
+        status: "reserved",
+        guestName: room.guestName,
+        checkInTime: room.checkInTime,
+        checkOutTime: room.checkOutTime,
+      };
+    }
+  }
+
+  // Check reservations
+  if (room.reservations) {
+    for (const res of room.reservations) {
+      const inDate = parseISO(res.checkInTime);
+      const outDate = parseISO(res.checkOutTime);
+      if (now >= inDate && now < outDate) {
+        return {
+          status: "reserved",
+          guestName: res.guestName,
+          checkInTime: res.checkInTime,
+          checkOutTime: res.checkOutTime,
+        };
+      }
+    }
+  }
+
+  return { status: "available" };
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

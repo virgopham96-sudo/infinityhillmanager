@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Room, BookingRecord, RoomStatus, Reservation } from "../types";
-import { cn, formatCurrency, calculateTotalPrice } from "../lib/utils";
+import { cn, formatCurrency, calculateTotalPrice, getLiveRoomState } from "../lib/utils";
 import { format, parseISO, addDays, set } from "date-fns";
 import {
   X,
@@ -46,19 +46,20 @@ export default function BookingModal({
   );
 
   const isFromGrid = !!initialCheckInDate;
-  const effectiveStatus = isFromGrid ? "available" : room.status;
+  const liveState = isFromGrid ? { status: "available" as RoomStatus } : getLiveRoomState(room);
+  const effectiveStatus = liveState.status;
 
-  const [guestName, setGuestName] = useState(isFromGrid ? "" : (room.guestName || ""));
-  const [deposit, setDeposit] = useState(isFromGrid ? 0 : (room.deposit || 0));
+  const [guestName, setGuestName] = useState(isFromGrid ? "" : (liveState.guestName || ""));
+  const [deposit, setDeposit] = useState(isFromGrid ? 0 : (room.deposit || 0)); // deposit logic might need refinement if main reservation is hidden, but let's keep it simple
   const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
-    room.checkInTime && !isFromGrid
-      ? format(parseISO(room.checkInTime), "yyyy-MM-dd'T'HH:mm")
+    liveState.checkInTime && !isFromGrid
+      ? format(parseISO(liveState.checkInTime), "yyyy-MM-dd'T'HH:mm")
       : format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"),
   );
   const [checkOut, setCheckOut] = useState(
-    room.checkOutTime && !isFromGrid
-      ? format(parseISO(room.checkOutTime), "yyyy-MM-dd'T'HH:mm")
+    liveState.checkOutTime && !isFromGrid
+      ? format(parseISO(liveState.checkOutTime), "yyyy-MM-dd'T'HH:mm")
       : format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
 
@@ -126,12 +127,33 @@ export default function BookingModal({
     return true;
   };
 
+  const getSafeReservations = () => {
+    const isMainFuture = room.status === "reserved" && room.checkInTime && new Date() < parseISO(room.checkInTime);
+    const existing = room.reservations || [];
+    if (!isMainFuture) return existing;
+    
+    // Ensure we don't duplicate
+    if (existing.some(r => r.checkInTime === room.checkInTime && r.guestName === room.guestName)) {
+      return existing;
+    }
+    
+    return [...existing, {
+      id: `R${Date.now()}_main`,
+      guestName: room.guestName || "Khách",
+      deposit: room.deposit || 0,
+      checkInTime: room.checkInTime!,
+      checkOutTime: room.checkOutTime!
+    }];
+  };
+
   const handleReserve = () => {
     if (!guestName) {
       setError("Vui lòng nhập tên khách hàng");
       return;
     }
     if (!validatePrimaryDates()) return;
+    
+    // If we are making a reservation while the room is available TODAY, we shouldn't wipe out future reservations.
     onUpdateRoom({
       ...room,
       status: "reserved",
@@ -139,6 +161,7 @@ export default function BookingModal({
       deposit,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
+      reservations: getSafeReservations(),
     });
     onClose();
   };
@@ -149,6 +172,7 @@ export default function BookingModal({
       return;
     }
     if (!validatePrimaryDates()) return;
+    
     onUpdateRoom({
       ...room,
       status: "occupied",
@@ -156,6 +180,7 @@ export default function BookingModal({
       deposit,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
+      reservations: getSafeReservations(),
     });
     onClose();
   };
@@ -183,6 +208,7 @@ export default function BookingModal({
       guestName: "Bảo trì",
       checkInTime: new Date().toISOString(),
       checkOutTime: undefined,
+      reservations: getSafeReservations(),
     });
     onClose();
   };
@@ -195,6 +221,7 @@ export default function BookingModal({
       deposit: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
+      reservations: getSafeReservations(),
     });
     onClose();
   };
@@ -237,6 +264,7 @@ export default function BookingModal({
       deposit: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
+      reservations: getSafeReservations(),
     });
 
     onClose();
@@ -309,6 +337,17 @@ export default function BookingModal({
   };
 
   const handleRemoveReservation = (id: string) => {
+    if (id.endsWith("_main")) {
+       onUpdateRoom({
+          ...room,
+          status: "available",
+          guestName: undefined,
+          deposit: undefined,
+          checkInTime: undefined,
+          checkOutTime: undefined
+       });
+       return;
+    }
     onUpdateRoom({
       ...room,
       reservations: (room.reservations || []).filter((r) => r.id !== id),
@@ -671,9 +710,9 @@ export default function BookingModal({
                   </div>
                 )}
 
-                {room.reservations && room.reservations.length > 0 ? (
+                {getSafeReservations() && getSafeReservations().length > 0 ? (
                   <div className="space-y-2">
-                    {room.reservations.map((res) => (
+                    {getSafeReservations().map((res) => (
                       <div
                         key={res.id}
                         className="p-3 border border-slate-200 rounded-lg flex items-center justify-between bg-white group"
