@@ -53,8 +53,8 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
-            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-sm">
-              <Building className="w-8 h-8 text-white" />
+            <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center">
+              <img src="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight text-center">
               Infinity Hill Manager
@@ -146,6 +146,11 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans relative">
+      {/* Background Logo */}
+      <div 
+        className="fixed inset-0 pointer-events-none opacity-[0.03] bg-no-repeat bg-center z-0" 
+        style={{ backgroundImage: 'url("https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png")', backgroundSize: '500px' }}
+      />
       
       {/* Backdrop */}
       {isMobileMenuOpen && (
