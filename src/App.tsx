@@ -14,6 +14,7 @@ import MultiBookingModal from "./components/MultiBookingModal";
 import { useStore } from "./store";
 import { Room } from "./types";
 import { Loader2, PlusSquare, Building } from "lucide-react";
+import { getLiveRoomState } from "./lib/utils";
 
 export default function App() {
   const {
@@ -118,38 +119,16 @@ export default function App() {
   }
 
   // Calculate some simple dashboard stats
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-
-  const isReservedToday = (checkIn?: string, checkOut?: string) => {
-    if (!checkIn || !checkOut) return false;
-    const inDate = new Date(checkIn);
-    const outDate = new Date(checkOut);
-    return inDate < todayEnd && outDate > todayStart;
-  };
-
-  const availableRooms = rooms.filter((r) => {
-    if (r.status === "maintenance" || r.status === "occupied") return false;
-    if (r.status === "reserved" && isReservedToday(r.checkInTime, r.checkOutTime)) return false;
-    if (r.reservations?.some((res) => isReservedToday(res.checkInTime, res.checkOutTime))) return false;
-    return true;
-  }).length;
-
-  const occupiedRooms = rooms.filter((r) => r.status === "occupied").length;
-  const reservedRooms = rooms.filter((r) => {
-    if (r.status === "reserved" && isReservedToday(r.checkInTime, r.checkOutTime)) return true;
-    if (r.status !== "occupied" && r.reservations?.some((res) => isReservedToday(res.checkInTime, res.checkOutTime))) return true;
-    return false;
-  }).length;
+  const availableRooms = rooms.filter((r) => getLiveRoomState(r).status === "available").length;
+  const occupiedRooms = rooms.filter((r) => getLiveRoomState(r).status === "occupied").length;
+  const reservedRooms = rooms.filter((r) => getLiveRoomState(r).status === "reserved").length;
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans relative">
       {/* Background Logo */}
       <div 
         className="fixed inset-0 pointer-events-none opacity-[0.03] bg-no-repeat bg-center z-0" 
-        style={{ backgroundImage: 'url("https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png")', backgroundSize: '500px' }}
+        style={{ backgroundImage: 'url("https://i.postimg.cc/zGVdJvzs/Logo-Full-Tach-Nen.png")', backgroundSize: '500px' }}
       />
       
       {/* Backdrop */}

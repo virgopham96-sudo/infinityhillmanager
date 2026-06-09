@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { eachDayOfInterval, isWeekend, getDay, parseISO } from "date-fns";
+import { eachDayOfInterval, isWeekend, getDay, parseISO, startOfDay } from "date-fns";
 import { Room, RoomStatus } from "../types";
 
 export function getLiveRoomState(room: Room): {
@@ -9,13 +9,13 @@ export function getLiveRoomState(room: Room): {
   checkInTime?: string;
   checkOutTime?: string;
 } {
-  const now = new Date();
-
   if (room.status === "maintenance") {
     return { status: "maintenance" };
   }
 
-  // Check if main status applies right now
+  const now = new Date();
+  const today = startOfDay(now);
+
   if (room.status === "occupied") {
     return {
       status: "occupied",
@@ -25,31 +25,35 @@ export function getLiveRoomState(room: Room): {
     };
   }
 
+  // Gather all active reservations (including the main one if room.status is "reserved")
+  const allReservations = [];
   if (room.status === "reserved" && room.checkInTime && room.checkOutTime) {
-    const inDate = parseISO(room.checkInTime);
-    if (now >= inDate) {
-      return {
-        status: "reserved",
-        guestName: room.guestName,
-        checkInTime: room.checkInTime,
-        checkOutTime: room.checkOutTime,
-      };
-    }
+    allReservations.push({
+      guestName: room.guestName,
+      checkInTime: room.checkInTime,
+      checkOutTime: room.checkOutTime,
+    });
+  }
+  if (room.reservations) {
+    allReservations.push(...room.reservations);
   }
 
-  // Check reservations
-  if (room.reservations) {
-    for (const res of room.reservations) {
-      const inDate = parseISO(res.checkInTime);
-      const outDate = parseISO(res.checkOutTime);
-      if (now >= inDate && now < outDate) {
-        return {
-          status: "reserved",
-          guestName: res.guestName,
-          checkInTime: res.checkInTime,
-          checkOutTime: res.checkOutTime,
-        };
-      }
+  // Find if any reservation is active *today*
+  for (const res of allReservations) {
+    const inDate = parseISO(res.checkInTime);
+    const outDate = parseISO(res.checkOutTime);
+    const inDay = startOfDay(inDate);
+    // It's considered 'reserved' today if the check-in day is today or earlier,
+    // and it hasn't reached check-out time yet
+    // Wait, if outDate is today, they checkout today, room should be available after checkOut or maybe currently?
+    // "now < outDate" will make it true if they haven't checked out yet.
+    if (today >= inDay && now < outDate) {
+      return {
+        status: "reserved",
+        guestName: res.guestName,
+        checkInTime: res.checkInTime,
+        checkOutTime: res.checkOutTime,
+      };
     }
   }
 

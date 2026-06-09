@@ -90,18 +90,23 @@ export function useStore() {
 
   useEffect(() => {
     const loadInitialData = async () => {
-      const fbRooms = await fetchRoomsFromFirebase();
-      if (fbRooms.length === 0) {
-        // Initialize if empty
-        await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
-        setRooms(INITIAL_ROOMS);
-      } else {
-        setRooms(fbRooms);
-      }
+      try {
+        const fbRooms = await fetchRoomsFromFirebase();
+        if (!fbRooms) {
+          // Initialize if empty
+          await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
+          setRooms(INITIAL_ROOMS);
+        } else {
+          setRooms(fbRooms);
+        }
 
-      const fbBookings = await fetchBookingsFromFirebase();
-      setBookings(fbBookings);
-      setIsLoaded(true);
+        const fbBookings = await fetchBookingsFromFirebase();
+        setBookings(fbBookings);
+      } catch (err) {
+        console.error("Failed to load data from Firebase:", err);
+      } finally {
+        setIsLoaded(true);
+      }
     };
 
     loadInitialData();

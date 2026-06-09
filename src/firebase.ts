@@ -61,13 +61,14 @@ export function handleFirestoreError(
 }
 
 // Helpers to save/load from Firebase
-export async function fetchRoomsFromFirebase(): Promise<Room[]> {
+export async function fetchRoomsFromFirebase(): Promise<Room[] | null> {
   try {
     const snap = await getDocs(collection(db, "rooms"));
+    if (snap.empty) return null;
     return snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room);
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, "rooms");
-    return [];
+    throw error;
   }
 }
 
@@ -117,7 +118,7 @@ export async function fetchBookingsFromFirebase(): Promise<BookingRecord[]> {
     );
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, "bookings");
-    return [];
+    throw error;
   }
 }
 

@@ -3,11 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>InfinityHotelManager</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>"
-    />
+    <title>Infinity Hill Manager</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" />
+    <script>
+      try {
+        let target = window;
+        let desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+        if (!desc && typeof Window !== 'undefined') {
+          target = Window.prototype;
+          desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+        }
+        if (desc && desc.get && !desc.set) {
+          Object.defineProperty(target, 'fetch', {
+            configurable: true,
+            enumerable: desc.enumerable,
+            get: desc.get,
+            set: function(val) {
+              console.warn("Caught rogue fetch assignment:", val);
+            }
+          });
+        }
+      } catch(e) {
+        console.error("fetch polyfill fix failed", e);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
