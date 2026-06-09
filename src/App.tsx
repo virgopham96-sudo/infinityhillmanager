@@ -12,7 +12,7 @@ import BookingModal from "./components/BookingModal";
 import MultiBookingModal from "./components/MultiBookingModal";
 import { useStore } from "./store";
 import { Room } from "./types";
-import { Loader2, PlusSquare } from "lucide-react";
+import { Loader2, PlusSquare, Building } from "lucide-react";
 
 export default function App() {
   const {
@@ -31,10 +31,85 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMultiBooking, setShowMultiBooking] = useState(false);
 
+  // Login State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm">
+          <div className="flex flex-col items-center mb-8">
+            <div className="bg-blue-600 p-3 rounded-xl mb-4 shadow-sm">
+              <Building className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight text-center">
+              InfinityHotelManager
+            </h1>
+            <p className="text-slate-500 text-sm mt-2 text-center">
+              Vui lòng đăng nhập để tiếp tục
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (username === "Admin" && password === "1234") {
+                setIsAuthenticated(true);
+                setLoginError("");
+              } else {
+                setLoginError("Tài khoản hoặc mật khẩu không chính xác");
+              }
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Tên đăng nhập
+              </label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Nhập tên đăng nhập"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                Mật khẩu
+              </label>
+              <input
+                type="password"
+                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••"
+                required
+              />
+            </div>
+            {loginError && (
+              <p className="text-rose-500 text-sm font-medium">{loginError}</p>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg transition-colors mt-2 shadow-sm"
+            >
+              Đăng nhập
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
