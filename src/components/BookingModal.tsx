@@ -17,6 +17,7 @@ interface BookingModalProps {
   onClose: () => void;
   onUpdateRoom: (room: Room) => void;
   onAddBooking: (booking: BookingRecord) => void;
+  initialCheckInDate?: Date;
 }
 
 const statusLabels: Record<RoomStatus, string> = {
@@ -31,28 +32,32 @@ export default function BookingModal({
   onClose,
   onUpdateRoom,
   onAddBooking,
+  initialCheckInDate,
 }: BookingModalProps) {
-  const defaultCheckIn = set(new Date(), {
+  const defaultCheckIn = set(initialCheckInDate || new Date(), {
     hours: 14,
     minutes: 0,
     seconds: 0,
     milliseconds: 0,
   });
   const defaultCheckOut = addDays(
-    set(new Date(), { hours: 12, minutes: 0, seconds: 0, milliseconds: 0 }),
+    set(initialCheckInDate || new Date(), { hours: 12, minutes: 0, seconds: 0, milliseconds: 0 }),
     1,
   );
 
-  const [guestName, setGuestName] = useState(room.guestName || "");
-  const [deposit, setDeposit] = useState(room.deposit || 0);
+  const isFromGrid = !!initialCheckInDate;
+  const effectiveStatus = isFromGrid ? "available" : room.status;
+
+  const [guestName, setGuestName] = useState(isFromGrid ? "" : (room.guestName || ""));
+  const [deposit, setDeposit] = useState(isFromGrid ? 0 : (room.deposit || 0));
   const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
-    room.checkInTime
+    room.checkInTime && !isFromGrid
       ? format(parseISO(room.checkInTime), "yyyy-MM-dd'T'HH:mm")
       : format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"),
   );
   const [checkOut, setCheckOut] = useState(
-    room.checkOutTime
+    room.checkOutTime && !isFromGrid
       ? format(parseISO(room.checkOutTime), "yyyy-MM-dd'T'HH:mm")
       : format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
@@ -107,14 +112,14 @@ export default function BookingModal({
       return false;
     }
 
-    const isOverlap = room.reservations?.some((res) => {
+    const overlappingRes = room.reservations?.find((res) => {
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
       return inDate < resOut && resIn < outDate;
     });
 
-    if (isOverlap) {
-      setError("Thời gian này bị trùng với một lịch đặt trước đã có.");
+    if (overlappingRes) {
+      setError(`Thời gian này bị trùng với lịch đặt trước của '${overlappingRes.guestName}'.`);
       return false;
     }
 
@@ -252,26 +257,34 @@ export default function BookingModal({
       return;
     }
 
-    let isOverlap = room.reservations?.some((res) => {
+    let overlappingRes = room.reservations?.find((res) => {
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
       return inDate < resOut && resIn < outDate;
     });
 
+    let overlapWithMain = false;
     if (
-      !isOverlap &&
+      !overlappingRes &&
       (room.status === "occupied" || room.status === "reserved")
     ) {
       const mainIn = new Date(checkIn);
       const mainOut = new Date(checkOut);
       if (inDate < mainOut && mainIn < outDate) {
-        isOverlap = true;
+        overlapWithMain = true;
       }
     }
 
-    if (isOverlap) {
+    if (overlappingRes) {
       setError(
-        "Thời gian này bị trùng với lịch hiện tại hoặc lịch đặt trước khác.",
+        `Thời gian này bị trùng với lịch đặt trước khác (khách: '${overlappingRes.guestName}').`,
+      );
+      return;
+    }
+
+    if (overlapWithMain) {
+      setError(
+        `Thời gian này bị trùng với lịch hiện tại của phòng (khách: '${room.guestName || "Khách vãng lai"}').`,
       );
       return;
     }
@@ -313,16 +326,16 @@ export default function BookingModal({
             <span
               className={cn(
                 "text-xs px-2.5 py-1 rounded-full font-medium border",
-                room.status === "available"
+                effectiveStatus === "available"
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : room.status === "occupied"
+                  : effectiveStatus === "occupied"
                     ? "bg-rose-50 text-rose-700 border-rose-200"
-                    : room.status === "reserved"
+                    : effectiveStatus === "reserved"
                       ? "bg-amber-50 text-amber-700 border-amber-200"
                       : "bg-slate-100 text-slate-700 border-slate-200",
               )}
             >
-              {statusLabels[room.status]}
+              {statusLabels[effectiveStatus]}
             </span>
           </div>
           <button
@@ -711,7 +724,7 @@ export default function BookingModal({
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-wrap justify-end items-center">
-          {room.status === "available" && (
+          {effectiveStatus === "available" && (
             <>
               <button
                 onClick={handleMaintenance}
@@ -734,7 +747,7 @@ export default function BookingModal({
             </>
           )}
 
-          {room.status === "reserved" && (
+          {effectiveStatus === "reserved" && (
             <>
               <button
                 onClick={handleAvailable}
@@ -757,7 +770,7 @@ export default function BookingModal({
             </>
           )}
 
-          {room.status === "occupied" && (
+          {effectiveStatus === "occupied" && (
             <>
               <button
                 onClick={handleUpdate}
@@ -774,7 +787,7 @@ export default function BookingModal({
             </>
           )}
 
-          {room.status === "maintenance" && (
+          {effectiveStatus === "maintenance" && (
             <button
               onClick={handleAvailable}
               className="px-5 py-2.5 w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"

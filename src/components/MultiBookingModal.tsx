@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Room } from "../types";
 import { formatCurrency, calculateTotalPrice, cn } from "../lib/utils";
 import { format, addDays, set } from "date-fns";
@@ -8,12 +8,14 @@ interface MultiBookingModalProps {
   rooms: Room[];
   onClose: () => void;
   onUpdateRooms: (rooms: Room[]) => void;
+  initialGuestName?: string;
 }
 
 export default function MultiBookingModal({
   rooms,
   onClose,
   onUpdateRooms,
+  initialGuestName,
 }: MultiBookingModalProps) {
   const defaultCheckIn = set(new Date(), {
     hours: 14,
@@ -36,6 +38,13 @@ export default function MultiBookingModal({
     format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<{
+    guestName: string;
+    roomIds: string[];
+    totalDeposit: number;
+    checkIn: string;
+    checkOut: string;
+  } | null>(null);
 
   // Close on Escape
   useEffect(() => {
@@ -103,9 +112,9 @@ export default function MultiBookingModal({
     );
   })();
 
-  const handleSelectGroup = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const idx = e.target.value;
-    if (idx === "") {
+  const selectGroupByIndex = (idxStr: string) => {
+    if (idxStr === "") {
+      setSelectedGroup(null);
       setGuestName("");
       setTotalDeposit(0);
       setSelectedRoomIds([]);
@@ -113,8 +122,9 @@ export default function MultiBookingModal({
       setCheckOut(format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"));
       return;
     }
-    const group = existingGroups[Number(idx)];
+    const group = existingGroups[Number(idxStr)];
     if (group) {
+      setSelectedGroup(group);
       setGuestName(group.guestName);
       setTotalDeposit(group.totalDeposit);
       setSelectedRoomIds(group.roomIds);
@@ -126,6 +136,19 @@ export default function MultiBookingModal({
       }
       setError(null);
     }
+  };
+
+  useEffect(() => {
+    if (initialGuestName && existingGroups.length > 0 && !selectedGroup) {
+      const idx = existingGroups.findIndex(g => g.guestName === initialGuestName);
+      if (idx !== -1) {
+        selectGroupByIndex(idx.toString());
+      }
+    }
+  }, [initialGuestName, existingGroups.length]); 
+
+  const handleSelectGroup = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    selectGroupByIndex(e.target.value);
   };
 
   const validateDatesAndOverlaps = () => {
@@ -146,16 +169,22 @@ export default function MultiBookingModal({
       return false;
     }
 
-    const conflictingRooms = selectedRoomIds.filter((id) => {
-      const room = rooms.find((r) => r.id === id);
-      if (!room) return false;
+    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
 
-      let isOverlap = room.reservations?.some((res) => {
+    const conflictMessages: string[] = [];
+
+    selectedRoomIds.forEach((id) => {
+      const room = rooms.find((r) => r.id === id);
+      if (!room) return;
+
+      let overlapReason: string | null = null;
+
+      const overlappingRes = room.reservations?.find((res) => {
         // Skip overlap check for reservations belonging to this exact group (name & dates match exactly, or just name)
         // This allows updating an existing reservation
         if (
-          res.guestName === guestName ||
-          res.guestName.toLowerCase() === guestName.toLowerCase()
+          res.guestName.toLowerCase() === guestName.toLowerCase() ||
+          res.guestName.toLowerCase() === targetNameToFilter.toLowerCase()
         ) {
           return false;
         }
@@ -165,34 +194,81 @@ export default function MultiBookingModal({
         return inDate < resOut && resIn < outDate;
       });
 
+      if (overlappingRes) {
+        overlapReason = `khách đặt trước: '${overlappingRes.guestName}'`;
+      }
+
       if (
-        !isOverlap &&
+        !overlapReason &&
         (room.status === "occupied" || room.status === "reserved")
       ) {
         // If it's already reserved for THIS group, it's not a conflict for checking in/updating
         if (
-          room.guestName?.toLowerCase() === guestName.toLowerCase() &&
-          room.status === "reserved"
+          !(room.status === "reserved" &&
+          (room.guestName?.toLowerCase() === guestName.toLowerCase() ||
+           room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase()))
         ) {
-          return false;
-        }
-
-        const mainIn = new Date(room.checkInTime || "");
-        const mainOut = new Date(room.checkOutTime || "");
-        if (inDate < mainOut && mainIn < outDate) {
-          isOverlap = true;
+          const mainIn = new Date(room.checkInTime || "");
+          const mainOut = new Date(room.checkOutTime || "");
+          if (inDate < mainOut && mainIn < outDate) {
+            overlapReason = `khách hiện tại: '${room.guestName || "Khách vãng lai"}'`;
+          }
         }
       }
 
-      return isOverlap;
+      if (overlapReason) {
+        conflictMessages.push(`Phòng ${room.id} trùng với ${overlapReason}`);
+      }
     });
 
-    if (conflictingRooms.length > 0) {
-      setError(`Các phòng sau bị trùng lịch: ${conflictingRooms.join(", ")}`);
+    if (conflictMessages.length > 0) {
+      setError(`Vui lòng điều chỉnh thời gian. ${conflictMessages.join("; ")}`);
       return false;
     }
 
     return true;
+  };
+
+  const handleCancelGroup = () => {
+    if (!selectedGroup) return;
+    if (!window.confirm("Bạn có chắc chắn muốn hủy toàn bộ đặt phòng của đoàn này?")) return;
+
+    const targetNameToFilter = selectedGroup.guestName;
+    const updatedRooms = rooms.map((room) => {
+      let newStatus = room.status;
+      let newGuestName = room.guestName;
+      let newDeposit = room.deposit;
+      let newCheckInTime = room.checkInTime;
+      let newCheckOutTime = room.checkOutTime;
+
+      if (
+        room.status === "reserved" &&
+        room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase()
+      ) {
+        newStatus = "available";
+        newGuestName = undefined;
+        newDeposit = undefined;
+        newCheckInTime = undefined;
+        newCheckOutTime = undefined;
+      }
+
+      const filteredReservations = (room.reservations || []).filter(
+        (r) => r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase()
+      );
+
+      return {
+        ...room,
+        status: newStatus,
+        guestName: newGuestName,
+        deposit: newDeposit,
+        checkInTime: newCheckInTime,
+        checkOutTime: newCheckOutTime,
+        reservations: filteredReservations,
+      };
+    });
+
+    onUpdateRooms(updatedRooms);
+    onClose();
   };
 
   const handleReserve = () => {
@@ -201,20 +277,47 @@ export default function MultiBookingModal({
     const depositPerRoom =
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
+    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
+
     const updatedRooms = rooms.map((room) => {
+      let newStatus = room.status;
+      let newGuestName = room.guestName;
+      let newDeposit = room.deposit;
+      let newCheckInTime = room.checkInTime;
+      let newCheckOutTime = room.checkOutTime;
+
+      if (
+        room.status === "reserved" &&
+        (room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase() ||
+         room.guestName?.toLowerCase() === guestName.toLowerCase())
+      ) {
+        newStatus = "available";
+        newGuestName = undefined;
+        newDeposit = 0;
+        newCheckInTime = undefined;
+        newCheckOutTime = undefined;
+      }
+
+      const filteredReservations = (room.reservations || []).filter(
+        (r) =>
+          r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase() &&
+          r.guestName.toLowerCase() !== guestName.toLowerCase()
+      );
+
       if (!selectedRoomIds.includes(room.id)) {
-        // If this room WAS reserved for this group but is no longer selected, we should theoretically remove it
-        // but for simplicity, we'll leave it or let manual removal handle it.
-        return room;
+        return {
+          ...room,
+          status: newStatus,
+          guestName: newGuestName,
+          deposit: newDeposit,
+          checkInTime: newCheckInTime,
+          checkOutTime: newCheckOutTime,
+          reservations: filteredReservations,
+        };
       }
 
       // We are updating or creating reservations
-      if (
-        room.status === "available" ||
-        (room.status === "reserved" &&
-          room.guestName?.toLowerCase() === guestName.toLowerCase())
-      ) {
-        // If room is empty or already booked by this exact group as main
+      if (newStatus === "available") {
         return {
           ...room,
           status: "reserved" as const,
@@ -222,18 +325,13 @@ export default function MultiBookingModal({
           deposit: depositPerRoom,
           checkInTime: new Date(checkIn).toISOString(),
           checkOutTime: new Date(checkOut).toISOString(),
+          reservations: filteredReservations,
         };
       } else {
-        // Push to future reservations
-        // First filter out old one if matches
-        const otherReservations = (room.reservations || []).filter(
-          (r) => r.guestName.toLowerCase() !== guestName.toLowerCase(),
-        );
-
         return {
           ...room,
           reservations: [
-            ...otherReservations,
+            ...filteredReservations,
             {
               id: `R${Date.now()}_${room.id}`,
               guestName,
@@ -253,13 +351,16 @@ export default function MultiBookingModal({
   const handleCheckIn = () => {
     if (!validateDatesAndOverlaps()) return;
 
+    const targetNameToFilter = selectedGroup ? selectedGroup.guestName : guestName;
+
     const notAvailableRooms = selectedRoomIds.filter((id) => {
       const room = rooms.find((r) => r.id === id);
       if (!room) return true;
       if (room.status === "available") return false;
       if (
         room.status === "reserved" &&
-        room.guestName?.toLowerCase() === guestName.toLowerCase()
+        (room.guestName?.toLowerCase() === guestName.toLowerCase() ||
+         room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase())
       )
         return false;
 
@@ -280,11 +381,42 @@ export default function MultiBookingModal({
       selectedRoomIds.length > 0 ? totalDeposit / selectedRoomIds.length : 0;
 
     const updatedRooms = rooms.map((room) => {
-      if (!selectedRoomIds.includes(room.id)) return room;
+      let newStatus = room.status;
+      let newGuestName = room.guestName;
+      let newDeposit = room.deposit;
+      let newCheckInTime = room.checkInTime;
+      let newCheckOutTime = room.checkOutTime;
 
+      // Remove current group from future reservations and main status
+      if (
+        room.status === "reserved" &&
+        (room.guestName?.toLowerCase() === targetNameToFilter.toLowerCase() ||
+         room.guestName?.toLowerCase() === guestName.toLowerCase())
+      ) {
+            newStatus = "available";
+            newGuestName = undefined;
+            newDeposit = 0;
+            newCheckInTime = undefined;
+            newCheckOutTime = undefined;
+      }
+      
       const filteredReservations = (room.reservations || []).filter(
-        (res) => res.guestName.toLowerCase() !== guestName.toLowerCase(),
+          (r) => 
+              r.guestName.toLowerCase() !== targetNameToFilter.toLowerCase() && 
+              r.guestName.toLowerCase() !== guestName.toLowerCase()
       );
+
+      if (!selectedRoomIds.includes(room.id)) {
+        return {
+          ...room,
+          status: newStatus,
+          guestName: newGuestName,
+          deposit: newDeposit,
+          checkInTime: newCheckInTime,
+          checkOutTime: newCheckOutTime,
+          reservations: filteredReservations,
+        };
+      }
 
       return {
         ...room,
@@ -356,9 +488,9 @@ export default function MultiBookingModal({
                 Chọn đoàn đã đặt trước (Tùy chọn)
               </label>
               <select
+                value={selectedGroup ? existingGroups.findIndex(g => g.guestName === selectedGroup.guestName && g.checkIn === selectedGroup.checkIn) : ""}
                 onChange={handleSelectGroup}
                 className="w-full border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
-                defaultValue=""
               >
                 <option value="">-- Chọn khách/đoàn đã đặt trước --</option>
                 {existingGroups.map((group, idx) => (
@@ -519,11 +651,19 @@ export default function MultiBookingModal({
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center">
+          {selectedGroup && (
+            <button
+              onClick={handleCancelGroup}
+              className="px-4 py-2.5 text-rose-600 hover:bg-rose-50 text-sm font-medium rounded-lg transition-colors border border-rose-200"
+            >
+              Hủy cả đoàn
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2.5 text-slate-600 hover:bg-slate-200/50 text-sm font-medium rounded-lg transition-colors mr-auto"
           >
-            Hủy
+            Hủy lệnh
           </button>
 
           <button

@@ -16,9 +16,10 @@ import { cn } from "../lib/utils";
 
 interface RoomScheduleProps {
   rooms: Room[];
+  onBookRoom?: (roomId: string, date: Date) => void;
 }
 
-export default function RoomSchedule({ rooms }: RoomScheduleProps) {
+export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
   const [currentDate, setCurrentDate] = useState(startOfMonth(new Date()));
   const [selectedGuestInfo, setSelectedGuestInfo] = useState<{
     room: string;
@@ -197,6 +198,8 @@ export default function RoomSchedule({ rooms }: RoomScheduleProps) {
                               checkIn: cellData.checkIn,
                               checkOut: cellData.checkOut,
                             });
+                          } else if (cellData.status === "available" && onBookRoom) {
+                            onBookRoom(room.id, day);
                           }
                         }}
                       >

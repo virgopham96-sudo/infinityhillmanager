@@ -29,8 +29,10 @@ export default function App() {
     "dashboard" | "revenue" | "schedule" | "guests"
   >("dashboard");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [bookingInitialDate, setBookingInitialDate] = useState<Date | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMultiBooking, setShowMultiBooking] = useState(false);
+  const [initialMultiBookingGuest, setInitialMultiBookingGuest] = useState<string | null>(null);
 
   // Login State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -116,9 +118,31 @@ export default function App() {
   }
 
   // Calculate some simple dashboard stats
-  const availableRooms = rooms.filter((r) => r.status === "available").length;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  const isReservedToday = (checkIn?: string, checkOut?: string) => {
+    if (!checkIn || !checkOut) return false;
+    const inDate = new Date(checkIn);
+    const outDate = new Date(checkOut);
+    return inDate < todayEnd && outDate > todayStart;
+  };
+
+  const availableRooms = rooms.filter((r) => {
+    if (r.status === "maintenance" || r.status === "occupied") return false;
+    if (r.status === "reserved" && isReservedToday(r.checkInTime, r.checkOutTime)) return false;
+    if (r.reservations?.some((res) => isReservedToday(res.checkInTime, res.checkOutTime))) return false;
+    return true;
+  }).length;
+
   const occupiedRooms = rooms.filter((r) => r.status === "occupied").length;
-  const reservedRooms = rooms.filter((r) => r.status === "reserved").length;
+  const reservedRooms = rooms.filter((r) => {
+    if (r.status === "reserved" && isReservedToday(r.checkInTime, r.checkOutTime)) return true;
+    if (r.status !== "occupied" && r.reservations?.some((res) => isReservedToday(res.checkInTime, res.checkOutTime))) return true;
+    return false;
+  }).length;
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
@@ -222,8 +246,26 @@ export default function App() {
                 onRemoveBooking={removeBooking}
               />
             )}
-            {currentView === "schedule" && <RoomSchedule rooms={rooms} />}
-            {currentView === "guests" && <GuestView />}
+            {currentView === "schedule" && (
+              <RoomSchedule 
+                rooms={rooms}
+                onBookRoom={(roomId, date) => {
+                  const roomToBook = rooms.find((r) => r.id === roomId);
+                  if (roomToBook) {
+                    setSelectedRoom(roomToBook);
+                    setBookingInitialDate(date);
+                  }
+                }}
+              />
+            )}
+            {currentView === "guests" && (
+              <GuestView 
+                onEditGroup={(name) => {
+                  setInitialMultiBookingGuest(name);
+                  setShowMultiBooking(true);
+                }}
+              />
+            )}
           </div>
         </div>
       </main>
@@ -231,17 +273,25 @@ export default function App() {
       {selectedRoom && (
         <BookingModal
           room={rooms.find((r) => r.id === selectedRoom.id) || selectedRoom}
-          onClose={() => setSelectedRoom(null)}
+          onClose={() => {
+            setSelectedRoom(null);
+            setBookingInitialDate(null);
+          }}
           onUpdateRoom={updateRoom}
           onAddBooking={addBooking}
+          initialCheckInDate={bookingInitialDate || undefined}
         />
       )}
 
       {showMultiBooking && (
         <MultiBookingModal
           rooms={rooms}
-          onClose={() => setShowMultiBooking(false)}
+          onClose={() => {
+            setShowMultiBooking(false);
+            setInitialMultiBookingGuest(null);
+          }}
           onUpdateRooms={updateMultipleRooms}
+          initialGuestName={initialMultiBookingGuest || undefined}
         />
       )}
     </div>

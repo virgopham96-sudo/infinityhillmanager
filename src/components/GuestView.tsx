@@ -11,7 +11,11 @@ type GroupedBooking = {
   status: "Đã đặt trước" | "Đã nhận phòng" | "Đã trả phòng";
 };
 
-export default function GuestView() {
+interface GuestViewProps {
+  onEditGroup?: (guestName: string) => void;
+}
+
+export default function GuestView({ onEditGroup }: GuestViewProps) {
   const { rooms, bookings } = useStore();
 
   const getGroupedBookings = () => {
@@ -140,8 +144,16 @@ export default function GuestView() {
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-800">
+                  <tr 
+                    key={item.id} 
+                    className={`transition-colors ${onEditGroup ? "hover:bg-slate-50 cursor-pointer" : ""}`}
+                    onClick={() => {
+                        if (onEditGroup && item.status !== "Đã trả phòng") {
+                            onEditGroup(item.guestName);
+                        }
+                    }}
+                  >
+                    <td className="px-6 py-4 font-medium text-slate-800 flex items-center gap-2">
                       {item.guestName || "Khách vô danh"}
                     </td>
                     <td className="px-6 py-4">
