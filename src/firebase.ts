@@ -139,3 +139,28 @@ export async function deleteBookingFromFirebase(id: string) {
     handleFirestoreError(error, OperationType.DELETE, `bookings/${id}`);
   }
 }
+
+export async function restoreDataToFirebase(rooms: Room[], bookings: BookingRecord[]) {
+  try {
+    const batch = writeBatch(db);
+    
+    rooms.forEach(room => {
+      const data = removeUndefined({ ...room });
+      delete (data as any).id;
+      const ref = doc(db, "rooms", room.id);
+      batch.set(ref, data);
+    });
+
+    bookings.forEach(booking => {
+      const data = removeUndefined({ ...booking });
+      delete (data as any).id;
+      const ref = doc(db, "bookings", booking.id);
+      batch.set(ref, data);
+    });
+
+    await batch.commit();
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, "restore");
+    throw error;
+  }
+}

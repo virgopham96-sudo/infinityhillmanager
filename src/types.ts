@@ -6,6 +6,7 @@ export interface Reservation {
   checkInTime: string;
   checkOutTime: string;
   deposit?: number;
+  notes?: string;
 }
 
 export interface Room {
@@ -19,6 +20,7 @@ export interface Room {
   weekdayPrice: number;
   weekendPrice: number;
   deposit?: number;
+  notes?: string;
   reservations?: Reservation[]; // Future reservations
 }
 
@@ -31,4 +33,5 @@ export interface BookingRecord {
   totalPrice: number;
   status: "active" | "completed" | "cancelled";
   createdAt: string; // ISO string
+  notes?: string;
 }

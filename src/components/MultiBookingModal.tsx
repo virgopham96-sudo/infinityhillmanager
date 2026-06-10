@@ -31,6 +31,7 @@ export default function MultiBookingModal({
 
   const [guestName, setGuestName] = useState("");
   const [totalDeposit, setTotalDeposit] = useState(0);
+  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [checkIn, setCheckIn] = useState(
@@ -44,6 +45,7 @@ export default function MultiBookingModal({
     guestName: string;
     roomIds: string[];
     totalDeposit: number;
+    notes: string;
     checkIn: string;
     checkOut: string;
   } | null>(null);
@@ -66,6 +68,7 @@ export default function MultiBookingModal({
         guestName: string;
         roomIds: string[];
         totalDeposit: number;
+        notes: string;
         checkIn: string;
         checkOut: string;
       }
@@ -79,6 +82,7 @@ export default function MultiBookingModal({
             guestName: room.guestName,
             roomIds: [],
             totalDeposit: 0,
+            notes: room.notes || "",
             checkIn: room.checkInTime || "",
             checkOut: room.checkOutTime || "",
           };
@@ -97,6 +101,7 @@ export default function MultiBookingModal({
               guestName: res.guestName,
               roomIds: [],
               totalDeposit: 0,
+              notes: res.notes || "",
               checkIn: res.checkInTime,
               checkOut: res.checkOutTime,
             };
@@ -119,6 +124,7 @@ export default function MultiBookingModal({
       setSelectedGroup(null);
       setGuestName("");
       setTotalDeposit(0);
+      setNotes("");
       setSelectedRoomIds([]);
       setCheckIn(format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"));
       setCheckOut(format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"));
@@ -129,6 +135,7 @@ export default function MultiBookingModal({
       setSelectedGroup(group);
       setGuestName(group.guestName);
       setTotalDeposit(group.totalDeposit);
+      setNotes(group.notes);
       setSelectedRoomIds(group.roomIds);
       if (group.checkIn) {
         setCheckIn(format(new Date(group.checkIn), "yyyy-MM-dd'T'HH:mm"));
@@ -351,6 +358,7 @@ export default function MultiBookingModal({
           status: "reserved" as const,
           guestName,
           deposit: depositPerRoom,
+          notes,
           checkInTime: new Date(checkIn).toISOString(),
           checkOutTime: new Date(checkOut).toISOString(),
           reservations: filteredReservations,
@@ -364,6 +372,7 @@ export default function MultiBookingModal({
               id: `R${Date.now()}_${room.id}`,
               guestName,
               deposit: depositPerRoom,
+              notes,
               checkInTime: new Date(checkIn).toISOString(),
               checkOutTime: new Date(checkOut).toISOString(),
             },
@@ -468,6 +477,7 @@ export default function MultiBookingModal({
         status: "occupied" as const,
         guestName,
         deposit: depositPerRoom,
+        notes,
         checkInTime: new Date(checkIn).toISOString(),
         checkOutTime: new Date(checkOut).toISOString(),
         reservations: filteredReservations,
@@ -644,6 +654,19 @@ export default function MultiBookingModal({
                 }}
                 placeholder="VD: 500.000"
                 className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <User className="w-4 h-4 text-transparent" />
+                Ghi chú
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Nhập yêu cầu đặc biệt hoặc ghi chú thêm (nếu có)"
+                className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white min-h-[80px]"
               />
             </div>
           </div>

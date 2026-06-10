@@ -7,6 +7,7 @@ import {
   saveMultipleRoomsToFirebase,
   saveBookingToFirebase,
   deleteBookingFromFirebase,
+  restoreDataToFirebase,
 } from "./firebase";
 import { onSnapshot, collection } from "firebase/firestore";
 import { db, auth } from "./firebase";
@@ -153,6 +154,10 @@ export function useStore() {
     await deleteBookingFromFirebase(id);
   };
 
+  const restoreData = async (roomsToRestore: Room[], bookingsToRestore: BookingRecord[]) => {
+    await restoreDataToFirebase(roomsToRestore, bookingsToRestore);
+  };
+
   return {
     rooms,
     bookings,
@@ -163,5 +168,6 @@ export function useStore() {
     addBooking,
     updateBooking,
     removeBooking,
+    restoreData,
   };
 }

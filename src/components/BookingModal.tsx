@@ -47,11 +47,14 @@ export default function BookingModal({
   );
 
   const isFromGrid = !!initialCheckInDate;
-  const liveState = isFromGrid ? { status: "available" as RoomStatus } : getLiveRoomState(room);
+  const liveState = isFromGrid ? { status: "available" as RoomStatus, guestName: undefined, checkInTime: undefined, checkOutTime: undefined } : getLiveRoomState(room);
   const effectiveStatus = liveState.status;
 
-  const [guestName, setGuestName] = useState(isFromGrid ? "" : (liveState.guestName || ""));
-  const [deposit, setDeposit] = useState(isFromGrid ? 0 : (room.deposit || 0)); // deposit logic might need refinement if main reservation is hidden, but let's keep it simple
+  const isNewBooking = effectiveStatus === "available" || effectiveStatus === "maintenance";
+
+  const [guestName, setGuestName] = useState(isNewBooking ? "" : (liveState.guestName || ""));
+  const [deposit, setDeposit] = useState(isNewBooking ? 0 : (room.deposit || 0));
+  const [notes, setNotes] = useState(isNewBooking ? "" : (room.notes || ""));
   const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
     liveState.checkInTime && !isFromGrid
@@ -67,6 +70,7 @@ export default function BookingModal({
   const [showAddFuture, setShowAddFuture] = useState(false);
   const [futureGuestName, setFutureGuestName] = useState("");
   const [futureDeposit, setFutureDeposit] = useState(0);
+  const [futureNotes, setFutureNotes] = useState("");
   const [futureCheckIn, setFutureCheckIn] = useState(
     format(defaultCheckIn, "yyyy-MM-dd'T'HH:mm"),
   );
@@ -177,6 +181,7 @@ export default function BookingModal({
       status: "reserved",
       guestName,
       deposit,
+      notes,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
       reservations: getSafeReservations(),
@@ -204,6 +209,7 @@ export default function BookingModal({
       status: "occupied",
       guestName,
       deposit,
+      notes,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
       reservations: getSafeReservations(),
@@ -221,6 +227,7 @@ export default function BookingModal({
       ...room,
       guestName,
       deposit,
+      notes,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
     });
@@ -245,6 +252,7 @@ export default function BookingModal({
       status: "available",
       guestName: undefined,
       deposit: undefined,
+      notes: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
       reservations: getSafeReservations(),
@@ -277,6 +285,7 @@ export default function BookingModal({
       totalPrice: actualPaid,
       status: "completed",
       createdAt: new Date().toISOString(),
+      notes: notes || room.notes,
     };
 
     onAddBooking(newBooking);
@@ -288,6 +297,7 @@ export default function BookingModal({
       status: "available",
       guestName: undefined,
       deposit: undefined,
+      notes: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
       reservations: getSafeReservations(),
@@ -357,6 +367,7 @@ export default function BookingModal({
       id: `R${Date.now()}`,
       guestName: futureGuestName,
       deposit: futureDeposit,
+      notes: futureNotes,
       checkInTime: new Date(futureCheckIn).toISOString(),
       checkOutTime: new Date(futureCheckOut).toISOString(),
     };
@@ -370,6 +381,8 @@ export default function BookingModal({
 
     setShowAddFuture(false);
     setFutureGuestName("");
+    setFutureNotes("");
+    setFutureDeposit(0);
   };
 
   const handleRemoveReservation = (id: string) => {
@@ -379,6 +392,7 @@ export default function BookingModal({
           status: "available",
           guestName: undefined,
           deposit: undefined,
+          notes: undefined,
           checkInTime: undefined,
           checkOutTime: undefined
        });
@@ -502,6 +516,19 @@ export default function BookingModal({
                     className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                  <User className="w-4 h-4 text-transparent" />
+                  Ghi chú
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Nhập yêu cầu đặc biệt hoặc ghi chú thêm (nếu có)"
+                  className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white min-h-[80px]"
+                />
               </div>
 
               <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 flex flex-col gap-3">
@@ -737,6 +764,17 @@ export default function BookingModal({
                         className="w-full border-slate-200 rounded-md p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none border bg-white"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Ghi chú
+                      </label>
+                      <textarea
+                        value={futureNotes}
+                        onChange={(e) => setFutureNotes(e.target.value)}
+                        placeholder="Ghi chú thêm"
+                        className="w-full border-slate-200 rounded-md p-2 text-sm focus:ring-1 focus:ring-blue-500 outline-none border bg-white min-h-[60px]"
+                      />
+                    </div>
                     <button
                       onClick={handleAddFutureReservation}
                       className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium rounded-md transition-colors"
@@ -761,6 +799,11 @@ export default function BookingModal({
                             {res.deposit ? (
                               <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                 Cọc: {formatCurrency(res.deposit)}
+                              </span>
+                            ) : null}
+                            {res.notes ? (
+                              <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 truncate max-w-[120px]" title={res.notes}>
+                                {res.notes}
                               </span>
                             ) : null}
                           </div>

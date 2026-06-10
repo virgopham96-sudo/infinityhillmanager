@@ -1,6 +1,8 @@
 import { useStore } from "../store";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { Download } from "lucide-react";
+import * as XLSX from "xlsx";
 
 type GroupedBooking = {
   id: string;
@@ -128,13 +130,67 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
     return { total: roomIds.length, typesString };
   };
 
+  const handleExportExcel = () => {
+    const exportData = data.map((item, index) => {
+      const { total, typesString } = getRoomTypesCount(item.rooms);
+      const inDate = formatDate(item.checkIn);
+      const outDate = formatDate(item.checkOut);
+      const totalDays = item.checkIn && item.checkOut 
+        ? Math.max(1, Math.ceil(Math.abs(new Date(item.checkOut).getTime() - new Date(item.checkIn).getTime()) / (1000 * 60 * 60 * 24))) 
+        : "-";
+
+      return {
+        "STT": index + 1,
+        "Khách / Đoàn khách": item.guestName || "Khách vô danh",
+        "Tổng số phòng": total,
+        "Loại phòng": typesString || "",
+        "Phòng đặt": item.rooms.sort().join(", "),
+        "Ngày check-in": inDate,
+        "Ngày check-out": outDate,
+        "Tổng số ngày": totalDays,
+        "Trạng thái": item.status,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Khach_Dat");
+    
+    // Auto-adjust column widths
+    const max_len = exportData.reduce((prev: any, next: any) => {
+      Object.keys(next).forEach((key) => {
+        const val = String(next[key] || "");
+        prev[key] = Math.max(prev[key] || 0, val.length, key.length);
+      });
+      return prev;
+    }, {});
+    
+    worksheet["!cols"] = Object.keys(max_len).map((key) => ({
+      wch: Math.max(max_len[key] + 3, 10),
+    }));
+
+    XLSX.writeFile(workbook, `Danh_sach_khach_dat_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
+  };
+
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Xem theo khách đặt</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Danh sách khách hàng, đoàn khách và thông tin phòng
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Xem theo khách đặt</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Danh sách khách hàng, đoàn khách và thông tin phòng
+          </p>
+        </div>
+        {data.length > 0 && (
+          <button
+            id="btn-export-excel"
+            onClick={handleExportExcel}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            Tải Excel danh sách
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

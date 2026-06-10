@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Room } from "../types";
 import RoomCard from "./RoomCard";
+import { Filter } from "lucide-react";
 
 interface RoomGridProps {
   rooms: Room[];
@@ -7,6 +9,31 @@ interface RoomGridProps {
 }
 
 export default function RoomGrid({ rooms, onRoomSelect }: RoomGridProps) {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+
+  // Get unique room types
+  const roomTypes = Array.from(new Set(rooms.map(r => r.type)));
+
+  // Filter rooms
+  const filteredRooms = rooms.filter(room => {
+    // Determine effective status based on reservations if status is available
+    let effectiveStatus = room.status;
+    if (effectiveStatus === "available" && room.reservations && room.reservations.length > 0) {
+      const now = new Date();
+      const hasActiveReservation = room.reservations.some(res => 
+        new Date(res.checkInTime) <= now && new Date(res.checkOutTime) >= now
+      );
+      if (hasActiveReservation) {
+        effectiveStatus = "reserved";
+      }
+    }
+
+    const matchStatus = statusFilter === "all" || effectiveStatus === statusFilter;
+    const matchType = typeFilter === "all" || room.type === typeFilter;
+    return matchStatus && matchType;
+  });
+
   // Group rooms by floor
   const floors = Array.from({ length: 4 }, (_, i) => i + 1).sort(
     (a, b) => b - a,
@@ -14,8 +41,43 @@ export default function RoomGrid({ rooms, onRoomSelect }: RoomGridProps) {
 
   return (
     <div className="space-y-4 sm:space-y-8 pb-8 sm:pb-12">
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex items-center gap-2 text-slate-700 font-medium whitespace-nowrap">
+          <Filter className="w-5 h-5 text-blue-600" />
+          <span>Bộ lọc:</span>
+        </div>
+        
+        <div className="flex flex-wrap gap-3 w-full">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="available">Phòng trống</option>
+            <option value="occupied">Đang ở</option>
+            <option value="reserved">Đã đặt</option>
+            <option value="maintenance">Bảo trì</option>
+          </select>
+
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          >
+            <option value="all">Tất cả loại phòng</option>
+            {roomTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {floors.map((floor) => {
-        const floorRooms = rooms.filter((r) => r.floor === floor);
+        const floorRooms = filteredRooms.filter((r) => r.floor === floor);
+        if (floorRooms.length === 0) return null;
+        
         return (
           <div
             key={floor}
