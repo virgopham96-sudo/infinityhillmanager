@@ -40,9 +40,12 @@ export default function App() {
   const [initialMultiBookingGuest, setInitialMultiBookingGuest] = useState<string | null>(null);
 
   // Login State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
 
   if (!isLoaded) {
@@ -75,6 +78,9 @@ export default function App() {
               if (username === "Admin" && password === "1234") {
                 setIsAuthenticated(true);
                 setLoginError("");
+                if (rememberMe) {
+                  localStorage.setItem("isAuthenticated", "true");
+                }
               } else {
                 setLoginError("Tài khoản hoặc mật khẩu không chính xác");
               }
@@ -106,6 +112,18 @@ export default function App() {
                 placeholder="••••"
                 required
               />
+            </div>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-slate-600 dark:text-slate-400">
+                Ghi nhớ đăng nhập
+              </label>
             </div>
             {loginError && (
               <p className="text-rose-500 text-sm font-medium">{loginError}</p>
@@ -149,6 +167,10 @@ export default function App() {
           onChangeView={(view) => {
             setCurrentView(view);
             setIsMobileMenuOpen(false);
+          }}
+          onLogout={() => {
+            setIsAuthenticated(false);
+            localStorage.removeItem("isAuthenticated");
           }}
         />
       </div>

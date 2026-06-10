@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Download,
   Upload,
+  LogOut,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../store";
@@ -14,9 +15,10 @@ import { useStore } from "../store";
 interface SidebarProps {
   currentView: "dashboard" | "revenue" | "schedule" | "guests";
   onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests") => void;
+  onLogout?: () => void;
 }
 
-export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
+export default function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
   const { rooms, bookings, restoreData } = useStore();
 
   const handleBackup = () => {
@@ -140,6 +142,15 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
             <Upload className="w-4 h-4" />
             Phục hồi dữ liệu
           </button>
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 mt-4 rounded-lg transition-colors text-sm font-medium text-rose-300 hover:bg-rose-900/30 hover:text-rose-200 border border-transparent hover:border-rose-900/50"
+            >
+              <LogOut className="w-4 h-4" />
+              Đăng xuất
+            </button>
+          )}
         </div>
       </div>
     </aside>
