@@ -11,6 +11,7 @@ import RoomSchedule from "./components/RoomSchedule";
 import GuestView from "./components/GuestView";
 import BookingModal from "./components/BookingModal";
 import MultiBookingModal from "./components/MultiBookingModal";
+import UserGuide from "./components/UserGuide";
 import { useStore } from "./store";
 import { Room } from "./types";
 import { Loader2, PlusSquare, Building } from "lucide-react";
@@ -31,7 +32,7 @@ export default function App() {
     removeBooking,
   } = useStore();
   const [currentView, setCurrentView] = useState<
-    "dashboard" | "revenue" | "schedule" | "guests"
+    "dashboard" | "revenue" | "schedule" | "guests" | "guide"
   >("dashboard");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [bookingInitialDate, setBookingInitialDate] = useState<Date | null>(null);
@@ -201,6 +202,7 @@ export default function App() {
               {currentView === "revenue" && "Doanh thu"}
               {currentView === "schedule" && "Lịch đặt"}
               {currentView === "guests" && "Khách đặt"}
+              {currentView === "guide" && "Hướng dẫn"}
             </h1>
           </div>
 
@@ -275,6 +277,7 @@ export default function App() {
                 }}
               />
             )}
+            {currentView === "guide" && <UserGuide />}
           </div>
         </div>
       </main>

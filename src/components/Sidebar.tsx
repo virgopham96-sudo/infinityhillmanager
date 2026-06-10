@@ -8,13 +8,14 @@ import {
   Download,
   Upload,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../store";
 
 interface SidebarProps {
-  currentView: "dashboard" | "revenue" | "schedule" | "guests";
-  onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests") => void;
+  currentView: "dashboard" | "revenue" | "schedule" | "guests" | "guide";
+  onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests" | "guide") => void;
   onLogout?: () => void;
 }
 
@@ -128,6 +129,18 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
 
       <div className="px-4 pb-6 mt-auto">
         <div className="border-t border-[#003a73] dark:border-slate-800 pt-4 space-y-2">
+          <button
+            onClick={() => onChangeView("guide")}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
+              currentView === "guide"
+                ? "bg-[#003a73] dark:bg-slate-800 text-white"
+                : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white"
+            )}
+          >
+            <HelpCircle className="w-4 h-4" />
+            Hướng dẫn sử dụng
+          </button>
           <button
             onClick={handleBackup}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white"
