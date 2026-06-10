@@ -20,6 +20,7 @@ interface BookingModalProps {
   onUpdateRoom: (room: Room) => void;
   onAddBooking: (booking: BookingRecord) => void;
   initialCheckInDate?: Date;
+  onEditGuest?: (guestName: string) => void;
 }
 
 const statusLabels: Record<RoomStatus, string> = {
@@ -35,6 +36,7 @@ export default function BookingModal({
   onUpdateRoom,
   onAddBooking,
   initialCheckInDate,
+  onEditGuest,
 }: BookingModalProps) {
   const { bookings } = useStore();
   const roomHistory = bookings
@@ -823,9 +825,21 @@ export default function BookingModal({
                       >
                         <div>
                           <div className="flex items-center flex-wrap gap-2">
-                            <p className="text-sm font-medium text-slate-800">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onEditGuest) {
+                                  onClose();
+                                  onEditGuest(res.guestName);
+                                }
+                              }}
+                              className={cn(
+                                "text-sm font-medium text-left",
+                                onEditGuest ? "text-slate-800 hover:text-blue-600 underline-offset-2 hover:underline cursor-pointer" : "text-slate-800"
+                              )}
+                            >
                               {res.guestName}
-                            </p>
+                            </button>
                             {res.deposit ? (
                               <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                 Cọc: {formatCurrency(res.deposit)}

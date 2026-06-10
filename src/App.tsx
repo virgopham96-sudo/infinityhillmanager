@@ -289,6 +289,10 @@ export default function App() {
           onUpdateRoom={updateRoom}
           onAddBooking={addBooking}
           initialCheckInDate={bookingInitialDate || undefined}
+          onEditGuest={(name) => {
+            setInitialMultiBookingGuest(name);
+            setShowMultiBooking(true);
+          }}
         />
       )}
 
