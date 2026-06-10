@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Room } from "../types";
 import RoomCard from "./RoomCard";
 import { Filter } from "lucide-react";
-import { getLiveRoomState } from "../lib/utils";
+import { cn, getLiveRoomState } from "../lib/utils";
 
 interface RoomGridProps {
   rooms: Room[];
@@ -32,8 +32,48 @@ export default function RoomGrid({ rooms, onRoomSelect }: RoomGridProps) {
     (a, b) => b - a,
   ); // Floor 4 down to 1
 
+  const totalCount = rooms.length;
+  const availableCount = rooms.filter(r => getLiveRoomState(r).status === "available").length;
+  const occupiedCount = rooms.filter(r => getLiveRoomState(r).status === "occupied").length;
+  const reservedCount = rooms.filter(r => getLiveRoomState(r).status === "reserved").length;
+  const maintenanceCount = rooms.filter(r => getLiveRoomState(r).status === "maintenance").length;
+
+  const statsList = [
+    { id: "all", label: "Tất cả", count: totalCount, dotColor: "bg-blue-500", color: "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800/60", activeColor: "ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-800" },
+    { id: "available", label: "Phòng trống", count: availableCount, dotColor: "bg-emerald-500", color: "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800/60", activeColor: "ring-2 ring-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800" },
+    { id: "occupied", label: "Đang ở", count: occupiedCount, dotColor: "bg-rose-500", color: "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800/60", activeColor: "ring-2 ring-rose-500 bg-rose-50/50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-800" },
+    { id: "reserved", label: "Đã đặt trước", count: reservedCount, dotColor: "bg-amber-500", color: "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800/60", activeColor: "ring-2 ring-amber-500 bg-amber-50/50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800" },
+    { id: "maintenance", label: "Bảo trì", count: maintenanceCount, dotColor: "bg-slate-400 dark:bg-slate-500", color: "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800/60", activeColor: "ring-2 ring-slate-400 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700" },
+  ];
+
   return (
-    <div className="space-y-4 sm:space-y-8 pb-8 sm:pb-12">
+    <div className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
+      {/* Interactive Dynamic Live Status Filter Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {statsList.map((stat) => {
+          const isActive = statusFilter === stat.id;
+          return (
+            <button
+              key={stat.id}
+              onClick={() => setStatusFilter(stat.id)}
+              className={cn(
+                "flex items-center justify-between p-4 rounded-xl border text-sm font-semibold transition-all duration-150 cursor-pointer shadow-sm relative overflow-hidden group",
+                isActive ? stat.activeColor : stat.color,
+                "hover:scale-[1.02] active:scale-95"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className={cn("w-2 h-2 rounded-full", stat.dotColor, stat.id !== "maintenance" && "animate-pulse")}></span>
+                <span>{stat.label}</span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 group-hover:bg-blue-100 group-hover:text-blue-800 dark:group-hover:bg-blue-900/40 dark:group-hover:text-blue-200 transition-colors">
+                {stat.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filters */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
         <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">

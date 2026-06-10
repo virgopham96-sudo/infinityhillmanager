@@ -39,6 +39,14 @@ export default function UserGuide() {
               <li><strong>Bảo trì/Dọn dẹp:</strong> Chuyển trạng thái phòng sang Bảo trì để không thể thao tác check-in. Khách sạn có thể quản lý được buồng phòng đang không sẵn sàng phục vụ.</li>
             </ul>
 
+            <h3 className="text-lg font-semibold mt-6 mb-2 text-slate-800 dark:text-slate-200">Lịch sử phòng & Lịch đặt trước:</h3>
+            <p className="text-slate-600 dark:text-slate-300 mb-2">Khi mở chi tiết một phòng bất kỳ, bạn sẽ thấy các tab chức năng hữu ích:</p>
+            <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
+              <li><strong>Lịch sử phòng:</strong> Chuyển sang thẻ này để kiểm tra danh sách các lượt lưu trú trước đây của phòng, bao gồm thông tin tên khách, khoảng thời gian ở và ghi chú lịch sử.</li>
+              <li><strong>Lịch đặt trước:</strong> Thẻ này liệt kê các khoảng thời gian phòng đã được đặt giữ trong tương lai. Bạn có thể xóa một lịch đặt trước hoặc tạo mới tại đây.</li>
+              <li><strong>Xem nhanh thông tin khách đặt:</strong> Đặc biệt, trong thẻ <em>Lịch đặt trước</em>, bạn chỉ cần <strong>bấm vào tên khách hàng</strong> để hệ thống tự động mở ngay bảng chi tiết của khách đặt/đoàn khách đó (tương tự như khi thao tác tìm kiếm ở mục <em>Xem theo khách đặt</em>). Hãy tận dụng lối tắt này để kiểm tra hoặc nhận phòng nhanh cho đoàn.</li>
+            </ul>
+
             <h3 className="text-lg font-semibold mt-6 mb-2 text-slate-800 dark:text-slate-200">Đặt nhiều phòng cùng lúc (Cho khách đoàn):</h3>
             <ul className="list-disc pl-5 space-y-2 text-slate-600 dark:text-slate-300">
               <li>Sử dụng nút <strong className="text-blue-600 dark:text-blue-400">+ Thêm khách/Đoàn</strong> màu xanh bên phải Sơ đồ phòng.</li>
@@ -114,7 +122,7 @@ export default function UserGuide() {
               <li><strong>Xem doanh thu:</strong> Xem theo Ngày, theo Tháng, hoặc theo Năm. Biểu đồ thông báo tỷ lệ tăng trưởng so với kỳ trước.</li>
               <li><strong>Sổ giao dịch:</strong> Hiển thị đầy đủ khách hàng nào trả phòng lúc nào và chi trả bao nhiêu.</li>
               <li><strong>Chỉnh sửa hóa đơn:</strong> Nếu xảy ra sai sót hoặc khách mua thêm dịch vụ sau cùng, bạn có thể <em>bấm vào tên khách hàng</em> trong Lịch sử giao dịch để điều chỉnh: Giá phòng, Trừ cọc, cập nhật sử dụng số lượng mặt hàng Minibar (Snack, nước, bim bim...) hay thêm phụ thu. Tổng thu thực tế sẽ tự động tính toán lại.</li>
-              <li><strong>Bảo mật khi xóa:</strong> Nếu bạn muốn xóa một giao dịch bị lỗi/ tạo nhầm, hệ thống sẽ yêu cầu một mật khẩu bảo mật trước khi cho phép xóa hoá đơn (nhằm kiểm soát nhân viên lễ tân, quản lý quyền hạn tài chính).</li>
+              <li><strong>Bảo mật khi xóa:</strong> Nếu bạn muốn xóa một giao dịch bị lỗi/ tạo nhầm, hệ thống sẽ yêu cầu một mật khẩu bảo mật trước khi cho phép xóa hoá đơn.</li>
             </ul>
           </div>
         </section>

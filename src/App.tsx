@@ -145,6 +145,7 @@ export default function App() {
   const availableRooms = rooms.filter((r) => getLiveRoomState(r).status === "available").length;
   const occupiedRooms = rooms.filter((r) => getLiveRoomState(r).status === "occupied").length;
   const reservedRooms = rooms.filter((r) => getLiveRoomState(r).status === "reserved").length;
+  const maintenanceRooms = rooms.filter((r) => getLiveRoomState(r).status === "maintenance").length;
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans relative">
@@ -222,23 +223,29 @@ export default function App() {
               </button>
             )}
 
-            <div className="hidden lg:flex items-center gap-4 border border-slate-200 rounded-lg p-1 bg-slate-50">
-              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200">
+            <div className="hidden lg:flex items-center gap-4 border border-slate-200 dark:border-slate-800 rounded-lg p-1 bg-slate-50 dark:bg-slate-800/40">
+              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-sm font-medium text-slate-600">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Trống: {availableRooms}
                 </span>
               </div>
-              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200">
+              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
                 <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                <span className="text-sm font-medium text-slate-600">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Đang ở: {occupiedRooms}
                 </span>
               </div>
-              <div className="px-3 py-1 flex items-center gap-2 pr-3">
+              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span className="text-sm font-medium text-slate-600">
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
                   Đã đặt: {reservedRooms}
+                </span>
+              </div>
+              <div className="px-3 py-1 flex items-center gap-2 pr-3">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  Bảo trì: {maintenanceRooms}
                 </span>
               </div>
             </div>
