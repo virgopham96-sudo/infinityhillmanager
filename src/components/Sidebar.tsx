@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../store";
+import toast from "react-hot-toast";
 
 interface SidebarProps {
   currentView: "dashboard" | "revenue" | "schedule" | "guests" | "guide";
@@ -45,19 +46,25 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
       if (!file) return;
       const reader = new FileReader();
       reader.onload = async (event) => {
+        let toastId = "";
         try {
           const data = JSON.parse(event.target?.result as string);
           if (data.rooms && data.bookings) {
-            if (window.confirm("Thao tác này sẽ ghi đè toàn bộ dữ liệu hiện tại. Bạn có chắc chắn muốn khôi phục?")) {
+            if (window.confirm("Thao tác này sẽ xóa sạch dữ liệu hiện tại để ghi đè dữ liệu từ bản sao lưu. Bạn có chắc chắn muốn khôi phục?")) {
+              toastId = toast.loading("Đang khôi phục dữ liệu lên cloud...");
               await restoreData(data.rooms, data.bookings);
-              alert("Khôi phục dữ liệu thành công!");
+              toast.success("Khôi phục dữ liệu thành công!", { id: toastId });
             }
           } else {
-            alert("File định dạng không hợp lệ!");
+            toast.error("File sao lưu không hợp lệ! Vui lòng chọn đúng file JSON sao lưu của hệ thống.");
           }
-        } catch (error) {
-          console.error(error);
-          alert("Lỗi khi đọc file!");
+        } catch (error: any) {
+          console.error("Restore Error: ", error);
+          if (toastId) {
+            toast.error("Khôi phục thất bại: " + (error?.message || "Lỗi đường truyền cloud. Vui lòng kiểm tra lại."), { id: toastId });
+          } else {
+            toast.error("Lỗi khi đọc file sao lưu: " + (error?.message || "File không đúng định dạng."));
+          }
         }
       };
       reader.readAsText(file);

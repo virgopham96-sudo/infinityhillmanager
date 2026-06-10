@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import RoomGrid from "./components/RoomGrid";
 import RevenueReport from "./components/RevenueReport";
@@ -19,6 +19,8 @@ import { getLiveRoomState } from "./lib/utils";
 
 import RealTimeClock from "./components/RealTimeClock";
 import ThemeToggle from "./components/ThemeToggle";
+import toast from "react-hot-toast";
+import { format, parseISO } from "date-fns";
 
 export default function App() {
   const {
@@ -39,6 +41,57 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMultiBooking, setShowMultiBooking] = useState(false);
   const [initialMultiBookingGuest, setInitialMultiBookingGuest] = useState<string | null>(null);
+
+  // Keep track of notified checkouts to prevent duplicate alerts in the current session
+  const notifiedCheckoutsRef = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    if (currentView === "dashboard" && isLoaded && rooms && rooms.length > 0) {
+      const now = new Date();
+      const todayStr = format(now, "yyyy-MM-dd");
+      
+      rooms.forEach((room) => {
+        const liveState = getLiveRoomState(room);
+        if (liveState.status === "occupied" && liveState.checkOutTime) {
+          try {
+            const outDate = parseISO(liveState.checkOutTime);
+            const outDateStr = format(outDate, "yyyy-MM-dd");
+            
+            if (todayStr === outDateStr) {
+              const lastNotifiedTime = notifiedCheckoutsRef.current[room.id];
+              // Only trigger toast if we haven't notified for this specific room and checkout time
+              if (lastNotifiedTime !== liveState.checkOutTime) {
+                notifiedCheckoutsRef.current[room.id] = liveState.checkOutTime;
+                
+                const timeStr = format(outDate, "HH:mm");
+                const guestName = liveState.guestName || "Khách lẻ";
+                
+                toast(
+                  (t) => (
+                    <div className="flex flex-col gap-1 text-slate-800 dark:text-slate-100">
+                      <div className="flex items-center gap-2 font-bold text-sm">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+                        <span className="text-rose-600 dark:text-rose-400">Sắp đến giờ trả phòng hôm nay</span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-300">
+                        Phòng <strong className="text-blue-600 dark:text-blue-400">{room.id}</strong> ({guestName}) dự kiến checkout lúc <strong>{timeStr}</strong>.
+                      </p>
+                    </div>
+                  ),
+                  {
+                    duration: 8000,
+                    position: "top-right",
+                  }
+                );
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing checkout time for alert:", e);
+          }
+        }
+      });
+    }
+  }, [currentView, isLoaded, rooms]);
 
   // Login State
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -223,32 +276,7 @@ export default function App() {
               </button>
             )}
 
-            <div className="hidden lg:flex items-center gap-4 border border-slate-200 dark:border-slate-800 rounded-lg p-1 bg-slate-50 dark:bg-slate-800/40">
-              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Trống: {availableRooms}
-                </span>
-              </div>
-              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Đang ở: {occupiedRooms}
-                </span>
-              </div>
-              <div className="px-3 py-1 flex items-center gap-2 border-r border-slate-200 dark:border-slate-800">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Đã đặt: {reservedRooms}
-                </span>
-              </div>
-              <div className="px-3 py-1 flex items-center gap-2 pr-3">
-                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                  Bảo trì: {maintenanceRooms}
-                </span>
-              </div>
-            </div>
+
           </div>
         </header>
 

@@ -142,23 +142,49 @@ export async function deleteBookingFromFirebase(id: string) {
 
 export async function restoreDataToFirebase(rooms: Room[], bookings: BookingRecord[]) {
   try {
-    const batch = writeBatch(db);
-    
+    // 1. Fetch current bookings to delete them
+    const currentBookingsSnap = await getDocs(collection(db, "bookings"));
+    const currentBookingIds = currentBookingsSnap.docs.map(doc => doc.id);
+
+    // 2. Queue actions (delete old bookings, write new rooms, write new bookings)
+    let ops: { type: "set" | "delete"; collection: string; id: string; data?: any }[] = [];
+
+    // Delete current bookings
+    currentBookingIds.forEach(id => {
+      ops.push({ type: "delete", collection: "bookings", id });
+    });
+
+    // Write rooms from backup (restoring names, reservations, status, etc.)
     rooms.forEach(room => {
       const data = removeUndefined({ ...room });
       delete (data as any).id;
-      const ref = doc(db, "rooms", room.id);
-      batch.set(ref, data);
+      ops.push({ type: "set", collection: "rooms", id: room.id, data });
     });
 
+    // Write bookings from backup
     bookings.forEach(booking => {
       const data = removeUndefined({ ...booking });
       delete (data as any).id;
-      const ref = doc(db, "bookings", booking.id);
-      batch.set(ref, data);
+      ops.push({ type: "set", collection: "bookings", id: booking.id, data });
     });
 
-    await batch.commit();
+    // 3. Execute in safe chunks/batches (up to 200 operations each, well within 500 limit)
+    const BATCH_SIZE = 200;
+    for (let i = 0; i < ops.length; i += BATCH_SIZE) {
+      const chunk = ops.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      
+      chunk.forEach(op => {
+        const ref = doc(db, op.collection, op.id);
+        if (op.type === "delete") {
+          batch.delete(ref);
+        } else {
+          batch.set(ref, op.data);
+        }
+      });
+
+      await batch.commit();
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, "restore");
     throw error;
