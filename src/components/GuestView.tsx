@@ -176,8 +176,8 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
     <div className="p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Xem theo khách đặt</h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Xem theo khách đặt</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Danh sách khách hàng, đoàn khách và thông tin phòng
           </p>
         </div>
@@ -193,10 +193,10 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-slate-800 font-medium border-b border-slate-200">
+          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-4 py-4 whitespace-nowrap min-w-[180px]">Khách/ Đoàn khách</th>
                 <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Tổng số phòng</th>
@@ -207,10 +207,10 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
                 <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Trạng thái</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     Chưa có thông tin khách đặt nào
                   </td>
                 </tr>
@@ -220,20 +220,20 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
                   return (
                   <tr 
                     key={item.id} 
-                    className={`transition-colors ${onEditGroup ? "hover:bg-slate-50 cursor-pointer" : ""}`}
+                    className={`transition-colors ${onEditGroup ? "hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" : ""}`}
                     onClick={() => {
                         if (onEditGroup && item.status !== "Đã trả phòng") {
                             onEditGroup(item.guestName);
                         }
                     }}
                   >
-                    <td className="px-4 py-4 font-medium text-slate-800 whitespace-nowrap">
+                    <td className="px-4 py-4 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       {item.guestName || "Khách vô danh"}
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="font-medium text-slate-800">{total}</div>
+                      <div className="font-medium text-slate-800 dark:text-slate-200">{total}</div>
                       {typesString && (
-                        <div className="text-xs text-slate-500 mt-0.5">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                           ({typesString})
                         </div>
                       )}
@@ -241,7 +241,7 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-1.5">
                         {item.rooms.sort().map((roomId) => (
-                          <span key={roomId} className="px-2 py-0.5 bg-slate-100 text-slate-700 font-medium rounded text-xs border border-slate-200">
+                          <span key={roomId} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded text-xs border border-slate-200 dark:border-slate-700">
                             {roomId}
                           </span>
                         ))}
@@ -256,10 +256,10 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
                       <span
                         className={`px-2.5 py-1 text-[11px] font-semibold rounded-full uppercase tracking-wider ${
                           item.status === "Đã nhận phòng"
-                            ? "bg-rose-100 text-rose-700"
+                            ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
                             : item.status === "Đã đặt trước"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-emerald-100 text-emerald-700"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
                         }`}
                       >
                         {item.status}

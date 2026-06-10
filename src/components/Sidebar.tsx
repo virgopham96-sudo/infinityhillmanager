@@ -63,9 +63,9 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
   };
 
   return (
-    <aside className="flex flex-col w-64 bg-[#004b93] text-blue-100 h-full min-h-screen">
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-[#003a73]">
-        <div className="flex items-center justify-center p-1 bg-white rounded-lg w-10 h-10">
+    <aside className="flex flex-col w-64 bg-[#004b93] dark:bg-slate-950 text-blue-100 dark:text-slate-300 h-full min-h-screen border-r border-transparent dark:border-slate-800">
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-[#003a73] dark:border-slate-800">
+        <div className="flex items-center justify-center p-1 bg-white dark:bg-slate-800 rounded-lg w-10 h-10">
           <img src="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
         </div>
         <span className="font-semibold text-base text-white font-sans tracking-tight leading-tight">
@@ -79,8 +79,8 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
             currentView === "dashboard"
-              ? "bg-[#003a73] text-white"
-              : "hover:bg-[#003a73]/70 hover:text-white",
+              ? "bg-[#003a73] dark:bg-slate-800 text-white"
+              : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white",
           )}
         >
           <LayoutDashboard className="w-4 h-4" />
@@ -91,8 +91,8 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
             currentView === "schedule"
-              ? "bg-[#003a73] text-white"
-              : "hover:bg-[#003a73]/70 hover:text-white",
+              ? "bg-[#003a73] dark:bg-slate-800 text-white"
+              : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white",
           )}
         >
           <CalendarDays className="w-4 h-4" />
@@ -103,8 +103,8 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
             currentView === "guests"
-              ? "bg-[#003a73] text-white"
-              : "hover:bg-[#003a73]/70 hover:text-white",
+              ? "bg-[#003a73] dark:bg-slate-800 text-white"
+              : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white",
           )}
         >
           <Users className="w-4 h-4" />
@@ -115,8 +115,8 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
           className={cn(
             "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
             currentView === "revenue"
-              ? "bg-[#003a73] text-white"
-              : "hover:bg-[#003a73]/70 hover:text-white",
+              ? "bg-[#003a73] dark:bg-slate-800 text-white"
+              : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white",
           )}
         >
           <Receipt className="w-4 h-4" />
@@ -125,17 +125,17 @@ export default function Sidebar({ currentView, onChangeView }: SidebarProps) {
       </nav>
 
       <div className="px-4 pb-6 mt-auto">
-        <div className="border-t border-[#003a73] pt-4 space-y-2">
+        <div className="border-t border-[#003a73] dark:border-slate-800 pt-4 space-y-2">
           <button
             onClick={handleBackup}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium hover:bg-[#003a73]/70 hover:text-white"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white"
           >
             <Download className="w-4 h-4" />
             Sao lưu dữ liệu
           </button>
           <button
             onClick={handleRestore}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium hover:bg-[#003a73]/70 hover:text-white"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white"
           >
             <Upload className="w-4 h-4" />
             Phục hồi dữ liệu

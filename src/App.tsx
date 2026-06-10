@@ -16,6 +16,9 @@ import { Room } from "./types";
 import { Loader2, PlusSquare, Building } from "lucide-react";
 import { getLiveRoomState } from "./lib/utils";
 
+import RealTimeClock from "./components/RealTimeClock";
+import ThemeToggle from "./components/ThemeToggle";
+
 export default function App() {
   const {
     rooms,
@@ -24,6 +27,7 @@ export default function App() {
     updateRoom,
     updateMultipleRooms,
     addBooking,
+    updateBooking,
     removeBooking,
   } = useStore();
   const [currentView, setCurrentView] = useState<
@@ -43,7 +47,7 @@ export default function App() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
       </div>
     );
@@ -51,13 +55,13 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
-            <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white shadow-sm border border-slate-100 flex items-center justify-center">
+            <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
               <img src="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight text-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight text-center">
               Infinity Hill Manager
             </h1>
             <p className="text-slate-500 text-sm mt-2 text-center">
@@ -78,12 +82,12 @@ export default function App() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Tên đăng nhập
               </label>
               <input
                 type="text"
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Nhập tên đăng nhập"
@@ -91,12 +95,12 @@ export default function App() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 Mật khẩu
               </label>
               <input
                 type="password"
-                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••"
@@ -124,12 +128,7 @@ export default function App() {
   const reservedRooms = rooms.filter((r) => getLiveRoomState(r).status === "reserved").length;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans relative">
-      {/* Background Logo */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-[0.03] bg-no-repeat bg-center z-0" 
-        style={{ backgroundImage: 'url("https://i.postimg.cc/zGVdJvzs/Logo-Full-Tach-Nen.png")', backgroundSize: '500px' }}
-      />
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans relative">
       
       {/* Backdrop */}
       {isMobileMenuOpen && (
@@ -155,10 +154,10 @@ export default function App() {
       </div>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden w-full relative z-10">
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-3 md:px-8 py-3 md:py-5 flex items-center justify-between z-10 shrink-0">
+        <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 md:px-8 py-3 md:py-5 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-2 md:gap-3">
             <button
-              className="md:hidden p-1.5 md:p-2 text-slate-500 hover:bg-slate-100 rounded-lg shrink-0"
+              className="md:hidden p-1.5 md:p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg shrink-0"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <svg
@@ -175,7 +174,7 @@ export default function App() {
                 />
               </svg>
             </button>
-            <h1 className="text-lg md:text-2xl font-semibold text-slate-800 tracking-tight flex-1 truncate">
+            <h1 className="text-lg md:text-2xl font-semibold text-slate-800 dark:text-slate-100 tracking-tight flex-1 truncate">
               {currentView === "dashboard" && "Sơ đồ phòng"}
               {currentView === "revenue" && "Doanh thu"}
               {currentView === "schedule" && "Lịch đặt"}
@@ -184,6 +183,8 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <ThemeToggle />
+            <RealTimeClock />
             {currentView === "dashboard" && (
               <button
                 onClick={() => setShowMultiBooking(true)}
@@ -229,6 +230,7 @@ export default function App() {
               <RevenueReport
                 bookings={bookings}
                 onRemoveBooking={removeBooking}
+                onUpdateBooking={updateBooking}
               />
             )}
             {currentView === "schedule" && (

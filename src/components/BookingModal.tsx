@@ -3,6 +3,7 @@ import { Room, BookingRecord, RoomStatus, Reservation } from "../types";
 import { cn, formatCurrency, calculateTotalPrice, getLiveRoomState } from "../lib/utils";
 import { format, parseISO, addDays, set, startOfDay } from "date-fns";
 import toast from "react-hot-toast";
+import { useStore } from "../store";
 import {
   X,
   Clock,
@@ -35,6 +36,12 @@ export default function BookingModal({
   onAddBooking,
   initialCheckInDate,
 }: BookingModalProps) {
+  const { bookings } = useStore();
+  const roomHistory = bookings
+    .filter((b) => b.roomId === room.id)
+    .sort((a, b) => new Date(b.checkOut).getTime() - new Date(a.checkOut).getTime());
+  const [activeTab, setActiveTab] = useState<"info" | "history">("info");
+
   const defaultCheckIn = set(initialCheckInDate || new Date(), {
     hours: 14,
     minutes: 0,
@@ -286,6 +293,12 @@ export default function BookingModal({
       status: "completed",
       createdAt: new Date().toISOString(),
       notes: notes || room.notes,
+      checkoutDetails: {
+        roomPrice: totalPrice,
+        deposit: room.deposit || 0,
+        minibar: minibar,
+        compensation: compensation,
+      }
     };
 
     onAddBooking(newBooking);
@@ -407,32 +420,48 @@ export default function BookingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-slate-800">
-              Phòng {room.id}
-            </h2>
-            <span
-              className={cn(
-                "text-xs px-2.5 py-1 rounded-full font-medium border",
-                effectiveStatus === "available"
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : effectiveStatus === "occupied"
-                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                    : effectiveStatus === "reserved"
-                      ? "bg-amber-50 text-amber-700 border-amber-200"
-                      : "bg-slate-100 text-slate-700 border-slate-200",
-              )}
+        <div className="flex flex-col border-b border-slate-100 bg-slate-50">
+          <div className="px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold text-slate-800">
+                Phòng {room.id}
+              </h2>
+              <span
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded-full font-medium border",
+                  effectiveStatus === "available"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : effectiveStatus === "occupied"
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : effectiveStatus === "reserved"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-slate-100 text-slate-700 border-slate-200",
+                )}
+              >
+                {statusLabels[effectiveStatus]}
+              </span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors"
             >
-              {statusLabels[effectiveStatus]}
-            </span>
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="px-6 flex gap-4">
+            <button
+              className={cn("pb-3 text-sm font-medium border-b-2 transition-colors", activeTab === "info" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700")}
+              onClick={() => setActiveTab("info")}
+            >
+              Thông tin phòng
+            </button>
+            <button
+              className={cn("pb-3 text-sm font-medium border-b-2 transition-colors", activeTab === "history" ? "border-blue-600 text-blue-600" : "border-transparent text-slate-500 hover:text-slate-700")}
+              onClick={() => setActiveTab("history")}
+            >
+              Lịch sử phòng
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
@@ -448,7 +477,8 @@ export default function BookingModal({
             </div>
           )}
 
-          {room.status === "maintenance" ? (
+          {activeTab === "info" ? (
+            room.status === "maintenance" ? (
             <div className="flex flex-col items-center justify-center py-8 text-slate-500">
               <ShieldAlert className="w-16 h-16 text-slate-300 mb-4" />
               <p className="font-medium text-lg text-slate-700">
@@ -838,10 +868,35 @@ export default function BookingModal({
                 )}
               </div>
             </div>
+          )
+          ) : (
+            <div className="space-y-4">
+              {roomHistory.length > 0 ? (
+                roomHistory.map((record) => (
+                  <div key={record.id} className="p-4 border border-slate-200 rounded-lg flex flex-col gap-2 bg-white">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-slate-800">{record.guestName}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{format(parseISO(record.checkIn), "dd/MM/yyyy HH:mm")} - {format(parseISO(record.checkOut), "dd/MM/yyyy HH:mm")}</p>
+                      </div>
+                      <span className="text-sm font-bold text-blue-600">{formatCurrency(record.totalPrice)}</span>
+                    </div>
+                    {record.notes && (
+                      <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded border border-slate-100">{record.notes}</p>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-sm text-slate-500 border border-dashed border-slate-200 rounded-lg">
+                  Chưa có lịch sử khách hàng
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-wrap justify-end items-center">
+        {activeTab === "info" && (
+          <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-wrap justify-end items-center">
           {effectiveStatus === "available" && (
             <>
               <button
@@ -912,8 +967,9 @@ export default function BookingModal({
             >
               Đã sửa xong (Trống)
             </button>
-          )}
+        )}
         </div>
+      )}
       </div>
     </div>
   );

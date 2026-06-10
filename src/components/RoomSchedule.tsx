@@ -109,29 +109,29 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full">
       {/* Header Month Navigation */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border-b border-slate-100 gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 gap-4">
         <div className="flex items-center justify-between w-full md:w-auto gap-2">
           <button
             onClick={handlePrevMonth}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-bold text-slate-800 tracking-tight min-w-[150px] text-center uppercase">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight min-w-[150px] text-center uppercase">
             THÁNG {format(currentDate, "M")}
           </h2>
           <button
             onClick={handleNextMonth}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-600 w-full md:w-auto">
+        <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-600 dark:text-slate-300 w-full md:w-auto">
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-3 h-3 rounded-sm bg-emerald-500"></span> Trống
           </div>
@@ -149,9 +149,9 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
 
       <div className="flex-1 overflow-auto relative">
         <table className="w-full text-sm text-left border-collapse min-w-max">
-          <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
+          <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-10 shadow-sm">
             <tr>
-              <th className="sticky left-0 bg-slate-50 p-2 md:p-3 text-xs md:text-sm font-semibold text-slate-700 border-b border-r border-slate-200 w-16 md:w-24 z-20 shadow-sm">
+              <th className="sticky left-0 bg-slate-50 dark:bg-slate-900 p-2 md:p-3 text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300 border-r border-slate-200 dark:border-slate-800 w-16 md:w-24 z-20 shadow-sm">
                 Số phòng
               </th>
               {daysInMonth.map((day) => {
@@ -170,7 +170,7 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
                 return (
                   <th
                     key={day.toISOString()}
-                    className="p-1 md:p-2 text-xs md:text-sm font-medium text-slate-600 border-b border-r border-slate-200 text-center min-w-[28px] md:min-w-[36px] relative group cursor-help"
+                    className="p-1 md:p-2 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 text-center min-w-[28px] md:min-w-[36px] relative group cursor-help"
                   >
                     <span>{format(day, "d")}</span>
                     <div className="absolute top-full mt-1 left-1/2 -translate-x-1/2 z-50 hidden group-hover:block w-36 bg-slate-800 text-white text-xs rounded-md shadow-xl p-2.5 text-left font-normal flex flex-col gap-1.5">
@@ -196,12 +196,12 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
             {rooms
               .sort((a, b) => a.id.localeCompare(b.id))
               .map((room) => (
-                <tr key={room.id} className="hover:bg-slate-50/50">
-                  <td className="sticky left-0 bg-white font-bold text-slate-800 p-2 md:p-3 text-xs md:text-sm border-r border-slate-200 z-10">
+                <tr key={room.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800/60">
+                  <td className="sticky left-0 bg-white dark:bg-slate-900 font-bold text-slate-800 dark:text-slate-200 p-2 md:p-3 text-xs md:text-sm border-r border-slate-200 dark:border-slate-800 z-10">
                     {room.id}
                   </td>
                   {daysInMonth.map((day) => {
@@ -212,8 +212,8 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
                       <td
                         key={day.toISOString()}
                         className={cn(
-                          "border-r border-slate-200 p-0.5 md:p-1 cursor-pointer transition-colors relative group",
-                          isToday && "bg-blue-50/30",
+                          "border-r border-slate-200 dark:border-slate-800 p-0.5 md:p-1 cursor-pointer transition-colors relative group",
+                          isToday && "bg-blue-50/30 dark:bg-blue-900/10",
                         )}
                         onClick={() => {
                           if (
@@ -254,37 +254,37 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
       {/* Guest Info Modal/Popup */}
       {selectedGuestInfo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 dark:bg-slate-900/50 backdrop-blur-sm"
           onClick={() => setSelectedGuestInfo(null)}
         >
           <div
-            className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden"
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-sm overflow-hidden border border-transparent dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-semibold text-slate-800">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+              <h3 className="font-semibold text-slate-800 dark:text-slate-100">
                 Chi tiết phòng {selectedGuestInfo.room}
               </h3>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-0.5">
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">
                     Khách hàng
                   </p>
-                  <p className="text-sm font-semibold text-slate-800">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     {selectedGuestInfo.guestName || "Không rõ"}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-sm space-y-2">
+              <div className="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 text-sm space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Check-in:</span>
-                  <span className="font-medium text-slate-700">
+                  <span className="text-slate-500 dark:text-slate-400">Check-in:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
                     {selectedGuestInfo.checkIn
                       ? format(
                           parseISO(selectedGuestInfo.checkIn),
@@ -294,8 +294,8 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Check-out:</span>
-                  <span className="font-medium text-slate-700">
+                  <span className="text-slate-500 dark:text-slate-400">Check-out:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
                     {selectedGuestInfo.checkOut
                       ? format(
                           parseISO(selectedGuestInfo.checkOut),
@@ -306,10 +306,10 @@ export default function RoomSchedule({ rooms, onBookRoom }: RoomScheduleProps) {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
               <button
                 onClick={() => setSelectedGuestInfo(null)}
-                className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium rounded-lg transition-colors"
+                className="w-full py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-lg transition-colors"
               >
                 Đóng
               </button>

@@ -34,4 +34,10 @@ export interface BookingRecord {
   status: "active" | "completed" | "cancelled";
   createdAt: string; // ISO string
   notes?: string;
+  checkoutDetails?: {
+    roomPrice: number;
+    deposit: number;
+    minibar: Record<string, number>;
+    compensation: number;
+  };
 }
