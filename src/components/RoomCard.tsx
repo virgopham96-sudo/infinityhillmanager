@@ -45,8 +45,7 @@ export default function RoomCard({ room, onClick }: RoomCardProps) {
       onClick={() => onClick(room)}
       className={cn(
         "relative flex flex-col text-left p-3 sm:p-4 rounded-xl border transition-all duration-200 hover:shadow-md hover:-translate-y-1",
-        config.color,
-        "bg-white dark:bg-slate-800",
+        config.color
       )}
     >
       <div className="flex justify-between items-start mb-3 sm:mb-4 w-full">

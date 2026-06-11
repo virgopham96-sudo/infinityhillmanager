@@ -36,7 +36,9 @@ export default function UserGuide() {
               <li><strong>Khách lẻ Check-in:</strong> Khi phòng trống, chọn chức năng thao tác, điền thông tin (tên, cọc, ngày đi) để nhận phòng ngay lập tức.</li>
               <li><strong>Thêm lịch đặt trước:</strong> Cho phép bạn đặt lịch giữ phòng vào một ngày trong tương lai.</li>
               <li><strong>Check-out (Trả phòng):</strong> Khi khách trả, chọn Check-out. Hệ thống sẽ tự động tổng hợp <em>Tiền phòng</em> (dựa theo số ngày), <em>Tiền đặt cọc</em> (đã đóng), và cho phép bạn cộng thêm <em>Minibar</em> hoặc <em>Phụ thu/ Đền bù</em>. Giao dịch sẽ lưu vào Doanh thu.</li>
+              <li><strong>Chuyển phòng:</strong> Khi phòng đang có khách ở, bạn có thể chuyển khách sang phòng trống khác nếu có nhu cầu. Hệ thống tự động kiểm tra tính hợp lệ của phòng đích (không trùng lịch sử dụng/đặt trước) và chuyển toàn bộ thông tin thanh toán, thời gian ở sang phòng mới.</li>
               <li><strong>Tự động nhắc nhở Check-out:</strong> Khi bạn truy cập Sơ đồ phòng, hệ thống tự động phát hiện và gửi thông báo trực quan (Toast) ở góc màn hình cho những phòng sắp đến giờ check-out trong ngày để nhân viên dễ dàng sắp xếp lịch dọn dẹp, buồng phòng.</li>
+              <li><strong>Giao diện Mobile (Lịch sự kiện):</strong> Trên điện thoại, Sơ đồ phòng tự động chuyển sang chế độ Lịch nhỏ gọn nửa trên, nửa dưới là Danh sách lịch trình chi tiết (Agenda) tập trung vào nhận/trả phòng trong ngày. Cho phép ấn trực tiếp vào Tên Khách trong bản ghi thông tin để xem/chỉnh sửa chi tiết nhóm/đoàn khách.</li>
               <li><strong>Bảo trì/Dọn dẹp:</strong> Chuyển trạng thái phòng sang Bảo trì để không thể thao tác check-in. Khách sạn có thể quản lý được buồng phòng đang không sẵn sàng phục vụ.</li>
             </ul>
 

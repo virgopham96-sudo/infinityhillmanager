@@ -302,6 +302,10 @@ export default function App() {
                     setBookingInitialDate(date);
                   }
                 }}
+                onEditGuest={(name) => {
+                  setInitialMultiBookingGuest(name);
+                  setShowMultiBooking(true);
+                }}
               />
             )}
             {currentView === "guests" && (

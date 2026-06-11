@@ -511,25 +511,25 @@ export default function MultiBookingModal({
   if (showConfirmCancel) {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <h3 className="font-semibold text-rose-600 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+            <h3 className="font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-2">
               Xác nhận hủy
             </h3>
             <button
               onClick={() => setShowConfirmCancel(false)}
-              className="p-1 hover:bg-slate-200 rounded-lg text-slate-500"
+              className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700/50 rounded-lg text-slate-500 dark:text-slate-400"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="p-5 text-sm text-slate-700">
+          <div className="p-5 text-sm text-slate-700 dark:text-slate-300">
             Bạn có chắc chắn muốn hủy toàn bộ đặt phòng của đoàn này không?
           </div>
-          <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center">
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-3 justify-end items-center">
             <button
               onClick={() => setShowConfirmCancel(false)}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-200/50 text-sm font-medium rounded-lg transition-colors mr-auto"
+              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-sm font-medium rounded-lg transition-colors mr-auto"
             >
               Quay lại
             </button>
@@ -550,14 +550,14 @@ export default function MultiBookingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
-          <h2 className="text-xl font-semibold text-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
             Đặt nhiều phòng / Check-in đoàn
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-full transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -565,11 +565,11 @@ export default function MultiBookingModal({
 
         <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
           {error && (
-            <div className="bg-rose-50 text-rose-600 p-3 rounded-lg text-sm border border-rose-100 flex items-center justify-between">
+            <div className="bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 p-3 rounded-lg text-sm border border-rose-100 dark:border-rose-800 flex items-center justify-between">
               <span>{error}</span>
               <button
                 onClick={() => setError(null)}
-                className="text-rose-400 hover:text-rose-600"
+                className="text-rose-400 hover:text-rose-600 dark:text-rose-500 dark:hover:text-rose-300"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -577,15 +577,15 @@ export default function MultiBookingModal({
           )}
 
           {existingGroups.length > 0 && (
-            <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+            <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/50 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-500" />
                 Chọn đoàn đã đặt trước (Tùy chọn)
               </label>
               <select
                 value={selectedGroup ? existingGroups.findIndex(g => g.guestName === selectedGroup.guestName && g.checkIn === selectedGroup.checkIn) : ""}
                 onChange={handleSelectGroup}
-                className="w-full border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">-- Chọn khách/đoàn đã đặt trước --</option>
                 {existingGroups.map((group, idx) => (
@@ -600,7 +600,7 @@ export default function MultiBookingModal({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                 <User className="w-4 h-4 text-slate-400" />
                 Tên đoàn / Khách hàng đại diện
               </label>
@@ -609,13 +609,13 @@ export default function MultiBookingModal({
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Nhập tên khách hàng"
-                className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-slate-400" />
                   Từ ngày (Check-in)
                 </label>
@@ -623,11 +623,11 @@ export default function MultiBookingModal({
                   type="datetime-local"
                   value={checkIn}
                   onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                  className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-slate-400" />
                   Đến ngày (Check-out)
                 </label>
@@ -635,13 +635,13 @@ export default function MultiBookingModal({
                   type="datetime-local"
                   value={checkOut}
                   onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                  className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-slate-400" />
                 Tổng tiền cọc trả trước (VNĐ)
               </label>
@@ -653,12 +653,12 @@ export default function MultiBookingModal({
                   setTotalDeposit(raw ? parseInt(raw, 10) : 0);
                 }}
                 placeholder="VD: 500.000"
-                className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white"
+                className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-2">
                 <User className="w-4 h-4 text-transparent" />
                 Ghi chú
               </label>
@@ -666,14 +666,14 @@ export default function MultiBookingModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Nhập yêu cầu đặc biệt hoặc ghi chú thêm (nếu có)"
-                className="w-full border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white min-h-[80px]"
+                className="w-full border-slate-200 dark:border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none border bg-white dark:bg-slate-800 dark:text-slate-100 min-h-[80px]"
               />
             </div>
           </div>
 
           <div>
             <div className="flex justify-between items-end mb-3">
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Chọn phòng ({selectedRoomIds.length} đã chọn)
               </label>
               <button
@@ -684,7 +684,7 @@ export default function MultiBookingModal({
                       : selectableRooms.map((r) => r.id),
                   )
                 }
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
               >
                 {selectedRoomIds.length === selectableRooms.length
                   ? "Bỏ chọn tất cả"
@@ -708,8 +708,8 @@ export default function MultiBookingModal({
                     className={cn(
                       "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer relative",
                       isSelected
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-blue-300",
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-700",
                     )}
                   >
                     <span className="font-bold text-lg">{room.id}</span>
@@ -717,7 +717,7 @@ export default function MultiBookingModal({
                       {room.type}
                     </span>
                     {room.status !== "available" && (
-                      <span className="text-[10px] mt-1 text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[10px] mt-1 text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full">
                         {statusLabels[room.status]}
                       </span>
                     )}
@@ -725,32 +725,32 @@ export default function MultiBookingModal({
                 );
               })}
               {selectableRooms.length === 0 && (
-                <div className="col-span-full py-6 text-center text-slate-500 text-sm">
+                <div className="col-span-full py-6 text-center text-slate-500 dark:text-slate-400 text-sm">
                   Không còn phòng
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-auto p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex flex-col gap-2">
+          <div className="mt-auto p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/50 flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-emerald-900 flex items-center gap-2">
+              <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
                 <CreditCard className="w-5 h-5" />
                 Tổng tiền dự kiến ({selectedRoomIds.length} phòng):
               </span>
-              <span className="font-bold text-emerald-700 text-lg">
+              <span className="font-bold text-emerald-700 dark:text-emerald-400 text-lg">
                 {formatCurrency(totalExpectedPrice)}
               </span>
             </div>
             {totalDeposit > 0 && (
-              <div className="flex items-center justify-between text-amber-600 border-t border-emerald-200/50 pt-2 mt-1">
+              <div className="flex items-center justify-between text-amber-600 dark:text-amber-500 border-t border-emerald-200/50 dark:border-emerald-800/50 pt-2 mt-1">
                 <span className="text-sm font-medium">Đã cọc:</span>
                 <span className="font-semibold text-base">
                   -{formatCurrency(totalDeposit)}
                 </span>
               </div>
             )}
-            <div className="flex items-center justify-between text-emerald-900 border-t border-emerald-200/50 pt-2 mt-1">
+            <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-100 border-t border-emerald-200/50 dark:border-emerald-800/50 pt-2 mt-1">
               <span className="text-sm font-medium">Còn lại (ước tính):</span>
               <span className="font-bold text-xl">
                 {formatCurrency(Math.max(0, totalExpectedPrice - totalDeposit))}
@@ -759,18 +759,18 @@ export default function MultiBookingModal({
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end items-center">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex gap-3 justify-end items-center">
           {selectedGroup && (
             <button
               onClick={() => setShowConfirmCancel(true)}
-              className="px-4 py-2.5 text-rose-600 hover:bg-rose-50 text-sm font-medium rounded-lg transition-colors border border-rose-200"
+              className="px-4 py-2.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-sm font-medium rounded-lg transition-colors border border-rose-200 dark:border-rose-800/50"
             >
               Hủy cả đoàn
             </button>
           )}
           <button
             onClick={onClose}
-            className="px-4 py-2.5 text-slate-600 hover:bg-slate-200/50 text-sm font-medium rounded-lg transition-colors mr-auto"
+            className="px-4 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-sm font-medium rounded-lg transition-colors mr-auto"
           >
             Hủy lệnh
           </button>
