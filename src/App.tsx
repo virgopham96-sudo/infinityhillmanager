@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
+import { useLocation, useNavigate, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import RoomGrid from "./components/RoomGrid";
 import RevenueReport from "./components/RevenueReport";
@@ -33,9 +34,18 @@ export default function App() {
     updateBooking,
     removeBooking,
   } = useStore();
-  const [currentView, setCurrentView] = useState<
-    "dashboard" | "revenue" | "schedule" | "guests" | "guide"
-  >("dashboard");
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const currentView = (() => {
+    if (location.pathname === '/hien-trang') return 'schedule';
+    if (location.pathname === '/khach-dat') return 'guests';
+    if (location.pathname === '/doanh-thu') return 'revenue';
+    if (location.pathname === '/huong-dan') return 'guide';
+    return 'dashboard';
+  })();
+
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [bookingInitialDate, setBookingInitialDate] = useState<Date | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -116,7 +126,7 @@ export default function App() {
         <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
             <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-              <img src="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" alt="Logo" className="w-full h-full object-contain" />
+              <img src="https://img.upanhnhanh.com/838ca16fbbf10cadcb31c34093da480d" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight text-center">
               Infinity Hill Manager
@@ -218,7 +228,13 @@ export default function App() {
         <Sidebar
           currentView={currentView}
           onChangeView={(view) => {
-            setCurrentView(view);
+            switch (view) {
+              case 'schedule': navigate('/hien-trang'); break;
+              case 'guests': navigate('/khach-dat'); break;
+              case 'revenue': navigate('/doanh-thu'); break;
+              case 'guide': navigate('/huong-dan'); break;
+              case 'dashboard': default: navigate('/so-do-phong'); break;
+            }
             setIsMobileMenuOpen(false);
           }}
           onLogout={() => {
@@ -280,41 +296,45 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-8">
           <div className="max-w-7xl mx-auto h-full">
-            {currentView === "dashboard" && (
-              <RoomGrid rooms={rooms} onRoomSelect={setSelectedRoom} />
-            )}
-            {currentView === "revenue" && (
-              <RevenueReport
-                bookings={bookings}
-                onRemoveBooking={removeBooking}
-                onUpdateBooking={updateBooking}
-              />
-            )}
-            {currentView === "schedule" && (
-              <RoomSchedule 
-                rooms={rooms}
-                onBookRoom={(roomId, date) => {
-                  const roomToBook = rooms.find((r) => r.id === roomId);
-                  if (roomToBook) {
-                    setSelectedRoom(roomToBook);
-                    setBookingInitialDate(date);
-                  }
-                }}
-                onEditGuest={(name) => {
-                  setInitialMultiBookingGuest(name);
-                  setShowMultiBooking(true);
-                }}
-              />
-            )}
-            {currentView === "guests" && (
-              <GuestView 
-                onEditGroup={(name) => {
-                  setInitialMultiBookingGuest(name);
-                  setShowMultiBooking(true);
-                }}
-              />
-            )}
-            {currentView === "guide" && <UserGuide />}
+            <Routes>
+              <Route path="/" element={<Navigate to="/so-do-phong" replace />} />
+              <Route path="/so-do-phong" element={
+                <RoomGrid rooms={rooms} onRoomSelect={setSelectedRoom} />
+              } />
+              <Route path="/hien-trang" element={
+                <RoomSchedule 
+                  rooms={rooms}
+                  onBookRoom={(roomId, date) => {
+                    const roomToBook = rooms.find((r) => r.id === roomId);
+                    if (roomToBook) {
+                      setSelectedRoom(roomToBook);
+                      setBookingInitialDate(date);
+                    }
+                  }}
+                  onEditGuest={(name) => {
+                    setInitialMultiBookingGuest(name);
+                    setShowMultiBooking(true);
+                  }}
+                />
+              } />
+              <Route path="/khach-dat" element={
+                <GuestView 
+                  onEditGroup={(name) => {
+                    setInitialMultiBookingGuest(name);
+                    setShowMultiBooking(true);
+                  }}
+                />
+              } />
+              <Route path="/doanh-thu" element={
+                <RevenueReport
+                  bookings={bookings}
+                  onRemoveBooking={removeBooking}
+                  onUpdateBooking={updateBooking}
+                />
+              } />
+              <Route path="/huong-dan" element={<UserGuide />} />
+              <Route path="*" element={<Navigate to="/so-do-phong" replace />} />
+            </Routes>
           </div>
         </div>
       </main>

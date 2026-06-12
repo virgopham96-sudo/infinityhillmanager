@@ -76,7 +76,7 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
     <aside className="flex flex-col w-64 bg-[#004b93] dark:bg-slate-950 text-blue-100 dark:text-slate-300 h-full min-h-screen border-r border-transparent dark:border-slate-800">
       <div className="flex items-center gap-3 px-6 py-5 border-b border-[#003a73] dark:border-slate-800">
         <div className="flex items-center justify-center p-1 bg-white dark:bg-slate-800 rounded-lg w-10 h-10">
-          <img src="https://i.postimg.cc/Jzvpt8tt/Logo-Infinity-Only-tac-nen.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
+          <img src="https://img.upanhnhanh.com/838ca16fbbf10cadcb31c34093da480d" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
         </div>
         <span className="font-semibold text-base text-white font-sans tracking-tight leading-tight">
           Infinity Hill<br/>Manager
