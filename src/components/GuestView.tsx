@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useStore } from "../store";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Download } from "lucide-react";
+import { Download, Search, X } from "lucide-react";
 import * as XLSX from "xlsx";
 
 type GroupedBooking = {
@@ -19,6 +20,7 @@ interface GuestViewProps {
 
 export default function GuestView({ onEditGroup }: GuestViewProps) {
   const { rooms, bookings } = useStore();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const getGroupedBookings = () => {
     const rawEntries: {
@@ -107,6 +109,24 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
 
   const data = getGroupedBookings();
 
+  const filterBySearch = (name: string, keyword: string) => {
+    const norm = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d");
+    return norm(name).includes(norm(keyword));
+  };
+
+  const filteredData = data.filter(
+    (item) =>
+      filterBySearch(item.guestName || "Khách vô danh", searchTerm) ||
+      item.rooms.some((room) =>
+        room.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+  );
+
   const formatDate = (isoString?: string) => {
     if (!isoString) return "-";
     try {
@@ -131,7 +151,7 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
   };
 
   const handleExportExcel = () => {
-    const exportData = data.map((item, index) => {
+    const exportData = filteredData.map((item, index) => {
       const { total, typesString } = getRoomTypesCount(item.rooms);
       const inDate = formatDate(item.checkIn);
       const outDate = formatDate(item.checkOut);
@@ -174,23 +194,45 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Xem theo khách đặt</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Danh sách khách hàng, đoàn khách và thông tin phòng
           </p>
         </div>
-        {data.length > 0 && (
-          <button
-            id="btn-export-excel"
-            onClick={handleExportExcel}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            Tải Excel danh sách
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1 sm:w-80">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="w-4 h-4 text-slate-400" />
+            </span>
+            <input
+              type="text"
+              placeholder="Tìm khách hàng hoặc phòng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {filteredData.length > 0 && (
+            <button
+              id="btn-export-excel"
+              onClick={handleExportExcel}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors shrink-0 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Tải Excel danh sách
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -208,14 +250,16 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {data.length === 0 ? (
+              {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
-                    Chưa có thông tin khách đặt nào
+                    {data.length === 0 
+                      ? "Chưa có thông tin khách đặt nào" 
+                      : "Không tìm thấy khách hàng nào khớp với từ khóa tìm kiếm"}
                   </td>
                 </tr>
               ) : (
-                data.map((item) => {
+                filteredData.map((item) => {
                   const { total, typesString } = getRoomTypesCount(item.rooms);
                   return (
                   <tr 

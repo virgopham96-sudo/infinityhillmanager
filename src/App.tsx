@@ -126,7 +126,7 @@ export default function App() {
         <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
             <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-              <img src="https://img.upanhnhanh.com/838ca16fbbf10cadcb31c34093da480d" alt="Logo" className="w-full h-full object-contain" />
+              <img src="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight text-center">
               Infinity Hill Manager
