@@ -67,8 +67,8 @@ export default function BookingModal({
   const [guestName, setGuestName] = useState(isNewBooking ? "" : (liveState.guestName || ""));
   const [deposit, setDeposit] = useState(isNewBooking ? 0 : (room.deposit || 0));
   const [notes, setNotes] = useState(isNewBooking ? "" : (room.notes || ""));
-  const [isFlexiblePrice, setIsFlexiblePrice] = useState(room.isFlexiblePrice || false);
-  const [flexiblePrice, setFlexiblePrice] = useState<number>(room.flexiblePrice || 0);
+  const [isFlexiblePrice, setIsFlexiblePrice] = useState(isNewBooking ? false : (room.isFlexiblePrice || false));
+  const [flexiblePrice, setFlexiblePrice] = useState<number>(isNewBooking ? 0 : (room.flexiblePrice || 0));
   const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
     liveState.checkInTime && !isFromGrid

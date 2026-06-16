@@ -120,6 +120,27 @@ export default function App() {
     );
   }
 
+  if (location.pathname === "/kiem-tra") {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 font-sans">
+        <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 w-10 h-10 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+              <img src="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Kiểm tra phòng trống</h1>
+          </div>
+          <ThemeToggle />
+        </header>
+        <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-8">
+          <div className="max-w-7xl mx-auto h-full">
+            <RoomSchedule rooms={rooms} isPublicReadOnly={true} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
@@ -230,12 +251,15 @@ export default function App() {
           onChangeView={(view) => {
             switch (view) {
               case 'schedule': navigate('/hien-trang'); break;
+              case 'check': window.open('/kiem-tra', '_blank'); break;
               case 'guests': navigate('/khach-dat'); break;
               case 'revenue': navigate('/doanh-thu'); break;
               case 'guide': navigate('/huong-dan'); break;
               case 'dashboard': default: navigate('/so-do-phong'); break;
             }
-            setIsMobileMenuOpen(false);
+            if (view !== 'check') {
+              setIsMobileMenuOpen(false);
+            }
           }}
           onLogout={() => {
             setIsAuthenticated(false);

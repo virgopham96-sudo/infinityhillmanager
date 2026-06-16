@@ -9,14 +9,15 @@ import {
   Upload,
   LogOut,
   HelpCircle,
+  Search,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useStore } from "../store";
 import toast from "react-hot-toast";
 
 interface SidebarProps {
-  currentView: "dashboard" | "revenue" | "schedule" | "guests" | "guide";
-  onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests" | "guide") => void;
+  currentView: "dashboard" | "revenue" | "schedule" | "guests" | "guide" | "check";
+  onChangeView: (view: "dashboard" | "revenue" | "schedule" | "guests" | "guide" | "check") => void;
   onLogout?: () => void;
 }
 
@@ -107,6 +108,18 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
         >
           <CalendarDays className="w-4 h-4" />
           Hiện trạng đặt phòng
+        </button>
+        <button
+          onClick={() => onChangeView("check")}
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
+            currentView === "check"
+              ? "bg-[#003a73] dark:bg-slate-800 text-white"
+              : "hover:bg-[#003a73]/70 dark:hover:bg-slate-800 hover:text-white",
+          )}
+        >
+          <Search className="w-4 h-4" />
+          Kiểm tra phòng trống
         </button>
         <button
           onClick={() => onChangeView("guests")}
