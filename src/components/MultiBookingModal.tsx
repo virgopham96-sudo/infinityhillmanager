@@ -45,6 +45,8 @@ export default function MultiBookingModal({
   const [editingRoomPriceId, setEditingRoomPriceId] = useState<string | null>(null);
   const [tempCustomPrice, setTempCustomPrice] = useState<number>(0);
   const [contextMenuPos, setContextMenuPos] = useState<{x: number, y: number} | null>(null);
+  const [isFlexibleTotal, setIsFlexibleTotal] = useState(false);
+  const [flexibleTotal, setFlexibleTotal] = useState(0);
 
   const [selectedGroup, setSelectedGroup] = useState<{
     guestName: string;
@@ -156,6 +158,15 @@ export default function MultiBookingModal({
         setCheckOut(format(new Date(group.checkOut), "yyyy-MM-dd'T'HH:mm"));
       }
       setCustomPrices(group.customPrices);
+      
+      if (Object.keys(group.customPrices).length > 0 && Object.keys(group.customPrices).length >= group.roomIds.length) {
+        setIsFlexibleTotal(true);
+        setFlexibleTotal(Object.values(group.customPrices).reduce((a, b) => a + b, 0));
+      } else {
+        setIsFlexibleTotal(false);
+        setFlexibleTotal(0);
+      }
+      
       setError(null);
     }
   };
@@ -272,6 +283,9 @@ export default function MultiBookingModal({
       let newCheckInTime = room.checkInTime;
       let newCheckOutTime = room.checkOutTime;
 
+      let newIsFlexiblePrice = room.isFlexiblePrice;
+      let newFlexiblePrice = room.flexiblePrice;
+
       if (
         isEditingGroup &&
         room.status === "reserved" &&
@@ -284,6 +298,8 @@ export default function MultiBookingModal({
         newDeposit = undefined;
         newCheckInTime = undefined;
         newCheckOutTime = undefined;
+        newIsFlexiblePrice = undefined;
+        newFlexiblePrice = undefined;
       }
 
       const filteredReservations = isEditingGroup
@@ -304,6 +320,8 @@ export default function MultiBookingModal({
         deposit: newDeposit,
         checkInTime: newCheckInTime,
         checkOutTime: newCheckOutTime,
+        isFlexiblePrice: newIsFlexiblePrice,
+        flexiblePrice: newFlexiblePrice,
         reservations: filteredReservations,
       };
     });
@@ -327,6 +345,9 @@ export default function MultiBookingModal({
       let newCheckInTime = room.checkInTime;
       let newCheckOutTime = room.checkOutTime;
 
+      let newIsFlexiblePrice = room.isFlexiblePrice;
+      let newFlexiblePrice = room.flexiblePrice;
+
       if (
         isEditingGroup &&
         room.status === "reserved" &&
@@ -339,6 +360,8 @@ export default function MultiBookingModal({
         newDeposit = 0;
         newCheckInTime = undefined;
         newCheckOutTime = undefined;
+        newIsFlexiblePrice = undefined;
+        newFlexiblePrice = undefined;
       }
 
       const filteredReservations = isEditingGroup
@@ -360,6 +383,8 @@ export default function MultiBookingModal({
           deposit: newDeposit,
           checkInTime: newCheckInTime,
           checkOutTime: newCheckOutTime,
+          isFlexiblePrice: newIsFlexiblePrice,
+          flexiblePrice: newFlexiblePrice,
           reservations: filteredReservations,
         };
       }
@@ -372,8 +397,8 @@ export default function MultiBookingModal({
           guestName,
           deposit: depositPerRoom,
           notes,
-          isFlexiblePrice: customPrices[room.id] !== undefined,
-          flexiblePrice: customPrices[room.id],
+          isFlexiblePrice: isFlexibleTotal || customPrices[room.id] !== undefined,
+          flexiblePrice: isFlexibleTotal ? Math.round(flexibleTotal / selectedRoomIds.length) : customPrices[room.id],
           checkInTime: new Date(checkIn).toISOString(),
           checkOutTime: new Date(checkOut).toISOString(),
           reservations: filteredReservations,
@@ -388,8 +413,8 @@ export default function MultiBookingModal({
               guestName,
               deposit: depositPerRoom,
               notes,
-              isFlexiblePrice: customPrices[room.id] !== undefined,
-              flexiblePrice: customPrices[room.id],
+              isFlexiblePrice: isFlexibleTotal || customPrices[room.id] !== undefined,
+              flexiblePrice: isFlexibleTotal ? Math.round(flexibleTotal / selectedRoomIds.length) : customPrices[room.id],
               checkInTime: new Date(checkIn).toISOString(),
               checkOutTime: new Date(checkOut).toISOString(),
             },
@@ -451,6 +476,9 @@ export default function MultiBookingModal({
       let newCheckInTime = room.checkInTime;
       let newCheckOutTime = room.checkOutTime;
 
+      let newIsFlexiblePrice = room.isFlexiblePrice;
+      let newFlexiblePrice = room.flexiblePrice;
+
       // Remove current group from future reservations and main status
       if (
         isEditingGroup &&
@@ -464,6 +492,8 @@ export default function MultiBookingModal({
             newDeposit = 0;
             newCheckInTime = undefined;
             newCheckOutTime = undefined;
+            newIsFlexiblePrice = undefined;
+            newFlexiblePrice = undefined;
       }
       
       const filteredReservations = isEditingGroup
@@ -485,6 +515,8 @@ export default function MultiBookingModal({
           deposit: newDeposit,
           checkInTime: newCheckInTime,
           checkOutTime: newCheckOutTime,
+          isFlexiblePrice: newIsFlexiblePrice,
+          flexiblePrice: newFlexiblePrice,
           reservations: filteredReservations,
         };
       }
@@ -495,8 +527,8 @@ export default function MultiBookingModal({
         guestName,
         deposit: depositPerRoom,
         notes,
-        isFlexiblePrice: customPrices[room.id] !== undefined,
-        flexiblePrice: customPrices[room.id],
+        isFlexiblePrice: isFlexibleTotal || customPrices[room.id] !== undefined,
+        flexiblePrice: isFlexibleTotal ? Math.round(flexibleTotal / selectedRoomIds.length) : customPrices[room.id],
         checkInTime: new Date(checkIn).toISOString(),
         checkOutTime: new Date(checkOut).toISOString(),
         reservations: filteredReservations,
@@ -554,7 +586,7 @@ export default function MultiBookingModal({
     });
   };
 
-  const totalExpectedPrice = selectedRoomIds.reduce((total, id) => {
+  const totalExpectedPrice = isFlexibleTotal ? flexibleTotal : selectedRoomIds.reduce((total, id) => {
     const room = selectableRooms.find((r) => r.id === id);
     if (!room) return total;
     if (customPrices[id] !== undefined) {
@@ -809,6 +841,34 @@ export default function MultiBookingModal({
           </div>
 
           <div className="mt-auto p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/50 flex flex-col gap-2">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-emerald-200/50 dark:border-emerald-800/50">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={isFlexibleTotal} 
+                  onChange={(e) => setIsFlexibleTotal(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                />
+                <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100 cursor-pointer">Giá linh hoạt (Tổng tiền cả đoàn)</span>
+              </label>
+            </div>
+            
+            {isFlexibleTotal && (
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100 pl-6">Nhập tổng tiền:</span>
+                <input 
+                  type="text"
+                  value={flexibleTotal === 0 ? "" : new Intl.NumberFormat("vi-VN").format(flexibleTotal)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, "");
+                    setFlexibleTotal(raw ? parseInt(raw, 10) : 0);
+                  }}
+                  placeholder="Nhập tổng tiền thực tế..."
+                  className="w-1/2 md:w-1/3 border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-right font-bold text-emerald-700 dark:text-emerald-400"
+                />
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
                 <CreditCard className="w-5 h-5" />
