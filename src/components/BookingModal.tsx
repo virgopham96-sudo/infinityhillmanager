@@ -67,6 +67,8 @@ export default function BookingModal({
   const [guestName, setGuestName] = useState(isNewBooking ? "" : (liveState.guestName || ""));
   const [deposit, setDeposit] = useState(isNewBooking ? 0 : (room.deposit || 0));
   const [notes, setNotes] = useState(isNewBooking ? "" : (room.notes || ""));
+  const [isFlexiblePrice, setIsFlexiblePrice] = useState(room.isFlexiblePrice || false);
+  const [flexiblePrice, setFlexiblePrice] = useState<number>(room.flexiblePrice || 0);
   const [error, setError] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState(
     liveState.checkInTime && !isFromGrid
@@ -110,6 +112,14 @@ export default function BookingModal({
     0,
   );
   const totalSurcharge = minibarTotal + (compensation || 0);
+
+  const defaultCalculatedPrice = calculateTotalPrice(
+    checkIn,
+    checkOut,
+    room.weekdayPrice,
+    room.weekendPrice,
+  );
+  const calculatedRoomPrice = isFlexiblePrice ? flexiblePrice : defaultCalculatedPrice;
 
   // Close on Escape
   useEffect(() => {
@@ -194,6 +204,8 @@ export default function BookingModal({
       guestName,
       deposit,
       notes,
+      isFlexiblePrice,
+      flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
       reservations: getSafeReservations(),
@@ -222,6 +234,8 @@ export default function BookingModal({
       guestName,
       deposit,
       notes,
+      isFlexiblePrice,
+      flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
       reservations: getSafeReservations(),
@@ -240,6 +254,8 @@ export default function BookingModal({
       guestName,
       deposit,
       notes,
+      isFlexiblePrice,
+      flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
     });
@@ -265,6 +281,8 @@ export default function BookingModal({
       guestName: undefined,
       deposit: undefined,
       notes: undefined,
+      isFlexiblePrice: undefined,
+      flexiblePrice: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
       reservations: getSafeReservations(),
@@ -276,12 +294,13 @@ export default function BookingModal({
     const start = parseISO(room.checkInTime || checkIn);
     const end = new Date();
 
-    const totalPrice = calculateTotalPrice(
+    const basePrice = calculateTotalPrice(
       start,
       end,
       room.weekdayPrice,
       room.weekendPrice,
     );
+    const totalPrice = isFlexiblePrice ? flexiblePrice : basePrice;
 
     const actualPaid = Math.max(
       0,
@@ -316,6 +335,8 @@ export default function BookingModal({
       guestName: undefined,
       deposit: undefined,
       notes: undefined,
+      isFlexiblePrice: undefined,
+      flexiblePrice: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
       reservations: getSafeReservations(),
@@ -411,6 +432,8 @@ export default function BookingModal({
           guestName: undefined,
           deposit: undefined,
           notes: undefined,
+          isFlexiblePrice: undefined,
+          flexiblePrice: undefined,
           checkInTime: undefined,
           checkOutTime: undefined
        });
@@ -461,6 +484,8 @@ export default function BookingModal({
       guestName: undefined,
       deposit: undefined,
       notes: undefined,
+      isFlexiblePrice: undefined,
+      flexiblePrice: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
     };
@@ -471,6 +496,8 @@ export default function BookingModal({
       guestName,
       deposit,
       notes,
+      isFlexiblePrice,
+      flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
     };
@@ -625,38 +652,59 @@ export default function BookingModal({
               </div>
 
               <div className="p-4 bg-blue-50 dark:bg-slate-800/50 rounded-lg border border-blue-100 dark:border-slate-700 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Đơn giá:
-                  </span>
-                  <div className="text-right">
-                    <div className="font-bold text-blue-700 dark:text-blue-400">
-                      {formatCurrency(room.weekdayPrice)}{" "}
-                      <span className="text-xs font-normal">/ đêm (T2-T5)</span>
-                    </div>
-                    <div className="font-bold text-amber-600 dark:text-amber-500 mt-1">
-                      {formatCurrency(room.weekendPrice)}{" "}
-                      <span className="text-xs font-normal">
-                        / đêm (T6-CN, Lễ)
-                      </span>
-                    </div>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Đơn giá:
+                    </span>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={isFlexiblePrice} 
+                        onChange={(e) => setIsFlexiblePrice(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Giá linh hoạt</span>
+                    </label>
                   </div>
+                  
+                  {isFlexiblePrice ? (
+                    <div className="flex items-center">
+                      <input 
+                        type="text"
+                        value={flexiblePrice === 0 ? "" : new Intl.NumberFormat("vi-VN").format(flexiblePrice)}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9]/g, "");
+                          setFlexiblePrice(raw ? parseInt(raw, 10) : 0);
+                        }}
+                        placeholder="Nhập giá phòng thực tế..."
+                        className="w-full border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none border bg-white dark:bg-slate-800 dark:text-slate-100 placeholder:text-slate-400"
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <div className="font-bold text-blue-700 dark:text-blue-400">
+                        {formatCurrency(room.weekdayPrice)}{" "}
+                        <span className="text-xs font-normal">/ đêm (T2-T5)</span>
+                      </div>
+                      <div className="font-bold text-amber-600 dark:text-amber-500 mt-1">
+                        {formatCurrency(room.weekendPrice)}{" "}
+                        <span className="text-xs font-normal">
+                          / đêm (T6-CN, Lễ)
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
                 <div className="pt-3 border-t border-blue-200/50 dark:border-slate-700 flex flex-col gap-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Tổng tiền phòng:
                     </span>
                     <span className="font-semibold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(
-                        calculateTotalPrice(
-                          checkIn,
-                          checkOut,
-                          room.weekdayPrice,
-                          room.weekendPrice,
-                        ),
-                      )}
+                      {formatCurrency(calculatedRoomPrice)}
                     </span>
                   </div>
                   {minibarTotal > 0 && (
@@ -699,14 +747,7 @@ export default function BookingModal({
                       {formatCurrency(
                         Math.max(
                           0,
-                          calculateTotalPrice(
-                            checkIn,
-                            checkOut,
-                            room.weekdayPrice,
-                            room.weekendPrice,
-                          ) +
-                            totalSurcharge -
-                            deposit,
+                          calculatedRoomPrice + totalSurcharge - deposit,
                         ),
                       )}
                     </span>

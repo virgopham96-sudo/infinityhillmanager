@@ -7,6 +7,8 @@ export interface Reservation {
   checkOutTime: string;
   deposit?: number;
   notes?: string;
+  isFlexiblePrice?: boolean;
+  flexiblePrice?: number;
 }
 
 export interface Room {
@@ -22,6 +24,8 @@ export interface Room {
   deposit?: number;
   notes?: string;
   reservations?: Reservation[]; // Future reservations
+  isFlexiblePrice?: boolean;
+  flexiblePrice?: number;
 }
 
 export interface BookingRecord {

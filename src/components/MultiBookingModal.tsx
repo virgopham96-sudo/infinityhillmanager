@@ -3,7 +3,7 @@ import { Room } from "../types";
 import { formatCurrency, calculateTotalPrice, cn } from "../lib/utils";
 import { format, addDays, set, startOfDay } from "date-fns";
 import toast from "react-hot-toast";
-import { X, Clock, User, CreditCard, Users } from "lucide-react";
+import { X, Clock, User, CreditCard, Users, Edit3 } from "lucide-react";
 
 interface MultiBookingModalProps {
   rooms: Room[];
@@ -41,6 +41,11 @@ export default function MultiBookingModal({
     format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+  const [customPrices, setCustomPrices] = useState<Record<string, number>>({});
+  const [editingRoomPriceId, setEditingRoomPriceId] = useState<string | null>(null);
+  const [tempCustomPrice, setTempCustomPrice] = useState<number>(0);
+  const [contextMenuPos, setContextMenuPos] = useState<{x: number, y: number} | null>(null);
+
   const [selectedGroup, setSelectedGroup] = useState<{
     guestName: string;
     roomIds: string[];
@@ -71,6 +76,7 @@ export default function MultiBookingModal({
         notes: string;
         checkIn: string;
         checkOut: string;
+        customPrices: Record<string, number>;
       }
     > = {};
 
@@ -85,12 +91,14 @@ export default function MultiBookingModal({
             notes: room.notes || "",
             checkIn: room.checkInTime || "",
             checkOut: room.checkOutTime || "",
+            customPrices: {},
           };
         }
         groups[key].roomIds.push(room.id);
-        // Only add up if it wasn't already added (we don't have total deposit per group reliably without dividing, but deposit is per room now)
-        // Wait, deposit in room is PER ROOM. So total is sum of deposits
         groups[key].totalDeposit += room.deposit || 0;
+        if (room.isFlexiblePrice && room.flexiblePrice !== undefined) {
+          groups[key].customPrices[room.id] = room.flexiblePrice;
+        }
       }
 
       if (room.reservations) {
@@ -104,11 +112,15 @@ export default function MultiBookingModal({
               notes: res.notes || "",
               checkIn: res.checkInTime,
               checkOut: res.checkOutTime,
+              customPrices: {},
             };
           }
           if (!groups[key].roomIds.includes(room.id)) {
             groups[key].roomIds.push(room.id);
             groups[key].totalDeposit += res.deposit || 0;
+            if (res.isFlexiblePrice && res.flexiblePrice !== undefined) {
+              groups[key].customPrices[room.id] = res.flexiblePrice;
+            }
           }
         });
       }
@@ -143,6 +155,7 @@ export default function MultiBookingModal({
       if (group.checkOut) {
         setCheckOut(format(new Date(group.checkOut), "yyyy-MM-dd'T'HH:mm"));
       }
+      setCustomPrices(group.customPrices);
       setError(null);
     }
   };
@@ -359,6 +372,8 @@ export default function MultiBookingModal({
           guestName,
           deposit: depositPerRoom,
           notes,
+          isFlexiblePrice: customPrices[room.id] !== undefined,
+          flexiblePrice: customPrices[room.id],
           checkInTime: new Date(checkIn).toISOString(),
           checkOutTime: new Date(checkOut).toISOString(),
           reservations: filteredReservations,
@@ -373,6 +388,8 @@ export default function MultiBookingModal({
               guestName,
               deposit: depositPerRoom,
               notes,
+              isFlexiblePrice: customPrices[room.id] !== undefined,
+              flexiblePrice: customPrices[room.id],
               checkInTime: new Date(checkIn).toISOString(),
               checkOutTime: new Date(checkOut).toISOString(),
             },
@@ -478,6 +495,8 @@ export default function MultiBookingModal({
         guestName,
         deposit: depositPerRoom,
         notes,
+        isFlexiblePrice: customPrices[room.id] !== undefined,
+        flexiblePrice: customPrices[room.id],
         checkInTime: new Date(checkIn).toISOString(),
         checkOutTime: new Date(checkOut).toISOString(),
         reservations: filteredReservations,
@@ -494,9 +513,53 @@ export default function MultiBookingModal({
     );
   };
 
+  const handleContextMenu = (e: React.MouseEvent, roomId: string) => {
+    e.preventDefault();
+    setEditingRoomPriceId(roomId);
+    
+    const currentCustom = customPrices[roomId];
+    if (currentCustom !== undefined) {
+      setTempCustomPrice(currentCustom);
+    } else {
+      const room = rooms.find(r => r.id === roomId);
+      if (room) {
+        const defaultCalculatedPrice = calculateTotalPrice(checkIn, checkOut, room.weekdayPrice, room.weekendPrice);
+        setTempCustomPrice(defaultCalculatedPrice);
+      }
+    }
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleSaveCustomPrice = () => {
+    if (editingRoomPriceId) {
+      setCustomPrices(prev => ({
+        ...prev,
+        [editingRoomPriceId]: tempCustomPrice
+      }));
+    }
+    setContextMenuPos(null);
+    setEditingRoomPriceId(null);
+  };
+
+  const handleCancelCustomPrice = () => {
+    setContextMenuPos(null);
+    setEditingRoomPriceId(null);
+  };
+
+  const overrideCustomPrice = (roomId: string) => {
+    setCustomPrices(prev => {
+      const next = { ...prev };
+      delete next[roomId];
+      return next;
+    });
+  };
+
   const totalExpectedPrice = selectedRoomIds.reduce((total, id) => {
     const room = selectableRooms.find((r) => r.id === id);
     if (!room) return total;
+    if (customPrices[id] !== undefined) {
+      return total + customPrices[id];
+    }
     return (
       total +
       calculateTotalPrice(
@@ -705,6 +768,14 @@ export default function MultiBookingModal({
                   <button
                     key={room.id}
                     onClick={() => toggleRoom(room.id)}
+                    onContextMenu={(e) => {
+                      if (isSelected) {
+                        handleContextMenu(e, room.id);
+                      } else {
+                        e.preventDefault();
+                        toast("Vui lòng chọn phòng trước khi sửa riêng giá", { icon: "ℹ️" });
+                      }
+                    }}
                     className={cn(
                       "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all cursor-pointer relative",
                       isSelected
@@ -712,6 +783,11 @@ export default function MultiBookingModal({
                         : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-700",
                     )}
                   >
+                    {isSelected && customPrices[room.id] !== undefined && (
+                      <div className="absolute top-1.5 right-1.5 text-amber-500" title={`Giá tùy chỉnh: ${formatCurrency(customPrices[room.id])}`}>
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </div>
+                    )}
                     <span className="font-bold text-lg">{room.id}</span>
                     <span className="text-xs font-medium opacity-70">
                       {room.type}
@@ -791,6 +867,70 @@ export default function MultiBookingModal({
           </button>
         </div>
       </div>
+
+      {contextMenuPos && editingRoomPriceId && (
+        <div 
+          className="fixed z-[70] bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-64 overflow-hidden"
+          style={{ 
+            left: Math.min(contextMenuPos.x, window.innerWidth - 260), 
+            top: Math.min(contextMenuPos.y, window.innerHeight - 150) 
+          }}
+        >
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+            <h4 className="font-semibold text-sm text-slate-800 dark:text-slate-100">
+              Sửa giá phòng {editingRoomPriceId}
+            </h4>
+            <button
+              onClick={handleCancelCustomPrice}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="p-4 flex flex-col gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                Số tiền (VNĐ)
+              </label>
+              <input 
+                type="text" 
+                autoFocus
+                value={tempCustomPrice === 0 ? "" : new Intl.NumberFormat("vi-VN").format(tempCustomPrice)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/[^0-9]/g, "");
+                  setTempCustomPrice(raw ? parseInt(raw, 10) : 0);
+                }}
+                className="w-full border border-slate-200 dark:border-slate-700 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-slate-900 dark:text-slate-100"
+              />
+            </div>
+            {customPrices[editingRoomPriceId] !== undefined && (
+              <button 
+                onClick={() => {
+                  overrideCustomPrice(editingRoomPriceId);
+                  handleCancelCustomPrice();
+                }}
+                className="text-xs text-rose-600 dark:text-rose-400 hover:underline text-left mt-1"
+              >
+                Xóa giá tùy chỉnh (Dùng giá mặc định)
+              </button>
+            )}
+            <div className="flex gap-2 justify-end mt-2">
+              <button 
+                onClick={handleCancelCustomPrice}
+                className="px-3 py-1.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md text-xs font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleSaveCustomPrice}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
