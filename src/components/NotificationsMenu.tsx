@@ -6,9 +6,10 @@ import { format, parseISO } from "date-fns";
 
 interface NotificationsMenuProps {
   rooms: Room[];
+  onRoomSelect?: (roomId: string) => void;
 }
 
-export default function NotificationsMenu({ rooms }: NotificationsMenuProps) {
+export default function NotificationsMenu({ rooms, onRoomSelect }: NotificationsMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -23,8 +24,11 @@ export default function NotificationsMenu({ rooms }: NotificationsMenuProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const notifications = rooms.map((room) => {
+  const notifications = rooms.flatMap((room) => {
+    const roomNotifs = [];
     const liveState = getLiveRoomState(room);
+    
+    // Check-out alert
     if (liveState.status === "occupied" && liveState.checkOutTime) {
       try {
         const outDate = parseISO(liveState.checkOutTime);
@@ -34,19 +38,45 @@ export default function NotificationsMenu({ rooms }: NotificationsMenuProps) {
         if (todayStr === outDateStr) {
           const timeStr = format(outDate, "HH:mm");
           const guestName = liveState.guestName || "Khách lẻ";
-          return {
+          roomNotifs.push({
+            id: `checkout-${room.id}`,
             roomId: room.id,
             timeStr,
             guestName,
-            isCheckoutToday: true,
-          };
+            type: "checkout",
+          });
         }
       } catch (e) {
         console.error("Error parsing checkout time for alert:", e);
       }
     }
-    return null;
-  }).filter(Boolean) as { roomId: string, timeStr: string, guestName: string, isCheckoutToday: boolean }[];
+
+    // Check-in alert for future reservations
+    if (room.reservations) {
+      room.reservations.forEach((res) => {
+        try {
+          const inDate = parseISO(res.checkInTime);
+          const inDateStr = format(inDate, "yyyy-MM-dd");
+          const todayStr = format(new Date(), "yyyy-MM-dd");
+          
+          if (todayStr === inDateStr) {
+            const timeStr = format(inDate, "HH:mm");
+            roomNotifs.push({
+              id: `checkin-${res.id}`,
+              roomId: room.id,
+              timeStr,
+              guestName: res.guestName || "Khách đặt trước",
+              type: "checkin",
+            });
+          }
+        } catch (e) {
+            console.error("Error parsing checkin time for alert:", e);
+        }
+      });
+    }
+
+    return roomNotifs;
+  }).filter(Boolean);
 
   const unreadCount = notifications.length;
 
@@ -73,19 +103,31 @@ export default function NotificationsMenu({ rooms }: NotificationsMenuProps) {
                 Không có thông báo nào
               </div>
             ) : (
-              notifications.map((notif, index) => (
-                <div key={index} className="p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700">
+              notifications.map((notif) => {
+                const isCheckin = notif.type === "checkin";
+                return (
+                <button
+                  key={notif.id} 
+                  onClick={() => {
+                    setIsOpen(false);
+                    if (onRoomSelect) onRoomSelect(notif.roomId);
+                  }}
+                  className="w-full text-left p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-700 block"
+                >
                   <div className="flex items-start gap-3">
-                    <span className="w-2 h-2 mt-1.5 rounded-full bg-rose-500 flex-shrink-0"></span>
+                    <span className={cn("w-2 h-2 mt-1.5 rounded-full flex-shrink-0", isCheckin ? "bg-emerald-500" : "bg-rose-500")}></span>
                     <div>
-                      <p className="font-medium text-rose-600 dark:text-rose-400 text-sm mb-0.5">Sắp đến giờ trả phòng hôm nay</p>
+                      <p className={cn("font-medium text-sm mb-0.5", isCheckin ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400")}>
+                        {isCheckin ? "Sắp đến giờ nhận phòng" : "Sắp đến giờ trả phòng"} hôm nay
+                      </p>
                       <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                        Phòng <strong className="text-blue-600 dark:text-blue-400">{notif.roomId}</strong> ({notif.guestName}) dự kiến checkout lúc <strong>{notif.timeStr}</strong>.
+                        Phòng <strong className="text-blue-600 dark:text-blue-400">{notif.roomId}</strong> ({notif.guestName}) dự kiến {isCheckin ? "checkin" : "checkout"} lúc <strong>{notif.timeStr}</strong>.
                       </p>
                     </div>
                   </div>
-                </div>
-              ))
+                </button>
+                );
+              })
             )}
           </div>
         </div>

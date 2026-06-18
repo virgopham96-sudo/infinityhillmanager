@@ -40,6 +40,7 @@ export default function App() {
   const navigate = useNavigate();
 
   const currentView = (() => {
+    if (location.pathname === '/kiem-tra') return 'kiem-tra';
     if (location.pathname === '/hien-trang') return 'schedule';
     if (location.pathname === '/khach-dat') return 'guests';
     if (location.pathname === '/doanh-thu') return 'revenue';
@@ -300,7 +301,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <NotificationsMenu rooms={rooms} />
+            <NotificationsMenu 
+              rooms={rooms} 
+              onRoomSelect={(roomId) => {
+                const room = rooms.find(r => r.id === roomId);
+                if (room) {
+                  setSelectedRoom(room);
+                }
+              }} 
+            />
             <ThemeToggle />
             <RealTimeClock />
             {currentView === "dashboard" && (

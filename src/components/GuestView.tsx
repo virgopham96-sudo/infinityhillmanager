@@ -21,6 +21,7 @@ interface GuestViewProps {
 export default function GuestView({ onEditGroup }: GuestViewProps) {
   const { rooms, bookings } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"Tất cả" | "Đã đặt trước" | "Đã nhận phòng" | "Đã trả phòng">("Tất cả");
 
   const getGroupedBookings = () => {
     const rawEntries: {
@@ -120,11 +121,14 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
   };
 
   const filteredData = data.filter(
-    (item) =>
-      filterBySearch(item.guestName || "Khách vô danh", searchTerm) ||
-      item.rooms.some((room) =>
-        room.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    (item) => {
+      const matchSearch = filterBySearch(item.guestName || "Khách vô danh", searchTerm) ||
+        item.rooms.some((room) =>
+          room.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      const matchStatus = filterStatus === "Tất cả" || item.status === filterStatus;
+      return matchSearch && matchStatus;
+    }
   );
 
   const formatDate = (isoString?: string) => {
@@ -222,6 +226,16 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
               </button>
             )}
           </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
+          >
+            <option value="Tất cả">Tất cả trạng thái</option>
+            <option value="Đã đặt trước">Đã đặt trước</option>
+            <option value="Đã nhận phòng">Đã nhận phòng</option>
+            <option value="Đã trả phòng">Đã trả phòng</option>
+          </select>
           {filteredData.length > 0 && (
             <button
               id="btn-export-excel"
