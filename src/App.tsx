@@ -20,6 +20,7 @@ import { getLiveRoomState } from "./lib/utils";
 
 import RealTimeClock from "./components/RealTimeClock";
 import ThemeToggle from "./components/ThemeToggle";
+import NotificationsMenu from "./components/NotificationsMenu";
 import toast from "react-hot-toast";
 import { format, parseISO } from "date-fns";
 
@@ -299,6 +300,7 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            <NotificationsMenu rooms={rooms} />
             <ThemeToggle />
             <RealTimeClock />
             {currentView === "dashboard" && (
