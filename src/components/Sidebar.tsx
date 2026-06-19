@@ -76,8 +76,8 @@ export default function Sidebar({ currentView, onChangeView, onLogout }: Sidebar
   return (
     <aside className="flex flex-col w-64 bg-[#004b93] dark:bg-slate-950 text-blue-100 dark:text-slate-300 h-full min-h-screen border-r border-transparent dark:border-slate-800">
       <div className="flex items-center gap-3 px-6 py-5 border-b border-[#003a73] dark:border-slate-800">
-        <div className="flex items-center justify-center p-1 bg-white dark:bg-slate-800 rounded-lg w-10 h-10">
-          <img src="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
+        <div className="flex items-center justify-center p-1 bg-white dark:bg-slate-800 rounded-lg w-10 h-10 overflow-hidden">
+          <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Logo" className="w-full h-full object-contain drop-shadow-sm rounded-lg" />
         </div>
         <span className="font-semibold text-base text-white font-sans tracking-tight leading-tight">
           Infinity Hill<br/>Manager

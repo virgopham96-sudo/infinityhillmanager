@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Hill Hotel - Tuyệt Tác Nghỉ Dưỡng Đảo Quan Lạn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        luxury: {
+                            blue: '#0B2240', gold: '#D4AF37', goldhover: '#B89020',
+                            lightbg: '#F8FAFC', accent: '#1E40AF', dark: '#051224'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'Georgia', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .font-luxury-serif { font-family: 'Playfair Display', serif; }
+        .font-luxury-sans { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0B2240; }
+        ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+        .gold-glow { box-shadow: 0 0 25px rgba(212, 175, 55, 0.15); }
+        .gold-glow-hover:hover { box-shadow: 0 0 35px rgba(212, 175, 55, 0.35); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 1s ease-out forwards; }
+    </style>
+</head>
+<body class="font-luxury-sans bg-slate-50 text-slate-800 selection:bg-luxury-gold selection:text-luxury-blue overflow-x-hidden">
+    <div class="bg-luxury-blue text-white text-xs py-2.5 px-4 border-b border-luxury-gold/20 sticky top-0 z-50 transition-all duration-300 shadow-md" id="top-bar">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-4 flex-wrap justify-center">
+                <span class="whitespace-nowrap"><i class="fa-solid fa-phone text-luxury-gold mr-1.5 animate-pulse"></i> Hotline 24/7: <a href="tel:0383696666" id="top-hotline-text" class="font-bold hover:text-luxury-gold transition-colors">0383.696.666</a> (<span class="manager-name-display">Mr. Đạt</span>)</span>
+                <span class="hidden md:inline text-white/30">|</span>
+                <a href="https://maps.app.goo.gl/MXZdbN9LWCFTfqeA8" target="_blank" id="top-maps-link" class="hover:text-luxury-gold transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-location-dot text-luxury-gold"></i> Đảo Quan Lạn, Vân Đồn, Quảng Ninh
+                </a>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] uppercase tracking-widest text-luxury-gold">
+                <span class="font-semibold flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-star"></i> Miễn phí buffet ăn sáng & xe điện trung chuyển</span>
+            </div>
+        </div>
+    </div>
+    <nav class="bg-white/95 backdrop-blur-md shadow-md sticky top-10 z-40 transition-all duration-300 border-b border-slate-100" id="main-nav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center gap-4">
+                <a href="#" class="flex items-center gap-3 group py-1.5 shrink-0" title="Xem bộ nhận diện Logo gốc">
+                    <div class="relative h-14 flex items-center justify-start">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" 
+                             alt="Infinity Hill" 
+                             class="h-10 xl:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
+                    </div>
+                </a>
+                <div class="hidden lg:flex items-center gap-4 xl:gap-6 font-bold text-luxury-blue text-xs xl:text-sm uppercase tracking-wider">
+                    <a href="#about" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Giới Thiệu</a>
+                    <a href="#rooms" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Hạng Phòng & Giá</a>
+                    <a href="#calculator" class="hover:bg-luxury-gold hover:text-luxury-blue text-luxury-gold bg-luxury-blue px-3 py-1.5 rounded-lg border border-luxury-gold/30 transition-all duration-200 whitespace-nowrap text-[10px] xl:text-xs tracking-widest font-extrabold shadow-sm">Tính Giá Kỳ Nghỉ</a>
+                    <a href="#experiences" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Trải Nghiệm</a>
+                    <a href="#speedboat" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Lịch Tàu Chạy</a>
+                    
+                </div>
+                <div class="hidden sm:flex items-center gap-3 shrink-0">
+                    <button onclick="window.location.href='/dang-nhap'" class="bg-slate-100 hover:bg-slate-200 text-luxury-blue font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 text-[11px] xl:text-xs uppercase tracking-wider whitespace-nowrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Đăng Nhập</span>
+                    </button>
+                    <a href="tel:0383696666" id="nav-hotline-btn" class="bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue font-extrabold px-4 py-2.5 xl:px-5 xl:py-3 rounded-xl flex items-center gap-2 shadow-lg hover:shadow-luxury-gold/30 transition-all duration-300 transform hover:-translate-y-0.5 text-[11px] xl:text-xs uppercase tracking-wider whitespace-nowrap">
+                        <i class="fa-solid fa-phone-volume animate-pulse"></i>
+                        <span>Đặt Phòng Ngay</span>
+                    </a>
+                </div>
+                <button type="button" class="lg:hidden p-2 text-luxury-blue focus:outline-none" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars text-2xl" id="menu-icon"></i></button>
+            </div>
+        </div>
+        <div class="hidden lg:hidden bg-white border-t border-slate-100" id="mobile-menu">
+            <div class="px-4 pt-2 pb-6 space-y-3 shadow-inner">
+                <a href="#about" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Giới Thiệu</a>
+                <a href="#rooms" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Hạng Phòng & Giá</a>
+                <a href="#calculator" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Tính Giá Kỳ Nghỉ</a>
+                <a href="#experiences" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Trải Nghiệm & Dịch Vụ</a>
+                <a href="#speedboat" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Cẩm Nang Tàu Cao Tốc</a>
+                
+                <div class="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                    <button onclick="window.location.href='/dang-nhap'" class="w-full bg-slate-100 hover:bg-slate-200 text-luxury-blue font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-lock"></i> Đăng Nhập Quản Lý
+                    </button>
+                    <a href="tel:0383696666" id="mobile-hotline-btn" class="w-full bg-luxury-blue hover:bg-luxury-blue/95 text-white text-center font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-phone"></i> Gọi <span class="manager-name-display">Mr. Đạt</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="relative min-h-[92vh] flex items-center justify-center bg-luxury-dark overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://lh3.googleusercontent.com/pw/AP1GczN6wm_iOcIyzeAWvqogZpG4XBOhcpGtgtm-x59tYZB7ixZCGxkCJDbIylL9AeP-pDQtcYRwu4oU7Focw12cWNgsv1kPJ3PhtrPayhmqyVaMmRBZhk5S=w1600-h900" alt="Infinity Hill Hotel Night Facade" class="w-full h-full object-cover opacity-50 filter brightness-[0.75] contrast-105 transform scale-105 transition-transform duration-[12s] hover:scale-100" id="hero-bg">
+            <div class="absolute inset-0 bg-gradient-to-t from-luxury-dark via-luxury-dark/40 to-transparent"></div>
+        </div>
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center text-white">
+            <div class="flex justify-center mb-8 animate-fade-in-up" style="animation-delay: 0.1s;">
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Infinity Hill" class="max-w-[280px] w-full h-auto object-contain transition-transform duration-300 hover:scale-105 filter brightness-0 invert">
+            </div>
+            <h1 class="font-luxury-serif text-5xl sm:text-6xl lg:text-8xl font-black tracking-widest leading-tight mb-4 animate-fade-in-up" style="animation-delay: 0.3s;">INFINITY HILL</h1>
+            <h2 class="font-luxury-serif text-xl sm:text-2xl lg:text-3xl font-light text-luxury-gold tracking-widest mb-8 uppercase italic animate-fade-in-up" style="animation-delay: 0.5s;">Nơi Đồi Xanh Gặp Gỡ Đại Dương Kỳ Vĩ • Đảo <span class="whitespace-nowrap">Quan Lạn</span></h2>
+            <p class="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-light mb-12 animate-fade-in-up" style="animation-delay: 0.7s;">Tọa lạc lộng lẫy giữa thiên nhiên hoang sơ đảo Quan Lạn, tự hào mang phong cách tân cổ điển Châu Âu quý phái kết hợp tổ hợp cafe Glamping ngắm hoàng hôn sườn đồi thơ mộng.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up" style="animation-delay: 0.9s;">
+                <a href="#calculator" class="w-full sm:w-auto bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue font-extrabold text-sm px-8 py-4.5 rounded-xl shadow-xl hover:shadow-luxury-gold/40 transition-all duration-300 transform hover:-translate-y-1 uppercase tracking-wider"><i class="fa-solid fa-calculator mr-2"></i>Tính Dự Toán Kỳ Nghỉ</a>
+                <a href="#rooms" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md font-semibold text-sm px-8 py-4.5 rounded-xl transition-all duration-300 uppercase tracking-wider">Khám Phá Các Hạng Phòng <i class="fa-solid fa-arrow-right ml-2"></i></a>
+            </div>
+        </div>
+    </section>
+
+
+    <section id="about" class="py-24 bg-white relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                <div class="lg:col-span-5 space-y-8">
+                    <div class="flex items-center gap-3">
+                        <span class="h-[2px] w-12 bg-luxury-gold"></span>
+                        <span class="text-luxury-gold font-bold uppercase tracking-widest text-xs">Biệt Thự Giữa Thiên Đường</span>
+                    </div>
+                    <h2 class="font-luxury-serif text-4xl sm:text-5xl font-extrabold text-luxury-blue leading-tight">Kiến Trúc Châu Âu<br>Tân Cổ Điển Kiêu Sa</h2>
+                    <p class="text-slate-600 leading-relaxed text-base">Toạ lạc tại vị trí tựa sơn hướng hải trên hòn đảo Quan Lạn hoang sơ tuyệt đẹp, <strong>INFINITY HILL Hotel</strong> là sự giao thoa tuyệt mỹ giữa phong cách kiến trúc châu Âu tân cổ điển đẳng cấp và cảnh sắc mộng mơ của đảo khơi Vân Đồn.</p>
+                    <p class="text-slate-600 leading-relaxed text-base">Khách sạn sở hữu khu khuôn viên vườn thượng uyển rộng rãi, trang hoàng lộng lẫy bằng hệ đá tự nhiên, cây cọ kiêu sa và rực rỡ ánh sáng vàng ấm áp lúc hoàng hôn buông xuống. Bên sườn đồi lãng mạn là quán <strong>Glamping Cafe</strong> sành điệu - tọa độ hoàn hảo để tận hưởng những buổi tối lãng mạn lộng gió biển.</p>
+                    <div class="p-6 bg-slate-50 rounded-2xl border-l-4 border-luxury-gold flex items-center gap-4 shadow-sm">
+                        <div class="bg-luxury-gold/20 p-3.5 rounded-xl text-luxury-gold"><i class="fa-solid fa-user-tie text-2xl"></i></div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Hỗ trợ tư vấn trực tiếp</p>
+                            <p class="text-lg font-extrabold text-luxury-blue"><span class="manager-name-display">Mr. Đạt</span> — <span class="hotline-text-display">0383.696.666</span></p>
+                            <p class="text-xs text-green-600 font-semibold mt-0.5"><i class="fa-solid fa-circle text-[8px] animate-pulse mr-1"></i>Đang trực tuyến</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-7 grid grid-cols-12 gap-4">
+                    <div class="col-span-12 rounded-3xl overflow-hidden shadow-2xl relative group">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczOBOB4MSu0BWwQCnrp3PFNK0I8p5BbxWR1m3L8R_s3ZO3-pImzNkUTc9pzfqL7-YKCr3F5J5hTPK2v2jr1mJuV6iEZ6dTffLl1y0q2G2bTm3VdsFqQd=w1200" alt="Infinity Hill Hotel" class="w-full h-96 object-cover transition-transform duration-700 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent flex flex-col justify-end p-6">
+                            <span class="text-xs text-luxury-gold font-bold uppercase tracking-wider">Ảnh Thực Tế</span>
+                            <h3 class="text-white font-luxury-serif text-xl font-bold mt-1">Hệ sân vườn ngập tràn ánh sáng lung linh</h3>
+                        </div>
+                    </div>
+                    <div class="col-span-6 rounded-2xl overflow-hidden shadow-lg relative group h-44">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczOUpoZVcYW8m20a0CT37cpXM-Pjrnm6C51-5-92fibDaEf3JQARtTq-sr-Ewc_nOPm1TT9eYtPc8Z_xOFEo-ib_dR8lUvlufYr72NS-CX_SaR0HyxUx=w1200" alt="Lối dạo" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/30 flex items-end p-4"><p class="text-white text-xs font-bold">Lối đi dạo ban ngày</p></div>
+                    </div>
+                    <div class="col-span-6 rounded-2xl overflow-hidden shadow-lg relative group h-44">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczOlmmM3wXCUpNfRMn2QYkk622PHhob9jOCQsiT0Og1UPwm11lwQgUccfLzQMTpYVTu3BfqSSuA29d5zHgaja6QRQMLW7tNixqqmnL8yOyuQvxJ4hYF4=w1200" alt="Cafe" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                        <div class="absolute inset-0 bg-black/30 flex items-end p-4"><p class="text-white text-xs font-bold">Glamping Cafe Sườn Đồi</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROOMS & RATES SECTION -->
+    <section id="rooms" class="py-24 bg-slate-100 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <div class="flex justify-center mb-6">
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" 
+                         alt="Infinity Hill" 
+                         class="max-w-[150px] w-full h-auto object-contain transition-transform duration-300 hover:scale-105">
+                </div>
+                <h2 class="font-luxury-serif text-4xl sm:text-5xl font-extrabold text-luxury-blue mb-4">Hạng Phòng Hoàng Gia & <span class="whitespace-nowrap">Báo Giá</span></h2>
+                <p class="text-slate-600 text-sm sm:text-base">Các phòng ngủ được thiết kế tinh giản hiện đại, sử dụng nội thất gỗ cao cấp ấm cúng, thiết bị điện máy tiện ích chuẩn 5 sao.</p>
+                <div class="inline-flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl px-5 py-3 mt-8 shadow-sm text-xs sm:text-sm text-left max-w-2xl">
+                    <div class="bg-amber-500 text-white rounded-full p-1.5 flex items-center justify-center animate-pulse"><i class="fa-solid fa-circle-exclamation text-base"></i></div>
+                    <div><strong class="font-bold">Lưu ý quan trọng:</strong> Mức giá ưu đãi đặc biệt này được áp dụng đi kèm với điều kiện đặt ăn tại hệ thống nhà hàng của khách sạn (số bữa ăn tối thiểu bằng số ngày lưu trú).</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Room 1 -->
+                <div class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col justify-between group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <div class="relative overflow-hidden h-56">
+                        <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&q=80&w=800" alt="Phòng 1" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-4 left-4 bg-luxury-blue/90 text-luxury-gold text-xs font-bold uppercase tracking-widest py-1 px-3.5 rounded-full border border-luxury-gold/30">Giường King</div>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2">Phòng 1G (King Size)</h3>
+                        <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-arrows-left-right mr-1.5"></i> Giường rộng: 1.8m x 2m2</p>
+                        <div class="bg-slate-50 rounded-2xl p-4 my-4 space-y-2.5 border border-slate-100">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 2 - Thứ 5:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room1-weekday">1.200.000 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 6 - Chủ Nhật:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room1-weekend">1.400.000 đ</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-600 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Máy chiếu Mini thông minh Full HD</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Tủ lạnh mini & Điều hòa mát lạnh</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Buffet sáng cao cấp miễn phí</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <a href="#calculator" onclick="selectRoomInCalculator('room1')" class="block w-full text-center bg-slate-50 hover:bg-luxury-gold hover:text-luxury-blue text-luxury-blue font-bold py-3 rounded-xl border border-slate-200 hover:border-luxury-gold transition-all duration-300 text-xs uppercase tracking-wider">Đặt Phòng & Tính Giá</a>
+                    </div>
+                </div>
+
+                <!-- Room 2 -->
+                <div class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col justify-between group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <div class="relative overflow-hidden h-56">
+                        <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=800" alt="Phòng 2" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-4 left-4 bg-luxury-blue/90 text-luxury-gold text-xs font-bold uppercase tracking-widest py-1 px-3.5 rounded-full border border-luxury-gold/30">2 Giường Đôi</div>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2">Phòng 2G (Twin Room)</h3>
+                        <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-arrows-left-right mr-1.5"></i> 2 Giường đôi: 1m6 x 2m</p>
+                        <div class="bg-slate-50 rounded-2xl p-4 my-4 space-y-2.5 border border-slate-100">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 2 - Thứ 5:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room2-weekday">1.400.000 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 6 - Chủ Nhật:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room2-weekend">1.600.000 đ</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-600 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Rộng rãi, lý tưởng cho gia đình 4 người</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Bình nóng lạnh & máy sấy tóc tiện nghi</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Trà, Cafe, nước lọc setup mỗi ngày</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <a href="#calculator" onclick="selectRoomInCalculator('room2')" class="block w-full text-center bg-slate-50 hover:bg-luxury-gold hover:text-luxury-blue text-luxury-blue font-bold py-3 rounded-xl border border-slate-200 hover:border-luxury-gold transition-all duration-300 text-xs uppercase tracking-wider">Đặt Phòng & Tính Giá</a>
+                    </div>
+                </div>
+
+                <!-- Room 3 -->
+                <div class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col justify-between group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <div class="relative overflow-hidden h-56">
+                        <img src="https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&q=80&w=800" alt="Phòng 3" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-4 left-4 bg-luxury-blue/90 text-luxury-gold text-xs font-bold uppercase tracking-widest py-1 px-3.5 rounded-full border border-luxury-gold/30">3 Giường Đơn</div>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2">Phòng 3G (Triple Room)</h3>
+                        <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-arrows-left-right mr-1.5"></i> 3 Giường tiện lợi cho nhóm</p>
+                        <div class="bg-slate-50 rounded-2xl p-4 my-4 space-y-2.5 border border-slate-100">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 2 - Thứ 5:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room3-weekday">1.600.000 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 6 - Chủ Nhật:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room3-weekend">1.800.000 đ</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-600 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Thiết kế mở tối ưu hóa diện tích sinh hoạt</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Điều hòa 2 chiều công suất lớn mát rượi</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Wifi băng thông rộng phủ sóng tốc độ cao</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <a href="#calculator" onclick="selectRoomInCalculator('room3')" class="block w-full text-center bg-slate-50 hover:bg-luxury-gold hover:text-luxury-blue text-luxury-blue font-bold py-3 rounded-xl border border-slate-200 hover:border-luxury-gold transition-all duration-300 text-xs uppercase tracking-wider">Đặt Phòng & Tính Giá</a>
+                    </div>
+                </div>
+
+                <!-- Room 4 -->
+                <div class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col justify-between group transform transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <div class="relative overflow-hidden h-56">
+                        <img src="https://images.unsplash.com/photo-1591088398332-8a7791972843?auto=format&fit=crop&q=80&w=800" alt="Phòng VIP" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute top-4 left-4 bg-luxury-gold text-luxury-blue text-xs font-black uppercase tracking-widest py-1 px-4 rounded-full border border-luxury-gold shadow-md">VIP Luxury</div>
+                    </div>
+                    <div class="p-6 flex-grow">
+                        <h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2">Phòng 1,2G VIP</h3>
+                        <p class="text-xs text-slate-500 mb-4"><i class="fa-solid fa-gem mr-1.5 text-luxury-gold"></i> Tầm nhìn hướng vườn cực đẹp</p>
+                        <div class="bg-slate-50 rounded-2xl p-4 my-4 space-y-2.5 border border-slate-100">
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 2 - Thứ 5:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room4-weekday">1.700.000 đ</span>
+                            </div>
+                            <div class="flex justify-between items-center text-xs sm:text-sm">
+                                <span class="text-slate-500 font-medium whitespace-nowrap">Thứ 6 - Chủ Nhật:</span>
+                                <span class="font-extrabold text-luxury-blue text-base whitespace-nowrap" id="price-room4-weekend">1.900.000 đ</span>
+                            </div>
+                        </div>
+                        <ul class="text-xs text-slate-600 space-y-2 mt-4">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Nội thất sang trọng chuẩn châu Âu quý phái</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Setup quà tặng đặc biệt từ Mr. Đạt</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i> Ưu tiên nâng hạng check-in/out linh hoạt</li>
+                        </ul>
+                    </div>
+                    <div class="p-6 pt-0">
+                        <a href="#calculator" onclick="selectRoomInCalculator('room4')" class="block w-full text-center bg-luxury-blue hover:bg-luxury-gold hover:text-luxury-blue text-white hover:text-luxury-blue font-bold py-3 rounded-xl transition-all duration-300 text-xs uppercase tracking-wider">Đặt Hạng VIP Ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DYNAMIC PRICE CALCULATOR SECTION -->
+    <section id="calculator" class="py-24 bg-luxury-blue text-white relative">
+        <div class="absolute inset-0 opacity-10">
+            <div class="w-full h-full" style="background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200'); background-size: cover; background-position: center;"></div>
+        </div>
+        <div class="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="text-center mb-12">
+                <span class="text-luxury-gold uppercase tracking-widest text-xs font-bold bg-white/10 px-4 py-1.5 rounded-full border border-white/10">Hệ Thống Dự Toán Thông Minh</span>
+                <h2 class="font-luxury-serif text-3xl sm:text-5xl font-extrabold mt-3 mb-4 text-white">Công Cụ Ước Tính Giá Phòng <span class="whitespace-nowrap">Kỳ Nghỉ</span></h2>
+                <p class="text-slate-300 max-w-2xl mx-auto text-sm sm:text-base">Vui lòng nhập số đêm nghỉ của bạn để nhận báo giá chi tiết, phân tách rõ ràng ngày thường và cuối tuần cùng toàn bộ ưu đãi đi kèm.</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-white/20 shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div class="lg:col-span-7 space-y-6">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5">1. Lựa chọn hạng phòng nghỉ:</label>
+                        <select id="calc-room" class="w-full bg-luxury-blue/90 border border-white/30 rounded-2xl px-4 py-4 text-white focus:outline-none focus:border-luxury-gold transition-colors text-sm font-semibold" onchange="calculateVacation()">
+                            <option value="room1">Phòng 1G (King Size)</option>
+                            <option value="room2">Phòng 2G (Twin Room)</option>
+                            <option value="room3">Phòng 3G (Triple Room)</option>
+                            <option value="room4">Phòng 1,2G VIP (Luxury)</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-solid fa-calendar-day mr-1"></i> 2. Số Đêm Ngày Thường (T2 - T5):</label>
+                            <div class="flex items-center">
+                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-l-xl" onclick="adjustCount('calc-weekdays', -1)">-</button>
+                                <input type="number" id="calc-weekdays" min="0" value="1" class="w-full h-12 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-r-xl" onclick="adjustCount('calc-weekdays', 1)">+</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-solid fa-calendar-week mr-1"></i> 3. Số Đêm Cuối Tuần (T6 - CN):</label>
+                            <div class="flex items-center">
+                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-l-xl" onclick="adjustCount('calc-weekends', -1)">-</button>
+                                <input type="number" id="calc-weekends" min="0" value="0" class="w-full h-12 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-r-xl" onclick="adjustCount('calc-weekends', 1)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+                <div class="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 text-slate-800 flex flex-col justify-between shadow-2xl relative overflow-hidden">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                            <span class="text-xs uppercase tracking-widest text-slate-400 font-extrabold">Bảng Dự Kiến Tạm Tính</span>
+                            <span class="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Đúng Giá Niêm Yết</span>
+                        </div>
+                        <div class="mb-6"><span class="text-4xl sm:text-5xl font-black text-luxury-blue tracking-tight" id="calc-total">1.200.000</span> <span class="font-bold text-luxury-blue text-lg">đ</span></div>
+                        <div class="space-y-3.5 text-xs sm:text-sm text-slate-600">
+                            <div class="flex justify-between items-center"><span>Giá trị tiền phòng:</span><span class="font-bold text-slate-900" id="detail-room-cost">1.200.000 đ</span></div>
+                            <div class="flex justify-between items-center pb-2 border-b border-slate-100"><span>Bữa sáng hàng ngày:</span><span class="text-emerald-600 font-extrabold uppercase">MIỄN PHÍ</span></div>
+                            <div class="flex justify-between items-center"><span>Trà, Cafe & Nước lọc hàng ngày:</span><span class="text-emerald-600 font-extrabold uppercase">MIỄN PHÍ</span></div>
+                            <div class="flex justify-between items-center"><span>Xe điện 1 chiều bến tàu - KS:</span><span class="text-emerald-600 font-extrabold uppercase">MIỄN PHÍ</span></div>
+                            <div class="flex justify-between items-center"><span>Dịch vụ sân Pickleball:</span><span class="text-emerald-600 font-extrabold uppercase">GIẢM 50%</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-8">
+                        
+                        <a id="zalo-link" href="https://zalo.me/0383696666" target="_blank" class="block w-full text-center bg-green-600 hover:bg-green-700 text-white font-extrabold py-3 rounded-xl transition-all duration-300 text-xs uppercase tracking-wider"><i class="fa-brands fa-whatsapp text-sm mr-1.5"></i> Chat Zalo trực tiếp</a>
+                        <p class="text-center text-[11px] text-slate-400 mt-3">Yêu cầu đặt phòng sẽ lập tức được ghi nhận vào hệ thống.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SPEEDBOAT GUIDE SECTION -->
+    <section id="speedboat" class="py-24 bg-slate-50 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-luxury-gold font-bold uppercase tracking-widest text-xs">Cẩm Nang Di Chuyển</span>
+                <h2 class="font-luxury-serif text-4xl sm:text-5xl font-extrabold text-luxury-blue mt-2 mb-4">Lịch Tàu Cao Tốc Vân Đồn - <span class="whitespace-nowrap">Quan Lạn</span></h2>
+                <p class="text-slate-600 text-sm sm:text-base">Hãy để kỳ nghỉ của bạn trở nên thảnh thơi nhất. Khách sạn hỗ trợ đặt vé tàu cao tốc khứ hồi trọn gói với mức giá niêm yết chính xác tuyệt đối.</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-slate-100 flex flex-col justify-between transform hover:shadow-xl transition-all duration-300">
+                    <div>
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="bg-luxury-gold/15 p-4 rounded-2xl text-luxury-gold"><i class="fa-solid fa-ship text-2xl"></i></div>
+                            <div>
+                                <h3 class="font-luxury-serif text-xl sm:text-2xl font-bold text-luxury-blue">Chiều Đi: Cảng Ao Tiên → Bến Quan Lạn</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Thời gian di chuyển: 45 - 50 phút / 1 lượt</p>
+                            </div>
+                        </div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Các khung giờ chạy hàng ngày (theo ngày):</p>
+                        <div class="grid grid-cols-5 gap-2 text-center mb-6" id="schedule-go"></div>
+                    </div>
+                    <div class="bg-slate-50 p-4.5 rounded-2xl flex items-start gap-3 border border-slate-100">
+                        <i class="fa-solid fa-circle-info text-luxury-gold mt-0.5"></i>
+                        <p class="text-xs text-slate-500 leading-relaxed">Giờ khởi hành thực tế của hãng tàu có thể được điều chỉnh linh động dựa trên lưu lượng khách hành trình và yếu tố thời tiết hải đạo.</p>
+                    </div>
+                </div>
+                <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-slate-100 flex flex-col justify-between transform hover:shadow-xl transition-all duration-300">
+                    <div>
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="bg-luxury-gold/15 p-4 rounded-2xl text-luxury-gold"><i class="fa-solid fa-ship text-2xl transform scale-x-[-1]"></i></div>
+                            <div>
+                                <h3 class="font-luxury-serif text-xl sm:text-2xl font-bold text-luxury-blue">Chiều Về: Bến Quan Lạn → Cảng Ao Tiên</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Thời gian di chuyển: 45 - 50 phút / 1 lượt</p>
+                            </div>
+                        </div>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Các khung giờ chạy hàng ngày (theo ngày):</p>
+                        <div class="grid grid-cols-5 gap-2 text-center mb-6" id="schedule-return"></div>
+                    </div>
+                    <div class="bg-slate-50 p-4.5 rounded-2xl flex items-start gap-3 border border-slate-100">
+                        <i class="fa-solid fa-circle-info text-luxury-gold mt-0.5"></i>
+                        <p class="text-xs text-slate-500 leading-relaxed">Để khởi hành đúng giờ chiều về, quý khách hãy liên hệ với lễ tân Infinity Hill Hotel ít nhất trước 1 giờ để sắp xếp xe điện vận chuyển hành lý.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-lg border border-slate-100">
+                <h4 class="font-luxury-serif text-2xl font-bold text-luxury-blue mb-6 flex items-center gap-2 border-b border-slate-100 pb-4"><i class="fa-solid fa-calculator text-luxury-gold"></i> Ước Tính Chi Phí Vé Tàu & Cảng Phí</h4>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs uppercase tracking-wider font-extrabold text-slate-500 mb-2">Số lượng Người lớn (Từ 6 tuổi trở lên):</label>
+                                <div class="flex items-center">
+                                    <button class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold w-10 h-10 rounded-l-lg" onclick="adjustCount('ticket-adults', -1)">-</button>
+                                    <input type="number" id="ticket-adults" min="0" value="2" class="w-full h-10 bg-slate-50 text-center font-bold text-sm border-y border-slate-200 focus:outline-none" oninput="calculateTickets()">
+                                    <button class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold w-10 h-10 rounded-r-lg" onclick="adjustCount('ticket-adults', 1)">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-400 mt-1 block">Vé tàu: 250k/chiều • Vé cảng: 50k/chiều</span>
+                            </div>
+                            <div>
+                                <label class="block text-xs uppercase tracking-wider font-extrabold text-slate-500 mb-2">Số lượng Trẻ em (Từ 3 đến 5 tuổi):</label>
+                                <div class="flex items-center">
+                                    <button class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold w-10 h-10 rounded-l-lg" onclick="adjustCount('ticket-kids', -1)">-</button>
+                                    <input type="number" id="ticket-kids" min="0" value="0" class="w-full h-10 bg-slate-50 text-center font-bold text-sm border-y border-slate-200 focus:outline-none" oninput="calculateTickets()">
+                                    <button class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold w-10 h-10 rounded-r-lg" onclick="adjustCount('ticket-kids', 1)">+</button>
+                                </div>
+                                <span class="text-[10px] text-slate-400 mt-1 block">Vé tàu: 200k/chiều • Vé cảng: 20k/chiều</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="block text-xs uppercase tracking-wider font-extrabold text-slate-500 mb-2">Chọn Loại Hành Trình Vé:</span>
+                            <div class="flex gap-4">
+                                <label class="inline-flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-700 whitespace-nowrap"><input type="radio" name="trip-type" value="2" checked class="w-4 h-4 text-luxury-blue" onchange="calculateTickets()"> Vé khứ hồi (2 chiều)</label>
+                                <label class="inline-flex items-center gap-2 cursor-pointer font-semibold text-sm text-slate-700 whitespace-nowrap"><input type="radio" name="trip-type" value="1" class="w-4 h-4 text-luxury-blue" onchange="calculateTickets()"> Vé một chiều (1 lượt)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-4">
+                        <span class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tổng dự toán vé tàu & cảng phí</span>
+                        <div><span class="text-3xl font-black text-luxury-blue" id="ticket-total">1.200.000</span> <span class="font-bold text-luxury-blue text-sm">đ</span></div>
+                        <div class="border-t border-slate-200 pt-4 space-y-2 text-xs text-slate-600">
+                            <div class="flex justify-between"><span>Tiền vé tàu:</span><span class="font-bold text-slate-900" id="detail-ticket-only">1.000.000 đ</span></div>
+                            <div class="flex justify-between"><span>Lệ phí qua cảng:</span><span class="font-bold text-slate-900" id="detail-port-only">200.000 đ</span></div>
+                        </div>
+                        <a href="https://zalo.me/0383696666" id="ticket-zalo-btn" target="_blank" class="block w-full text-center bg-luxury-blue hover:bg-luxury-gold hover:text-luxury-blue text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase tracking-wider whitespace-nowrap">Đặt vé trọn gói hộ ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EXPERIENCES -->
+    <section id="experiences" class="py-24 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-luxury-gold font-bold uppercase tracking-widest text-xs">Ẩm Thực & Hoạt Động</span>
+                <h2 class="font-luxury-serif text-4xl sm:text-5xl font-extrabold text-luxury-blue mt-2 mb-4">Dịch Vụ Đoàn & Trải Nghiệm <span class="whitespace-nowrap">Thú Vị</span></h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="rounded-3xl overflow-hidden border border-slate-100 shadow-md flex flex-col group hover:shadow-2xl transition-all duration-300">
+                    <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" alt="Cafe" class="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="p-6"><h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2.5">Quán Cafe Sườn Đồi Cực Chill</h3></div>
+                </div>
+                <div class="rounded-3xl overflow-hidden border border-slate-100 shadow-md flex flex-col group hover:shadow-2xl transition-all duration-300">
+                    <img src="https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800" alt="Food" class="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="p-6">
+                        <h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2.5">Thực Đơn Cơm Đoàn Đặc Sản</h3>
+                        <div class="flex flex-wrap gap-2 text-[11px] font-bold mt-2">
+                            <span class="bg-luxury-blue/5 text-luxury-blue px-2.5 py-1.5 rounded-lg whitespace-nowrap">200k / suất</span>
+                            <span class="bg-luxury-blue/5 text-luxury-blue px-2.5 py-1.5 rounded-lg whitespace-nowrap">250k / suất</span>
+                            <span class="bg-luxury-blue/5 text-luxury-blue px-2.5 py-1.5 rounded-lg whitespace-nowrap">300k / suất</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-3xl overflow-hidden border border-slate-100 shadow-md flex flex-col group hover:shadow-2xl transition-all duration-300">
+                    <img src="https://images.unsplash.com/photo-1505995433366-e12047f3f144?auto=format&fit=crop&q=80&w=800" alt="Activities" class="w-full h-64 object-cover transition-transform duration-700 group-hover:scale-105">
+                    <div class="p-6"><h3 class="font-luxury-serif text-xl font-bold text-luxury-blue mb-2.5">Tổ Hợp Hoạt Động & Tour Xe Điện</h3></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PHOTO GALLERY SECTION -->
+    
+
+    <!-- POLICIES -->
+    <section class="py-24 bg-white relative">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6">
+            <div class="bg-slate-50 rounded-3xl p-8 sm:p-12 shadow-md border border-slate-100 relative">
+                
+                <h3 class="font-luxury-serif text-3xl font-extrabold text-luxury-blue mb-10 text-center pb-4 border-b border-slate-200">Quy Định Chung & Chính Sách Hủy Phòng</h3>
+                <div class="space-y-6 text-slate-600 text-sm sm:text-base">
+                    <div class="flex gap-4">
+                        <div class="mt-1 bg-luxury-blue/10 p-2 rounded-lg text-luxury-blue h-fit"><i class="fa-solid fa-ban"></i></div>
+                        <div>
+                            <h4 class="font-bold text-luxury-blue mb-1">Chính Sách Hoàn Cọc Hủy Phòng</h4>
+                            <p>Khách hàng thông báo hủy phòng trước tối thiểu 05 ngày kể từ ngày nhận phòng dự kiến sẽ được hoàn trả lại 50% số tiền đã đặt cọc. Quá thời hạn 05 ngày quy định nêu trên, khách sạn không áp dụng chính sách hoàn lại tiền cọc.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="mt-1 bg-luxury-blue/10 p-2 rounded-lg text-luxury-blue h-fit"><i class="fa-regular fa-clock"></i></div>
+                        <div>
+                            <h4 class="font-bold text-luxury-blue mb-1">Thời Gian Nhận Phòng & Trả Phòng</h4>
+                            <p>Giờ nhận phòng (Check-in): 14h00 hằng ngày | Giờ trả phòng (Check-out): 11h00 hằng ngày. Quý khách vui lòng phối hợp đúng khung giờ để buồng phòng sắp xếp dọn dẹp vệ sinh phòng nghỉ đạt chuẩn tốt nhất.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="mt-1 bg-luxury-blue/10 p-2 rounded-lg text-luxury-blue h-fit"><i class="fa-solid fa-utensils"></i></div>
+                        <div>
+                            <h4 class="font-bold text-luxury-blue mb-1">Quy Định Đặt Suất Ăn Ưu Đãi</h4>
+                            <p>Để nhận được báo giá phòng siêu ưu đãi tốt nhất hiện tại, Quý khách cần đăng ký tối thiểu số bữa ăn chính tại nhà hàng khách sạn tương đương với số ngày lưu trú. Chúng tôi cam kết thực đơn hải sản phong phú tươi ngon tuyệt vời từ khơi biển.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-12 p-6 bg-luxury-blue text-white rounded-2xl flex flex-col sm:flex-row justify-between items-center gap-6 shadow-xl border border-luxury-gold/30">
+                    <div>
+                        <p class="text-[10px] text-luxury-gold font-bold uppercase tracking-widest">Liên hệ chủ khách sạn</p>
+                        <h4 class="text-lg sm:text-xl font-extrabold mt-0.5"><span class="manager-name-display">Mr. Đạt</span> (<span class="hotline-text-display">0383.696.666</span>)</h4>
+                    </div>
+                    <a href="tel:0383696666" id="about-hotline-btn" class="bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue font-extrabold px-6 py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 shadow-md transform hover:scale-105 whitespace-nowrap"><i class="fa-solid fa-phone mr-1"></i> Gọi Ngay Hỏi Đạt</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER SECTION -->
+    <footer class="bg-luxury-dark text-white pt-20 pb-24 border-t border-luxury-gold/20 relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="space-y-5 col-span-1">
+                    <a href="#" class="block" title="Trắng chủ">
+                        <div class="bg-white p-4 rounded-2xl flex items-center justify-center shadow-lg max-w-[200px]">
+                            <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Infinity Hill" class="w-full h-auto object-contain">
+                        </div>
+                    </a>
+                    <p class="text-xs text-slate-300 leading-relaxed font-light">Tuyệt tác nghỉ dưỡng sang trọng tân cổ điển Châu Âu quý phái trên sườn đồi Quan Lạn, đem đến sự thanh tịnh, riêng tư và trọn vẹn chất lượng sống thượng đẳng.</p>
+                </div>
+                <div>
+                    <h5 class="font-luxury-serif text-lg font-bold text-luxury-gold mb-6 tracking-wide">Khách Sạn</h5>
+                    <ul class="space-y-3.5 text-xs text-slate-300 font-light">
+                        <li><a href="#about" class="hover:text-luxury-gold transition-colors">Giới thiệu tổng quan</a></li>
+                        <li><a href="#rooms" class="hover:text-luxury-gold transition-colors">Hạng phòng & Báo giá</a></li>
+                        <li><a href="#calculator" class="hover:text-luxury-gold transition-colors">Bộ ước tính chi phí</a></li>
+                        <li><a href="#experiences" class="hover:text-luxury-gold transition-colors">Ẩm thực hải sản</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="font-luxury-serif text-lg font-bold text-luxury-gold mb-6 tracking-wide">Giờ Tàu Chạy</h5>
+                    <ul class="space-y-3.5 text-xs text-slate-300 font-light" id="footer-schedules">
+                        <li><span class="block text-slate-400">Ao Tiên đi Quan Lạn:</span> 07h30, 09h00, 11h00, 13h30, 15h00</li>
+                        <li><span class="block text-slate-400">Quan Lạn về Ao Tiên:</span> 07h30, 08h00, 10h00, 12h00, 14h00</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="font-luxury-serif text-lg font-bold text-luxury-gold mb-6 tracking-wide">Liên Hệ</h5>
+                    <ul class="space-y-3 text-xs text-slate-300 font-light mb-6">
+                        <li class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-phone text-luxury-gold"></i>
+                            <span>Số hotline: <strong><span class="hotline-text-display">0383.696.666</span></strong></span>
+                        </li>
+                    </ul>
+                    <div class="w-full overflow-hidden rounded-xl shadow-lg border border-white/10">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d542.2918516579172!2d107.4946450660681!3d20.87367687746142!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314ba72b4b4f55cb%3A0x3daacd0db93d30db!2zS2jDoWNoIHPhuqFuIEluZmluaXR5IEhpbGw!5e1!3m2!1svi!2sus!4v1781858842146!5m2!1svi!2sus" width="100%" height="200" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-8 border-t border-white/15 text-center text-xs text-slate-400 font-light space-y-2">
+                <p>© 2026 INFINITY HILL HOTEL. Tất cả các quyền sở hữu trí tuệ được bảo lưu.</p>
+            </div>
+        </div>
+    </footer>
+
+    
+
+    <!-- FLOATING HOTLINE -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        <a href="https://zalo.me/0383696666" id="float-zalo-btn" target="_blank" class="bg-white hover:bg-slate-100 p-0 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 overflow-hidden w-[52px] h-[52px]"><img src="https://lh3.googleusercontent.com/pw/AP1GczP3RYeoFTvQXuQ1QiZbGvtMeyduHlcR1zkj11JsVqnMyj4NHADp89GL9trn7d5CoU2u2Fgj-mFSqjn7H47dfVL4RenHBFqe4rAW53wB9Zdge5nzqvS5=s256" alt="Zalo" class="w-full h-full object-cover"></a>
+        <a href="tel:0383696666" id="float-hotline-btn" class="bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue p-4.5 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110 animate-bounce"><i class="fa-solid fa-phone-volume text-xl"></i></a>
+    </div>
+
+    <script>
+        const galleryItems = [
+            { src: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1200", caption: "Toàn cảnh kiến trúc cổ điển" },
+            { src: "https://images.unsplash.com/photo-1533587845331-5768296a2b8e?auto=format&fit=crop&q=80&w=1200", caption: "Glamping Cafe sườn đồi" },
+            { src: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=80&w=1200", caption: "Vườn hoa đá sỏi nội khu" },
+            { src: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&q=80&w=1200", caption: "Phòng ngủ châu Âu" },
+            { src: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&q=80&w=1200", caption: "Phòng tắm hiện đại vintage" }
+        ];
+
+        let currentLightboxIndex = 0;
+        let hotelState = {
+            hotline: "0383.696.666", managerName: "Mr. Đạt",
+            mapsUrl: "https://maps.app.goo.gl/MXZdbN9LWCFTfqeA8",
+            goSchedules: ["07h30", "09h00", "11h00", "13h30", "15h00"],
+            returnSchedules: ["07h30", "08h00", "10h00", "12h00", "14h00"],
+            rooms: {
+                room1: { name: "Phòng 1G (King Size)", weekday: 1200000, weekend: 1400000 },
+                room2: { name: "Phòng 2G (Twin Room)", weekday: 1400000, weekend: 1600000 },
+                room3: { name: "Phòng 3G (Triple Room)", weekday: 1600000, weekend: 1800000 },
+                room4: { name: "Phòng 1,2G VIP", weekday: 1700000, weekend: 1900000 }
+            }
+        };
+
+        function loadState() {
+            const savedState = localStorage.getItem("infinity_hill_hotel_state");
+            if (savedState) {
+                try { Object.assign(hotelState, JSON.parse(savedState)); } catch (e) {}
+            }
+            renderLiveUI();
+        }
+
+        function renderLiveUI() {
+            document.querySelectorAll(".hotline-text-display").forEach(el => el.innerText = hotelState.hotline);
+            document.querySelectorAll(".manager-name-display").forEach(el => el.innerText = hotelState.managerName);
+            
+            const cleanPhone = (hotelState.hotline || "").replace(/\./g, "").trim();
+            document.getElementById("top-hotline-text").href = `tel:${cleanPhone}`;
+            document.getElementById("nav-hotline-btn").href = `tel:${cleanPhone}`;
+            
+            document.getElementById("price-room1-weekday").innerText = hotelState.rooms.room1.weekday.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room1-weekend").innerText = hotelState.rooms.room1.weekend.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room2-weekday").innerText = hotelState.rooms.room2.weekday.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room2-weekend").innerText = hotelState.rooms.room2.weekend.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room3-weekday").innerText = hotelState.rooms.room3.weekday.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room3-weekend").innerText = hotelState.rooms.room3.weekend.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room4-weekday").innerText = hotelState.rooms.room4.weekday.toLocaleString('vi-VN') + " đ";
+            document.getElementById("price-room4-weekend").innerText = hotelState.rooms.room4.weekend.toLocaleString('vi-VN') + " đ";
+
+            const goContainer = document.getElementById("schedule-go");
+            goContainer.innerHTML = hotelState.goSchedules.map(time => `<div class="bg-luxury-blue hover:bg-luxury-gold text-white hover:text-luxury-blue rounded-xl py-3 font-extrabold text-xs sm:text-sm shadow-sm transition-all cursor-pointer">${time}</div>`).join("");
+            
+            const returnContainer = document.getElementById("schedule-return");
+            returnContainer.innerHTML = hotelState.returnSchedules.map(time => `<div class="bg-luxury-blue hover:bg-luxury-gold text-white hover:text-luxury-blue rounded-xl py-3 font-extrabold text-xs sm:text-sm shadow-sm transition-all cursor-pointer">${time}</div>`).join("");
+
+            calculateVacation();
+            calculateTickets();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+
+        function adjustCount(inputId, amount) {
+            const input = document.getElementById(inputId);
+            let val = parseInt(input.value) || 0;
+            val += amount;
+            if (val < 0) val = 0;
+            input.value = val;
+            if (inputId.startsWith('calc')) calculateVacation();
+            else if (inputId.startsWith('ticket')) calculateTickets();
+        }
+
+        function selectRoomInCalculator(roomKey) {
+            document.getElementById('calc-room').value = roomKey;
+            calculateVacation();
+        }
+
+        function calculateVacation() {
+            const selectedRoomKey = document.getElementById('calc-room').value;
+            const roomInfo = hotelState.rooms[selectedRoomKey] || hotelState.rooms.room1;
+            const weekdaysCount = Math.max(0, parseInt(document.getElementById('calc-weekdays').value) || 0);
+            const weekendsCount = Math.max(0, parseInt(document.getElementById('calc-weekends').value) || 0);
+
+            const totalRoomCost = (weekdaysCount * roomInfo.weekday) + (weekendsCount * roomInfo.weekend);
+            document.getElementById('calc-total').innerText = totalRoomCost.toLocaleString('vi-VN');
+            document.getElementById('detail-room-cost').innerText = totalRoomCost.toLocaleString('vi-VN') + ' đ';
+
+            const cleanPhone = (hotelState.hotline || "").replace(/\./g, "").trim();
+            const message = encodeURIComponent(`Chào ${hotelState.managerName}, tôi muốn đặt phòng tại Infinity Hill:\n- Hạng phòng: ${roomInfo.name}\n- Số đêm thường: ${weekdaysCount} đêm\n- Số đêm cuối tuần: ${weekendsCount} đêm\n- Tổng tiền phòng dự tính: ${totalRoomCost.toLocaleString('vi-VN')} VNĐ`);
+            document.getElementById('zalo-link').href = `https://zalo.me/${cleanPhone}?text=${message}`;
+        }
+
+        
+
+        function calculateTickets() {
+            const adultsCount = Math.max(0, parseInt(document.getElementById('ticket-adults').value) || 0);
+            const kidsCount = Math.max(0, parseInt(document.getElementById('ticket-kids').value) || 0);
+            const tripMultiplier = parseInt(document.querySelector('input[name="trip-type"]:checked').value) || 2;
+
+            const totalBoatCost = ((adultsCount * 250000) + (kidsCount * 200000)) * tripMultiplier;
+            const totalPortCost = ((adultsCount * 50000) + (kidsCount * 20000)) * tripMultiplier;
+            const grandTotal = totalBoatCost + totalPortCost;
+
+            document.getElementById('ticket-total').innerText = grandTotal.toLocaleString('vi-VN');
+            document.getElementById('detail-ticket-only').innerText = totalBoatCost.toLocaleString('vi-VN') + ' đ';
+            document.getElementById('detail-port-only').innerText = totalPortCost.toLocaleString('vi-VN') + ' đ';
+        }
+
+        function openLightbox(index) {
+            currentLightboxIndex = index;
+            document.getElementById('lightbox-img').src = galleryItems[index].src;
+            document.getElementById('lightbox-caption').innerText = galleryItems[index].caption;
+            document.getElementById('lightbox').classList.remove('hidden');
+            document.getElementById('lightbox').classList.add('flex');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.add('hidden');
+            document.getElementById('lightbox').classList.remove('flex');
+        }
+
+        function changeSlide(direction) {
+            currentLightboxIndex += direction;
+            if (currentLightboxIndex >= galleryItems.length) currentLightboxIndex = 0;
+            else if (currentLightboxIndex < 0) currentLightboxIndex = galleryItems.length - 1;
+            document.getElementById('lightbox-img').src = galleryItems[currentLightboxIndex].src;
+            document.getElementById('lightbox-caption').innerText = galleryItems[currentLightboxIndex].caption;
+        }
+
+        window.onload = loadState;
+    </script>
+</body>
+</html>

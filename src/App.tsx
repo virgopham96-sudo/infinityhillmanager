@@ -13,6 +13,7 @@ import GuestView from "./components/GuestView";
 import BookingModal from "./components/BookingModal";
 import MultiBookingModal from "./components/MultiBookingModal";
 import UserGuide from "./components/UserGuide";
+import LandingPage from "./components/LandingPage";
 import { useStore } from "./store";
 import { Room } from "./types";
 import { Loader2, PlusSquare, Building } from "lucide-react";
@@ -40,7 +41,7 @@ export default function App() {
   const navigate = useNavigate();
 
   const currentView = (() => {
-    if (location.pathname === '/kiem-tra') return 'kiem-tra';
+    if (location.pathname === '/kiem-tra') return 'check';
     if (location.pathname === '/hien-trang') return 'schedule';
     if (location.pathname === '/khach-dat') return 'guests';
     if (location.pathname === '/doanh-thu') return 'revenue';
@@ -57,8 +58,17 @@ export default function App() {
   // Keep track of notified checkouts to prevent duplicate alerts in the current session
   const notifiedCheckoutsRef = useRef<Record<string, string>>({});
 
+  // Login State
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem("isAuthenticated") === "true";
+  });
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
   useEffect(() => {
-    if (currentView === "dashboard" && isLoaded && rooms && rooms.length > 0) {
+    if (isAuthenticated && currentView === "dashboard" && isLoaded && rooms && rooms.length > 0) {
       const now = new Date();
       const todayStr = format(now, "yyyy-MM-dd");
       
@@ -103,16 +113,7 @@ export default function App() {
         }
       });
     }
-  }, [currentView, isLoaded, rooms]);
-
-  // Login State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem("isAuthenticated") === "true";
-  });
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loginError, setLoginError] = useState("");
+  }, [currentView, isLoaded, rooms, isAuthenticated]);
 
   if (!isLoaded) {
     return (
@@ -128,7 +129,7 @@ export default function App() {
         <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-1.5 w-10 h-10 rounded-lg bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-              <img src="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" alt="Logo" className="w-full h-full object-contain" />
+              <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Kiểm tra phòng trống</h1>
           </div>
@@ -143,14 +144,23 @@ export default function App() {
     );
   }
 
+  if (location.pathname === "/") {
+    return <LandingPage />;
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
-            <div className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center">
-              <img src="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" alt="Logo" className="w-full h-full object-contain" />
-            </div>
+            <button 
+              type="button"
+              onClick={() => navigate('/')}
+              className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              title="Về trang chủ"
+            >
+              <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Logo" className="w-full h-full object-contain" />
+            </button>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight text-center">
               Infinity Hill Manager
             </h1>

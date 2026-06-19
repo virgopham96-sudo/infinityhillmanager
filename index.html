@@ -4,29 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Infinity Hill Manager</title>
-    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/pw/AP1GczOEPimIlOihN9vUX9gjCfR5-LQ7FX-jPe25RQ4HkJ0bR7nxGZdYlMu4hD6Fe7Zrm-W1ZaWMQr1uW9TGPdn5VvIC3KT6RF4vPMQf5CUs-Q391CWTllH6=s512" />
-    <script>
-      try {
-        let target = window;
-        let desc = Object.getOwnPropertyDescriptor(target, 'fetch');
-        if (!desc && typeof Window !== 'undefined') {
-          target = Window.prototype;
-          desc = Object.getOwnPropertyDescriptor(target, 'fetch');
-        }
-        if (desc && desc.get && !desc.set) {
-          Object.defineProperty(target, 'fetch', {
-            configurable: true,
-            enumerable: desc.enumerable,
-            get: desc.get,
-            set: function(val) {
-              console.warn("Caught rogue fetch assignment:", val);
-            }
-          });
-        }
-      } catch(e) {
-        console.error("fetch polyfill fix failed", e);
-      }
-    </script>
+    <link rel="icon" type="image/png" href="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   </head>
   <body>
     <div id="root"></div>
