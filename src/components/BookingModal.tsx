@@ -159,6 +159,7 @@ export default function BookingModal({
     }
 
     const overlappingRes = room.reservations?.find((res) => {
+      if (res.guestName.toLowerCase().trim() === guestName?.toLowerCase().trim()) return false;
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
       return inDate < resOut && resIn < outDate;
@@ -230,6 +231,10 @@ export default function BookingModal({
       return;
     }
     
+    const cleanRes = (room.reservations || []).filter(
+      (r) => r.guestName.toLowerCase().trim() !== guestName.toLowerCase().trim()
+    );
+
     onUpdateRoom({
       ...room,
       status: "occupied",
@@ -240,7 +245,7 @@ export default function BookingModal({
       flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
-      reservations: getSafeReservations(),
+      reservations: cleanRes,
     });
     onClose();
   };
@@ -369,6 +374,7 @@ export default function BookingModal({
     }
 
     let overlappingRes = room.reservations?.find((res) => {
+      if (res.guestName.toLowerCase().trim() === futureGuestName?.toLowerCase().trim()) return false;
       const resIn = new Date(res.checkInTime);
       const resOut = new Date(res.checkOutTime);
       return inDate < resOut && resIn < outDate;

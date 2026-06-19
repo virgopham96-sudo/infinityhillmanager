@@ -441,17 +441,8 @@ export default function MultiBookingModal({
       const room = rooms.find((r) => r.id === id);
       if (!room) return true;
       if (room.status === "available") return false;
-      if (
-        selectedGroup &&
-        room.status === "reserved" &&
-        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
-        room.checkInTime === selectedGroup.checkIn &&
-        room.checkOutTime === selectedGroup.checkOut
-      ) {
-        return false;
-      }
-
-      // If it's a future reservation, we can check them in NOW if room is available
+      if (room.status === "occupied" || room.status === "maintenance") return true;
+      if (selectedGroup && selectedGroup.roomIds.includes(room.id)) return false;
       return true;
     });
 
@@ -505,7 +496,13 @@ export default function MultiBookingModal({
                 r.checkOutTime === selectedGroup.checkOut
               )
           )
-        : room.reservations || [];
+        : [...(room.reservations || [])];
+
+      const replacedMain = isEditingGroup &&
+        room.status === "reserved" &&
+        room.guestName?.toLowerCase() === selectedGroup.guestName.toLowerCase() &&
+        room.checkInTime === selectedGroup.checkIn &&
+        room.checkOutTime === selectedGroup.checkOut;
 
       if (!selectedRoomIds.includes(room.id)) {
         return {
@@ -519,6 +516,21 @@ export default function MultiBookingModal({
           flexiblePrice: newFlexiblePrice,
           reservations: filteredReservations,
         };
+      }
+
+      // If we are checking in THIS room but it had a different main reservation, 
+      // we must save the old main reservation so it's not lost
+      if (room.status === "reserved" && !replacedMain && room.guestName && room.checkInTime && room.checkOutTime) {
+        filteredReservations.push({
+          id: Date.now().toString() + Math.random().toString(),
+          guestName: room.guestName,
+          checkInTime: room.checkInTime,
+          checkOutTime: room.checkOutTime,
+          deposit: room.deposit,
+          notes: room.notes,
+          isFlexiblePrice: room.isFlexiblePrice,
+          flexiblePrice: room.flexiblePrice
+        });
       }
 
       return {
