@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Infinity Hill Hotel - Tuyệt tác nghỉ dưỡng tại đảo Quan Lạn. Trải nghiệm không gian sang trọng, dịch vụ đẳng cấp và cảnh quan tuyệt đẹp tại khách sạn của chúng tôi.">
+    <meta name="keywords" content="Infinity Hill Hotel, khách sạn Quan Lạn, nghỉ dưỡng Quan Lạn, du lịch Quan Lạn, khách sạn đảo Quan Lạn, phòng khách sạn cao cấp, nhà hàng Quan Lạn">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Infinity Hill Hotel - Tuyệt Tác Nghỉ Dưỡng Đảo Quan Lạn">
+    <meta property="og:description" content="Khám phá không gian nghỉ dưỡng tuyệt vời với hệ thống phòng ốc view biển, dịch vụ nhà hàng hải sản tươi sống và nhiều tiện ích đẳng cấp tại Infinity Hill Hotel.">
+    <meta property="og:image" content="https://lh3.googleusercontent.com/pw/AP1GczOx75j3Esc8zQkY-VKuXsJjne6Xh5FcoUUcYkJwgWFugIV63IIas9rVAunxKMXwU1BF92jd56zZrTz9SAfnXg24MSEV6fTOYYaqHt7PCManEchCE4R5=w1200-h630-c">
+    <meta property="og:type" content="website">
     <title>Infinity Hill Hotel - Tuyệt Tác Nghỉ Dưỡng Đảo Quan Lạn</title>
+    <link rel="icon" href="https://lh3.googleusercontent.com/pw/AP1GczOx75j3Esc8zQkY-VKuXsJjne6Xh5FcoUUcYkJwgWFugIV63IIas9rVAunxKMXwU1BF92jd56zZrTz9SAfnXg24MSEV6fTOYYaqHt7PCManEchCE4R5=s192-c" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -318,32 +326,58 @@
             <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6 sm:p-10 border border-white/20 shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-10">
                 <div class="lg:col-span-7 space-y-6">
                     <div>
-                        <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5">1. Lựa chọn hạng phòng nghỉ:</label>
-                        <select id="calc-room" class="w-full bg-luxury-blue/90 border border-white/30 rounded-2xl px-4 py-4 text-white focus:outline-none focus:border-luxury-gold transition-colors text-sm font-semibold" onchange="calculateVacation()">
-                            <option value="room1">Phòng 1G (King Size)</option>
-                            <option value="room2">Phòng 2G (Twin Room)</option>
-                            <option value="room3">Phòng 3G (Triple Room)</option>
-                            <option value="room4">Phòng 1,2G VIP (Luxury)</option>
-                        </select>
+                        <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-4">1. Lựa chọn hạng phòng & Số lượng:</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
+                                <span class="text-white text-sm font-semibold">1G (King Size)</span>
+                                <div class="flex items-center w-28">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-l-lg flex items-center justify-center" onclick="adjustCount('calc-room1-qty', -1)">-</button>
+                                    <input type="number" id="calc-room1-qty" min="0" value="1" class="w-10 h-9 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-r-lg flex items-center justify-center" onclick="adjustCount('calc-room1-qty', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
+                                <span class="text-white text-sm font-semibold">2G (Twin Room)</span>
+                                <div class="flex items-center w-28">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-l-lg flex items-center justify-center" onclick="adjustCount('calc-room2-qty', -1)">-</button>
+                                    <input type="number" id="calc-room2-qty" min="0" value="0" class="w-10 h-9 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-r-lg flex items-center justify-center" onclick="adjustCount('calc-room2-qty', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
+                                <span class="text-white text-sm font-semibold">3G (Triple Room)</span>
+                                <div class="flex items-center w-28">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-l-lg flex items-center justify-center" onclick="adjustCount('calc-room3-qty', -1)">-</button>
+                                    <input type="number" id="calc-room3-qty" min="0" value="0" class="w-10 h-9 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-r-lg flex items-center justify-center" onclick="adjustCount('calc-room3-qty', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
+                                <span class="text-white text-sm font-semibold">1,2G VIP (Luxury)</span>
+                                <div class="flex items-center w-28">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-l-lg flex items-center justify-center" onclick="adjustCount('calc-room4-qty', -1)">-</button>
+                                    <input type="number" id="calc-room4-qty" min="0" value="0" class="w-10 h-9 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
+                                    <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-9 h-9 rounded-r-lg flex items-center justify-center" onclick="adjustCount('calc-room4-qty', 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-solid fa-calendar-day mr-1"></i> 2. Số Đêm Ngày Thường (T2 - T5):</label>
-                            <div class="flex items-center">
-                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-l-xl" onclick="adjustCount('calc-weekdays', -1)">-</button>
-                                <input type="number" id="calc-weekdays" min="0" value="1" class="w-full h-12 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
-                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-r-xl" onclick="adjustCount('calc-weekdays', 1)">+</button>
-                            </div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-regular fa-calendar-check mr-1"></i> 2. Nhận phòng (Check-in):</label>
+                            <input type="date" id="calc-checkin" class="w-full h-12 bg-luxury-blue/90 border border-white/30 text-white px-4 rounded-xl focus:outline-none focus:border-luxury-gold font-bold text-sm [color-scheme:dark]" onchange="updateNightsAndCalculate()">
                         </div>
                         <div>
-                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-solid fa-calendar-week mr-1"></i> 3. Số Đêm Cuối Tuần (T6 - CN):</label>
-                            <div class="flex items-center">
-                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-l-xl" onclick="adjustCount('calc-weekends', -1)">-</button>
-                                <input type="number" id="calc-weekends" min="0" value="0" class="w-full h-12 bg-luxury-blue/90 border-y border-white/30 text-white text-center focus:outline-none font-bold text-sm" oninput="calculateVacation()">
-                                <button type="button" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold w-12 h-12 rounded-r-xl" onclick="adjustCount('calc-weekends', 1)">+</button>
-                            </div>
+                            <label class="block text-xs uppercase tracking-wider font-bold text-luxury-gold mb-2.5"><i class="fa-regular fa-calendar-xmark mr-1"></i> 3. Trả phòng (Check-out):</label>
+                            <input type="date" id="calc-checkout" class="w-full h-12 bg-luxury-blue/90 border border-white/30 text-white px-4 rounded-xl focus:outline-none focus:border-luxury-gold font-bold text-sm [color-scheme:dark]" onchange="updateNightsAndCalculate()">
                         </div>
                     </div>
+                    <div class="flex sm:flex-row flex-col gap-2 sm:gap-6 text-slate-300 text-sm font-medium mt-1 p-3.5 bg-white/5 border border-white/10 rounded-xl">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-moon text-luxury-gold text-xs"></i> Đêm thường (T2-T5): <strong id="display-weekdays" class="text-white text-base">1</strong></span>
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-moon text-luxury-gold text-xs"></i> Đêm cuối tuần (T6-CN): <strong id="display-weekends" class="text-white text-base">0</strong></span>
+                    </div>
+                    <input type="hidden" id="calc-weekdays" value="1">
+                    <input type="hidden" id="calc-weekends" value="0">
                     
                     
                 </div>
@@ -671,22 +705,109 @@
         }
 
         function selectRoomInCalculator(roomKey) {
-            document.getElementById('calc-room').value = roomKey;
+            ['calc-room1-qty', 'calc-room2-qty', 'calc-room3-qty', 'calc-room4-qty'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '0';
+            });
+            let targetId = 'calc-room1-qty';
+            if (roomKey === 'room2') targetId = 'calc-room2-qty';
+            else if (roomKey === 'room3') targetId = 'calc-room3-qty';
+            else if (roomKey === 'room4') targetId = 'calc-room4-qty';
+            
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) targetEl.value = '1';
+
             calculateVacation();
         }
 
+        
+        function updateNightsAndCalculate() {
+            const checkinVal = document.getElementById('calc-checkin').value;
+            const checkoutVal = document.getElementById('calc-checkout').value;
+            if (!checkinVal || !checkoutVal) return;
+
+            const checkinDate = new Date(checkinVal);
+            const checkoutDate = new Date(checkoutVal);
+            
+            if (checkoutDate <= checkinDate) {
+                checkoutDate.setDate(checkinDate.getDate() + 1);
+                document.getElementById('calc-checkout').valueAsDate = checkoutDate;
+            }
+
+            let weekdays = 0;
+            let weekends = 0;
+            
+            let currentDate = new Date(checkinDate);
+            while (currentDate < checkoutDate) {
+                const day = currentDate.getDay(); // 0 is Sunday, 1-4 is Mon-Thu, 5-6 is Fri-Sat
+                if (day === 5 || day === 6 || day === 0) {
+                    weekends++;
+                } else {
+                    weekdays++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            document.getElementById('calc-weekdays').value = weekdays;
+            document.getElementById('calc-weekends').value = weekends;
+            document.getElementById('display-weekdays').innerText = weekdays;
+            document.getElementById('display-weekends').innerText = weekends;
+
+            calculateVacation();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            setTimeout(() => {
+                const ci = document.getElementById('calc-checkin');
+                const co = document.getElementById('calc-checkout');
+                if(ci && co) {
+                    ci.valueAsDate = today;
+                    co.valueAsDate = tomorrow;
+                    updateNightsAndCalculate();
+                }
+            }, 500);
+        });
+
         function calculateVacation() {
-            const selectedRoomKey = document.getElementById('calc-room').value;
-            const roomInfo = hotelState.rooms[selectedRoomKey] || hotelState.rooms.room1;
             const weekdaysCount = Math.max(0, parseInt(document.getElementById('calc-weekdays').value) || 0);
             const weekendsCount = Math.max(0, parseInt(document.getElementById('calc-weekends').value) || 0);
 
-            const totalRoomCost = (weekdaysCount * roomInfo.weekday) + (weekendsCount * roomInfo.weekend);
+            const roomList = [
+                { id: 'room1', elem: 'calc-room1-qty' },
+                { id: 'room2', elem: 'calc-room2-qty' },
+                { id: 'room3', elem: 'calc-room3-qty' },
+                { id: 'room4', elem: 'calc-room4-qty' }
+            ];
+
+            let totalRoomCost = 0;
+            let roomDetailsStr = '';
+
+            roomList.forEach(r => {
+                const el = document.getElementById(r.elem);
+                if (el) {
+                    const qty = Math.max(0, parseInt(el.value) || 0);
+                    if (qty > 0) {
+                        const roomInfo = hotelState.rooms[r.id];
+                        if (roomInfo) {
+                            totalRoomCost += ((weekdaysCount * roomInfo.weekday) + (weekendsCount * roomInfo.weekend)) * qty;
+                            roomDetailsStr += `\n   + ${roomInfo.name}: ${qty} phòng`;
+                        }
+                    }
+                }
+            });
+
             document.getElementById('calc-total').innerText = totalRoomCost.toLocaleString('vi-VN');
             document.getElementById('detail-room-cost').innerText = totalRoomCost.toLocaleString('vi-VN') + ' đ';
 
             const cleanPhone = (hotelState.hotline || "").replace(/\./g, "").trim();
-            const message = encodeURIComponent(`Chào ${hotelState.managerName}, tôi muốn đặt phòng tại Infinity Hill:\n- Hạng phòng: ${roomInfo.name}\n- Số đêm thường: ${weekdaysCount} đêm\n- Số đêm cuối tuần: ${weekendsCount} đêm\n- Tổng tiền phòng dự tính: ${totalRoomCost.toLocaleString('vi-VN')} VNĐ`);
+            const checkinVal = document.getElementById('calc-checkin').value;
+            const checkoutVal = document.getElementById('calc-checkout').value;
+            
+            const message = encodeURIComponent(`Chào ${hotelState.managerName}, tôi muốn đặt phòng tại Infinity Hill:\n- Số lượng:${roomDetailsStr}\n- Nhận phòng: ${checkinVal}\n- Trả phòng: ${checkoutVal}\n- Số đêm: ${weekdaysCount} đêm thường, ${weekendsCount} đêm cuối tuần\n- Tổng tiền phòng dự tính: ${totalRoomCost.toLocaleString('vi-VN')} VNĐ`);
             document.getElementById('zalo-link').href = `https://zalo.me/${cleanPhone}?text=${message}`;
         }
 
