@@ -24,18 +24,24 @@ interface SidebarProps {
 export default function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
   const { rooms, bookings, restoreData } = useStore();
 
-  const handleBackup = () => {
-    const data = {
-      rooms,
-      bookings
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `infinity_hill_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleBackup = async () => {
+    let toastId = toast.loading("Đang tạo bản sao lưu...");
+    try {
+      const data = {
+        rooms,
+        bookings
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `infinity_hill_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Sao lưu thông tin thành công!", { id: toastId });
+    } catch (e: any) {
+      toast.error("Sao lưu thất bại: " + e.message, { id: toastId });
+    }
   };
 
   const handleRestore = () => {
