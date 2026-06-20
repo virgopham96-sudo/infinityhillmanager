@@ -22,20 +22,20 @@ export async function fetchRoomsFromDatabase(): Promise<Room[] | null> {
 
 export async function saveRoomToDatabase(room: Room) {
   const cleanRoom = {
-    id: room.id,
-    floor: room.floor,
-    status: room.status,
-    type: room.type,
-    guestName: room.guestName,
-    checkInTime: room.checkInTime,
-    checkOutTime: room.checkOutTime,
-    weekdayPrice: room.weekdayPrice,
-    weekendPrice: room.weekendPrice,
-    deposit: room.deposit,
-    notes: room.notes,
-    reservations: room.reservations,
-    isFlexiblePrice: room.isFlexiblePrice,
-    flexiblePrice: room.flexiblePrice
+    id: room.id ?? null,
+    floor: room.floor ?? null,
+    status: room.status ?? null,
+    type: room.type ?? null,
+    guestName: room.guestName ?? null,
+    checkInTime: room.checkInTime ?? null,
+    checkOutTime: room.checkOutTime ?? null,
+    weekdayPrice: room.weekdayPrice != null ? Math.round(Number(room.weekdayPrice)) : null,
+    weekendPrice: room.weekendPrice != null ? Math.round(Number(room.weekendPrice)) : null,
+    deposit: room.deposit != null ? Math.round(Number(room.deposit)) : null,
+    notes: room.notes ?? null,
+    reservations: room.reservations ?? null,
+    isFlexiblePrice: room.isFlexiblePrice ?? null,
+    flexiblePrice: room.flexiblePrice != null ? Math.round(Number(room.flexiblePrice)) : null
   };
   const { error } = await supabase.from("rooms").upsert(cleanRoom);
   if (error) console.error("Error saving room:", error);
@@ -50,13 +50,13 @@ export async function saveMultipleRoomsToDatabase(rooms: Room[]) {
     guestName: r.guestName ?? null,
     checkInTime: r.checkInTime ?? null,
     checkOutTime: r.checkOutTime ?? null,
-    weekdayPrice: r.weekdayPrice ?? null,
-    weekendPrice: r.weekendPrice ?? null,
-    deposit: r.deposit ?? null,
+    weekdayPrice: r.weekdayPrice != null ? Math.round(Number(r.weekdayPrice)) : null,
+    weekendPrice: r.weekendPrice != null ? Math.round(Number(r.weekendPrice)) : null,
+    deposit: r.deposit != null ? Math.round(Number(r.deposit)) : null,
     notes: r.notes ?? null,
     reservations: r.reservations ?? null,
     isFlexiblePrice: r.isFlexiblePrice ?? null,
-    flexiblePrice: r.flexiblePrice ?? null
+    flexiblePrice: r.flexiblePrice != null ? Math.round(Number(r.flexiblePrice)) : null
   }));
   const { error } = await supabase.from("rooms").upsert(cleanRooms);
   if (error) console.error("Error saving multiple rooms:", error);
@@ -78,7 +78,7 @@ export async function saveBookingToDatabase(booking: BookingRecord) {
     guestName: booking.guestName,
     checkIn: booking.checkIn,
     checkOut: booking.checkOut,
-    totalPrice: booking.totalPrice,
+    totalPrice: booking.totalPrice != null ? Math.round(Number(booking.totalPrice)) : null,
     status: booking.status,
     createdAt: booking.createdAt,
     notes: booking.notes,
@@ -106,13 +106,13 @@ export async function restoreDataToDatabase(rooms: Room[], bookings: BookingReco
     guestName: r.guestName ?? null,
     checkInTime: r.checkInTime ?? null,
     checkOutTime: r.checkOutTime ?? null,
-    weekdayPrice: r.weekdayPrice ?? null,
-    weekendPrice: r.weekendPrice ?? null,
-    deposit: r.deposit ?? null,
+    weekdayPrice: r.weekdayPrice != null ? Math.round(Number(r.weekdayPrice)) : null,
+    weekendPrice: r.weekendPrice != null ? Math.round(Number(r.weekendPrice)) : null,
+    deposit: r.deposit != null ? Math.round(Number(r.deposit)) : null,
     notes: r.notes ?? null,
     reservations: r.reservations ?? null,
     isFlexiblePrice: r.isFlexiblePrice ?? null,
-    flexiblePrice: r.flexiblePrice ?? null
+    flexiblePrice: r.flexiblePrice != null ? Math.round(Number(r.flexiblePrice)) : null
   }));
 
   const cleanBookings = bookings.map(b => ({
@@ -121,7 +121,7 @@ export async function restoreDataToDatabase(rooms: Room[], bookings: BookingReco
     guestName: b.guestName ?? null,
     checkIn: b.checkIn ?? null,
     checkOut: b.checkOut ?? null,
-    totalPrice: b.totalPrice ?? null,
+    totalPrice: b.totalPrice != null ? Math.round(Number(b.totalPrice)) : null,
     status: b.status ?? null,
     createdAt: b.createdAt ?? null,
     notes: b.notes ?? null,

@@ -34,6 +34,14 @@ CREATE TABLE public.bookings (
   "checkoutDetails" JSONB
 );
 
+-- Enable RLS (Row Level Security) and add permissive policies for public access 
+-- (since this is a simple app without user authentication)
+ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to rooms" ON public.rooms FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to bookings" ON public.bookings FOR ALL USING (true) WITH CHECK (true);
+
 -- Enable real time for these tables
 alter publication supabase_realtime add table public.rooms;
 alter publication supabase_realtime add table public.bookings;
