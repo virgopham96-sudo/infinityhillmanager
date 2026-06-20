@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import { Room, BookingRecord, RoomStatus } from "./types";
 import {
-  fetchRoomsFromFirebase,
-  fetchBookingsFromFirebase,
-  saveRoomToFirebase,
-  saveMultipleRoomsToFirebase,
-  saveBookingToFirebase,
-  deleteBookingFromFirebase,
-  restoreDataToFirebase,
-} from "./firebase";
-import { onSnapshot, collection } from "firebase/firestore";
-import { db, auth } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
+  supabase,
+  fetchRoomsFromDatabase,
+  fetchBookingsFromDatabase,
+  saveRoomToDatabase,
+  saveMultipleRoomsToDatabase,
+  saveBookingToDatabase,
+  deleteBookingFromDatabase,
+  restoreDataToDatabase,
+} from "./supabase";
 
 const ROOM_DATA: Record<
   string,
@@ -80,82 +78,123 @@ export function useStore() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [user, setUser] = useState(auth.currentUser);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // Optionally listen to Supabase auth state changes here if needed
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
     });
-    return () => unsubscribeAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const fbRooms = await fetchRoomsFromFirebase();
-        if (!fbRooms) {
+        const dbRooms = await fetchRoomsFromDatabase();
+        if (!dbRooms) {
           // Initialize if empty
-          await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
+          await saveMultipleRoomsToDatabase(INITIAL_ROOMS);
           setRooms(INITIAL_ROOMS);
         } else {
-          setRooms(fbRooms);
+          setRooms(dbRooms);
         }
 
-        const fbBookings = await fetchBookingsFromFirebase();
-        setBookings(fbBookings);
+        const dbBookings = await fetchBookingsFromDatabase();
+        setBookings(dbBookings);
       } catch (err) {
-        console.error("Failed to load data from Firebase:", err);
+        console.error("Failed to load data from database:", err);
       } finally {
         setIsLoaded(true);
       }
     };
 
-    loadInitialData();
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      loadInitialData();
 
-    const unsubRooms = onSnapshot(collection(db, "rooms"), (snap) => {
-      if (!snap.empty) {
-        setRooms(
-          snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room),
-        );
-      }
-    });
+      const roomsChannelName = `custom-all-channel-rooms-${Math.random()}`;
+      const roomsChannel = supabase.channel(roomsChannelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'rooms' },
+          () => {
+            fetchRoomsFromDatabase().then(data => { if(data) setRooms(data) });
+          }
+        )
+        .subscribe();
 
-    const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
-      setBookings(
-        snap.docs.map(
-          (doc) => ({ ...doc.data(), id: doc.id }) as BookingRecord,
-        ),
-      );
-    });
+      const bookingsChannelName = `custom-all-channel-bookings-${Math.random()}`;
+      const bookingsChannel = supabase.channel(bookingsChannelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'bookings' },
+          () => {
+            fetchBookingsFromDatabase().then(data => setBookings(data));
+          }
+        )
+        .subscribe();
 
-    return () => {
-      unsubRooms();
-      unsubBookings();
-    };
+      return () => {
+        supabase.removeChannel(roomsChannel);
+        supabase.removeChannel(bookingsChannel);
+      };
+    } else {
+      // Mock data if Supabase is not configured
+      setIsLoaded(true);
+      setRooms(INITIAL_ROOMS);
+    }
   }, []);
 
   const updateRoom = async (updatedRoom: Room) => {
-    await saveRoomToFirebase(updatedRoom);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await saveRoomToDatabase(updatedRoom);
+    } else {
+      setRooms(prev => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r));
+    }
   };
 
   const updateMultipleRooms = async (updatedRooms: Room[]) => {
-    await saveMultipleRoomsToFirebase(updatedRooms);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await saveMultipleRoomsToDatabase(updatedRooms);
+    } else {
+      setRooms(prev => prev.map(r => updatedRooms.find(u => u.id === r.id) || r));
+    }
   };
 
   const addBooking = async (booking: BookingRecord) => {
-    await saveBookingToFirebase(booking);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await saveBookingToDatabase(booking);
+    } else {
+      setBookings(prev => [...prev, booking]);
+    }
   };
 
   const updateBooking = async (updatedBooking: BookingRecord) => {
-    await saveBookingToFirebase(updatedBooking);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await saveBookingToDatabase(updatedBooking);
+    } else {
+      setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
+    }
   };
 
   const removeBooking = async (id: string) => {
-    await deleteBookingFromFirebase(id);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await deleteBookingFromDatabase(id);
+    } else {
+      setBookings(prev => prev.filter(b => b.id !== id));
+    }
   };
 
   const restoreData = async (roomsToRestore: Room[], bookingsToRestore: BookingRecord[]) => {
-    await restoreDataToFirebase(roomsToRestore, bookingsToRestore);
+    if (import.meta.env.VITE_SUPABASE_URL) {
+      await restoreDataToDatabase(roomsToRestore, bookingsToRestore);
+    } else {
+      setRooms(roomsToRestore);
+      setBookings(bookingsToRestore);
+    }
   };
 
   return {
@@ -171,3 +210,4 @@ export function useStore() {
     restoreData,
   };
 }
+
