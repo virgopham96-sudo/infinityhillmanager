@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { Room, BookingRecord, RoomStatus } from "./types";
 import {
-  supabase,
-  fetchRoomsFromDatabase,
-  fetchBookingsFromDatabase,
-  saveRoomToDatabase,
-  saveMultipleRoomsToDatabase,
-  saveBookingToDatabase,
-  deleteBookingFromDatabase,
-  restoreDataToDatabase,
-} from "./supabase";
+  fetchRoomsFromFirebase,
+  fetchBookingsFromFirebase,
+  saveRoomToFirebase,
+  saveMultipleRoomsToFirebase,
+  saveBookingToFirebase,
+  deleteBookingFromFirebase,
+  restoreDataToFirebase,
+} from "./firebase";
+import { onSnapshot, collection } from "firebase/firestore";
+import { db, auth } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const ROOM_DATA: Record<
   string,
@@ -78,135 +80,82 @@ export function useStore() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState(auth.currentUser);
 
   useEffect(() => {
-    // Optionally listen to Supabase auth state changes here if needed
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const dbRooms = await fetchRoomsFromDatabase();
-        if (!dbRooms) {
+        const fbRooms = await fetchRoomsFromFirebase();
+        if (!fbRooms) {
           // Initialize if empty
-          await saveMultipleRoomsToDatabase(INITIAL_ROOMS);
+          await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
           setRooms(INITIAL_ROOMS);
         } else {
-          setRooms(dbRooms);
+          setRooms(fbRooms);
         }
 
-        const dbBookings = await fetchBookingsFromDatabase();
-        setBookings(dbBookings);
+        const fbBookings = await fetchBookingsFromFirebase();
+        setBookings(fbBookings);
       } catch (err) {
-        console.error("Failed to load data from database:", err);
+        console.error("Failed to load data from Firebase:", err);
       } finally {
         setIsLoaded(true);
       }
     };
 
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      loadInitialData();
+    loadInitialData();
 
-      let roomTimeout: any;
-      const roomsChannelName = `custom-all-channel-rooms-${Math.random()}`;
-      const roomsChannel = supabase.channel(roomsChannelName)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'rooms' },
-          () => {
-            clearTimeout(roomTimeout);
-            roomTimeout = setTimeout(() => {
-              fetchRoomsFromDatabase().then(data => { if(data) setRooms(data) });
-            }, 1000);
-          }
-        )
-        .subscribe();
+    const unsubRooms = onSnapshot(collection(db, "rooms"), (snap) => {
+      if (!snap.empty) {
+        setRooms(
+          snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room),
+        );
+      }
+    });
 
-      let bookingsTimeout: any;
-      const bookingsChannelName = `custom-all-channel-bookings-${Math.random()}`;
-      const bookingsChannel = supabase.channel(bookingsChannelName)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'bookings' },
-          () => {
-            clearTimeout(bookingsTimeout);
-            bookingsTimeout = setTimeout(() => {
-              fetchBookingsFromDatabase().then(data => setBookings(data));
-            }, 1000);
-          }
-        )
-        .subscribe();
+    const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
+      setBookings(
+        snap.docs.map(
+          (doc) => ({ ...doc.data(), id: doc.id }) as BookingRecord,
+        ),
+      );
+    });
 
-      return () => {
-        supabase.removeChannel(roomsChannel);
-        supabase.removeChannel(bookingsChannel);
-        clearTimeout(roomTimeout);
-        clearTimeout(bookingsTimeout);
-      };
-    } else {
-      // Mock data if Supabase is not configured
-      setIsLoaded(true);
-      setRooms(INITIAL_ROOMS);
-    }
+    return () => {
+      unsubRooms();
+      unsubBookings();
+    };
   }, []);
 
   const updateRoom = async (updatedRoom: Room) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await saveRoomToDatabase(updatedRoom);
-    } else {
-      setRooms(prev => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r));
-    }
+    await saveRoomToFirebase(updatedRoom);
   };
 
   const updateMultipleRooms = async (updatedRooms: Room[]) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await saveMultipleRoomsToDatabase(updatedRooms);
-    } else {
-      setRooms(prev => prev.map(r => updatedRooms.find(u => u.id === r.id) || r));
-    }
+    await saveMultipleRoomsToFirebase(updatedRooms);
   };
 
   const addBooking = async (booking: BookingRecord) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await saveBookingToDatabase(booking);
-    } else {
-      setBookings(prev => [...prev, booking]);
-    }
+    await saveBookingToFirebase(booking);
   };
 
   const updateBooking = async (updatedBooking: BookingRecord) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await saveBookingToDatabase(updatedBooking);
-    } else {
-      setBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
-    }
+    await saveBookingToFirebase(updatedBooking);
   };
 
   const removeBooking = async (id: string) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await deleteBookingFromDatabase(id);
-    } else {
-      setBookings(prev => prev.filter(b => b.id !== id));
-    }
+    await deleteBookingFromFirebase(id);
   };
 
   const restoreData = async (roomsToRestore: Room[], bookingsToRestore: BookingRecord[]) => {
-    if (import.meta.env.VITE_SUPABASE_URL) {
-      await restoreDataToDatabase(roomsToRestore, bookingsToRestore);
-      setRooms(roomsToRestore);
-      setBookings(bookingsToRestore);
-    } else {
-      setRooms(roomsToRestore);
-      setBookings(bookingsToRestore);
-    }
+    await restoreDataToFirebase(roomsToRestore, bookingsToRestore);
   };
 
   return {
@@ -222,4 +171,3 @@ export function useStore() {
     restoreData,
   };
 }
-

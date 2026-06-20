@@ -1,0 +1,126 @@
+const fs = require('fs');
+
+const p1 = `<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Hill Hotel - Tuyệt Tác Nghỉ Dưỡng Đảo Quan Lạn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        luxury: {
+                            blue: '#0B2240', gold: '#D4AF37', goldhover: '#B89020',
+                            lightbg: '#F8FAFC', accent: '#1E40AF', dark: '#051224'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'Georgia', 'serif'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .font-luxury-serif { font-family: 'Playfair Display', serif; }
+        .font-luxury-sans { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0B2240; }
+        ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+        .gold-glow { box-shadow: 0 0 25px rgba(212, 175, 55, 0.15); }
+        .gold-glow-hover:hover { box-shadow: 0 0 35px rgba(212, 175, 55, 0.35); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in-up { animation: fadeInUp 1s ease-out forwards; }
+    </style>
+</head>
+<body class="font-luxury-sans bg-slate-50 text-slate-800 selection:bg-luxury-gold selection:text-luxury-blue overflow-x-hidden">
+    <div class="bg-luxury-blue text-white text-xs py-2.5 px-4 border-b border-luxury-gold/20 sticky top-0 z-50 transition-all duration-300 shadow-md" id="top-bar">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-4 flex-wrap justify-center">
+                <span class="whitespace-nowrap"><i class="fa-solid fa-phone text-luxury-gold mr-1.5 animate-pulse"></i> Hotline 24/7: <a href="tel:0383696666" id="top-hotline-text" class="font-bold hover:text-luxury-gold transition-colors">0383.696.666</a> (<span class="manager-name-display">Mr. Đạt</span>)</span>
+                <span class="hidden md:inline text-white/30">|</span>
+                <a href="https://maps.app.goo.gl/MXZdbN9LWCFTfqeA8" target="_blank" id="top-maps-link" class="hover:text-luxury-gold transition-colors duration-200 flex items-center gap-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-location-dot text-luxury-gold"></i> Đảo Quan Lạn, Vân Đồn, Quảng Ninh
+                </a>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] uppercase tracking-widest text-luxury-gold">
+                <span class="font-semibold flex items-center gap-1 whitespace-nowrap"><i class="fa-solid fa-star"></i> Miễn phí buffet ăn sáng & xe điện trung chuyển</span>
+            </div>
+        </div>
+    </div>
+    <nav class="bg-white/95 backdrop-blur-md shadow-md sticky top-10 z-40 transition-all duration-300 border-b border-slate-100" id="main-nav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center gap-4">
+                <a href="#" class="flex items-center gap-3 group py-1.5 shrink-0" title="Xem bộ nhận diện Logo gốc">
+                    <div class="relative h-14 flex items-center justify-start">
+                        <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" 
+                             alt="Infinity Hill" 
+                             class="h-10 xl:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105">
+                    </div>
+                </a>
+                <div class="hidden lg:flex items-center gap-4 xl:gap-6 font-bold text-luxury-blue text-xs xl:text-sm uppercase tracking-wider">
+                    <a href="#about" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Giới Thiệu</a>
+                    <a href="#rooms" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Hạng Phòng & Giá</a>
+                    <a href="#calculator" class="hover:bg-luxury-gold hover:text-luxury-blue text-luxury-gold bg-luxury-blue px-3 py-1.5 rounded-lg border border-luxury-gold/30 transition-all duration-200 whitespace-nowrap text-[10px] xl:text-xs tracking-widest font-extrabold shadow-sm">Tính Giá Kỳ Nghỉ</a>
+                    <a href="#experiences" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Trải Nghiệm</a>
+                    <a href="#speedboat" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Lịch Tàu Chạy</a>
+                    <a href="#gallery" class="hover:text-luxury-gold transition-all duration-200 whitespace-nowrap py-2">Thư Viện Ảnh</a>
+                </div>
+                <div class="hidden sm:flex items-center gap-3 shrink-0">
+                    <button onclick="window.parent.location.href='/dang-nhap'" class="bg-slate-100 hover:bg-slate-200 text-luxury-blue font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 text-[11px] xl:text-xs uppercase tracking-wider whitespace-nowrap">
+                        <i class="fa-solid fa-lock"></i>
+                        <span>Đăng Nhập</span>
+                    </button>
+                    <a href="tel:0383696666" id="nav-hotline-btn" class="bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue font-extrabold px-4 py-2.5 xl:px-5 xl:py-3 rounded-xl flex items-center gap-2 shadow-lg hover:shadow-luxury-gold/30 transition-all duration-300 transform hover:-translate-y-0.5 text-[11px] xl:text-xs uppercase tracking-wider whitespace-nowrap">
+                        <i class="fa-solid fa-phone-volume animate-pulse"></i>
+                        <span>Đặt Phòng Ngay</span>
+                    </a>
+                </div>
+                <button type="button" class="lg:hidden p-2 text-luxury-blue focus:outline-none" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars text-2xl" id="menu-icon"></i></button>
+            </div>
+        </div>
+        <div class="hidden lg:hidden bg-white border-t border-slate-100" id="mobile-menu">
+            <div class="px-4 pt-2 pb-6 space-y-3 shadow-inner">
+                <a href="#about" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Giới Thiệu</a>
+                <a href="#rooms" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Hạng Phòng & Giá</a>
+                <a href="#calculator" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Tính Giá Kỳ Nghỉ</a>
+                <a href="#experiences" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Trải Nghiệm & Dịch Vụ</a>
+                <a href="#speedboat" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Cẩm Nang Tàu Cao Tốc</a>
+                <a href="#gallery" class="block px-3 py-2 rounded-md text-base font-semibold text-luxury-blue hover:bg-slate-50 hover:text-luxury-gold" onclick="toggleMobileMenu()">Thư Viện Ảnh</a>
+                <div class="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                    <button onclick="window.parent.location.href='/dang-nhap'" class="w-full bg-slate-100 hover:bg-slate-200 text-luxury-blue font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-lock"></i> Đăng Nhập Quản Lý
+                    </button>
+                    <a href="tel:0383696666" id="mobile-hotline-btn" class="w-full bg-luxury-blue hover:bg-luxury-blue/95 text-white text-center font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-phone"></i> Gọi <span class="manager-name-display">Mr. Đạt</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="relative min-h-[92vh] flex items-center justify-center bg-luxury-dark overflow-hidden">
+        <div class="absolute inset-0 z-0">
+            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1600" alt="Infinity Hill Hotel Night Facade" class="w-full h-full object-cover opacity-50 filter brightness-[0.75] contrast-105 transform scale-105 transition-transform duration-[12s] hover:scale-100" id="hero-bg">
+            <div class="absolute inset-0 bg-gradient-to-t from-luxury-dark via-luxury-dark/40 to-transparent"></div>
+        </div>
+        <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center text-white">
+            <div class="flex justify-center mb-8 animate-fade-in-up" style="animation-delay: 0.1s;">
+                <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Infinity Hill" class="max-w-[280px] w-full h-auto object-contain transition-transform duration-300 hover:scale-105">
+            </div>
+            <h1 class="font-luxury-serif text-5xl sm:text-6xl lg:text-8xl font-black tracking-widest leading-tight mb-4 animate-fade-in-up" style="animation-delay: 0.3s;">INFINITY HILL</h1>
+            <h2 class="font-luxury-serif text-xl sm:text-2xl lg:text-3xl font-light text-luxury-gold tracking-widest mb-8 uppercase italic animate-fade-in-up" style="animation-delay: 0.5s;">Nơi Đồi Xanh Gặp Gỡ Đại Dương Kỳ Vĩ • Đảo Quan Lạn</h2>
+            <p class="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-light mb-12 animate-fade-in-up" style="animation-delay: 0.7s;">Tọa lạc lộng lẫy giữa thiên nhiên hoang sơ đảo Quan Lạn, tự hào mang phong cách tân cổ điển Châu Âu quý phái kết hợp tổ hợp cafe Glamping ngắm hoàng hôn sườn đồi thơ mộng.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-up" style="animation-delay: 0.9s;">
+                <a href="#calculator" class="w-full sm:w-auto bg-luxury-gold hover:bg-luxury-goldhover text-luxury-blue font-extrabold text-sm px-8 py-4.5 rounded-xl shadow-xl hover:shadow-luxury-gold/40 transition-all duration-300 transform hover:-translate-y-1 uppercase tracking-wider"><i class="fa-solid fa-calculator mr-2"></i>Tính Dự Toán Kỳ Nghỉ</a>
+                <a href="#rooms" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md font-semibold text-sm px-8 py-4.5 rounded-xl transition-all duration-300 uppercase tracking-wider">Khám Phá Các Hạng Phòng <i class="fa-solid fa-arrow-right ml-2"></i></a>
+            </div>
+        </div>
+    </section>
+\n`;
+fs.writeFileSync('temp_p1.txt', p1);

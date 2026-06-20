@@ -1,6 +1,6 @@
 {
   "name": "Hotel Manager",
-  "description": "Hotel management application",
+  "description": "Quản lý khách sạn 32 phòng, kiểm tra tình trạng, check in/out và báo cáo doanh thu",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
