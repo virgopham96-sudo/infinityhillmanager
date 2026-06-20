@@ -115,24 +115,32 @@ export function useStore() {
     if (import.meta.env.VITE_SUPABASE_URL) {
       loadInitialData();
 
+      let roomTimeout: any;
       const roomsChannelName = `custom-all-channel-rooms-${Math.random()}`;
       const roomsChannel = supabase.channel(roomsChannelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'rooms' },
           () => {
-            fetchRoomsFromDatabase().then(data => { if(data) setRooms(data) });
+            clearTimeout(roomTimeout);
+            roomTimeout = setTimeout(() => {
+              fetchRoomsFromDatabase().then(data => { if(data) setRooms(data) });
+            }, 1000);
           }
         )
         .subscribe();
 
+      let bookingsTimeout: any;
       const bookingsChannelName = `custom-all-channel-bookings-${Math.random()}`;
       const bookingsChannel = supabase.channel(bookingsChannelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'bookings' },
           () => {
-            fetchBookingsFromDatabase().then(data => setBookings(data));
+            clearTimeout(bookingsTimeout);
+            bookingsTimeout = setTimeout(() => {
+              fetchBookingsFromDatabase().then(data => setBookings(data));
+            }, 1000);
           }
         )
         .subscribe();
@@ -140,6 +148,8 @@ export function useStore() {
       return () => {
         supabase.removeChannel(roomsChannel);
         supabase.removeChannel(bookingsChannel);
+        clearTimeout(roomTimeout);
+        clearTimeout(bookingsTimeout);
       };
     } else {
       // Mock data if Supabase is not configured
@@ -191,6 +201,8 @@ export function useStore() {
   const restoreData = async (roomsToRestore: Room[], bookingsToRestore: BookingRecord[]) => {
     if (import.meta.env.VITE_SUPABASE_URL) {
       await restoreDataToDatabase(roomsToRestore, bookingsToRestore);
+      setRooms(roomsToRestore);
+      setBookings(bookingsToRestore);
     } else {
       setRooms(roomsToRestore);
       setBookings(bookingsToRestore);

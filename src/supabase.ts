@@ -4,11 +4,7 @@ import { Room, BookingRecord } from "./types";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "your-anon-key";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  global: {
-    fetch: (...args) => fetch(...args),
-  },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function fetchRoomsFromDatabase(): Promise<Room[] | null> {
   const { data, error } = await supabase.from("rooms").select("*");
@@ -127,6 +123,10 @@ export async function restoreDataToDatabase(rooms: Room[], bookings: BookingReco
     notes: b.notes ?? null,
     checkoutDetails: b.checkoutDetails ?? null
   }));
+
+  // Wipe existing data before restoring
+  await supabase.from("bookings").delete().neq("id", "0");
+  await supabase.from("rooms").delete().neq("id", "0");
 
   // Upsert new rooms
   if (cleanRooms.length > 0) {
