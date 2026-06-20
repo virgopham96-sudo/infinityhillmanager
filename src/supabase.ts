@@ -43,20 +43,20 @@ export async function saveRoomToDatabase(room: Room) {
 
 export async function saveMultipleRoomsToDatabase(rooms: Room[]) {
   const cleanRooms = rooms.map(r => ({
-    id: r.id,
-    floor: r.floor,
-    status: r.status,
-    type: r.type,
-    guestName: r.guestName,
-    checkInTime: r.checkInTime,
-    checkOutTime: r.checkOutTime,
-    weekdayPrice: r.weekdayPrice,
-    weekendPrice: r.weekendPrice,
-    deposit: r.deposit,
-    notes: r.notes,
-    reservations: r.reservations,
-    isFlexiblePrice: r.isFlexiblePrice,
-    flexiblePrice: r.flexiblePrice
+    id: r.id ?? null,
+    floor: r.floor ?? null,
+    status: r.status ?? null,
+    type: r.type ?? null,
+    guestName: r.guestName ?? null,
+    checkInTime: r.checkInTime ?? null,
+    checkOutTime: r.checkOutTime ?? null,
+    weekdayPrice: r.weekdayPrice ?? null,
+    weekendPrice: r.weekendPrice ?? null,
+    deposit: r.deposit ?? null,
+    notes: r.notes ?? null,
+    reservations: r.reservations ?? null,
+    isFlexiblePrice: r.isFlexiblePrice ?? null,
+    flexiblePrice: r.flexiblePrice ?? null
   }));
   const { error } = await supabase.from("rooms").upsert(cleanRooms);
   if (error) console.error("Error saving multiple rooms:", error);
@@ -99,33 +99,33 @@ export async function restoreDataToDatabase(rooms: Room[], bookings: BookingReco
   if (deleteError) throw new Error("Error deleting current bookings: " + deleteError.message);
 
   const cleanRooms = rooms.map(r => ({
-    id: r.id,
-    floor: r.floor,
-    status: r.status,
-    type: r.type,
-    guestName: r.guestName,
-    checkInTime: r.checkInTime,
-    checkOutTime: r.checkOutTime,
-    weekdayPrice: r.weekdayPrice,
-    weekendPrice: r.weekendPrice,
-    deposit: r.deposit,
-    notes: r.notes,
-    reservations: r.reservations,
-    isFlexiblePrice: r.isFlexiblePrice,
-    flexiblePrice: r.flexiblePrice
+    id: r.id ?? null,
+    floor: r.floor ?? null,
+    status: r.status ?? null,
+    type: r.type ?? null,
+    guestName: r.guestName ?? null,
+    checkInTime: r.checkInTime ?? null,
+    checkOutTime: r.checkOutTime ?? null,
+    weekdayPrice: r.weekdayPrice ?? null,
+    weekendPrice: r.weekendPrice ?? null,
+    deposit: r.deposit ?? null,
+    notes: r.notes ?? null,
+    reservations: r.reservations ?? null,
+    isFlexiblePrice: r.isFlexiblePrice ?? null,
+    flexiblePrice: r.flexiblePrice ?? null
   }));
 
   const cleanBookings = bookings.map(b => ({
-    id: b.id,
-    roomId: b.roomId,
-    guestName: b.guestName,
-    checkIn: b.checkIn,
-    checkOut: b.checkOut,
-    totalPrice: b.totalPrice,
-    status: b.status,
-    createdAt: b.createdAt,
-    notes: b.notes,
-    checkoutDetails: b.checkoutDetails
+    id: b.id ?? null,
+    roomId: b.roomId ?? null,
+    guestName: b.guestName ?? null,
+    checkIn: b.checkIn ?? null,
+    checkOut: b.checkOut ?? null,
+    totalPrice: b.totalPrice ?? null,
+    status: b.status ?? null,
+    createdAt: b.createdAt ?? null,
+    notes: b.notes ?? null,
+    checkoutDetails: b.checkoutDetails ?? null
   }));
 
   // Upsert new rooms
