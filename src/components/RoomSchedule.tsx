@@ -14,7 +14,9 @@ import {
   endOfWeek,
   isSameMonth
 } from "date-fns";
-import { ChevronLeft, ChevronRight, User } from "lucide-react";
+import ExcelJS from "exceljs/dist/exceljs.min.js";
+import { saveAs } from "file-saver";
+import { ChevronLeft, ChevronRight, User, Download } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface RoomScheduleProps {
@@ -122,6 +124,68 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
     }
   };
 
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Thang_${format(currentDate, "MM_yyyy")}`);
+
+    const headerRow = ["Số phòng", "Loại", ...daysInMonth.map(day => format(day, "dd/MM"))];
+    worksheet.addRow(headerRow);
+
+    // Format header
+    const headerRowObj = worksheet.getRow(1);
+    headerRowObj.font = { bold: true };
+    headerRowObj.alignment = { horizontal: "center", vertical: "middle" };
+
+    // Column widths
+    worksheet.getColumn(1).width = 15; // Số phòng
+    worksheet.getColumn(2).width = 15; // Loại
+    for (let i = 0; i < daysInMonth.length; i++) {
+        worksheet.getColumn(i + 3).width = 20; // Days
+    }
+
+    const sortedRooms = [...rooms].sort((a, b) => a.id.localeCompare(b.id));
+
+    sortedRooms.forEach(room => {
+      const row = worksheet.addRow([room.id, room.type]);
+      
+      row.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+      row.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+      
+      daysInMonth.forEach((day, index) => {
+        const cellData = getCellData(room, day);
+        const cell = row.getCell(index + 3);
+        
+        let statusText = "Trống";
+        let bgColor = "FF10B981"; // emerald-500
+        
+        if (cellData.status === "occupied") {
+            statusText = "Đang ở";
+            bgColor = "FFF43F5E"; // rose-500
+        } else if (cellData.status === "reserved") {
+           const name = isPublicReadOnly ? "Đã đặt" : (cellData.guestName || "Khách");
+           statusText = `Đã đặt (${name})`;
+           bgColor = "FFFBBF24"; // amber-400
+        } else if (cellData.status === "maintenance") {
+            statusText = "Bảo trì";
+            bgColor = "FF0F172A"; // slate-900
+        }
+        
+        cell.value = statusText;
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: bgColor }
+        };
+        cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    saveAs(blob, `Lich_Dat_Thang_${format(currentDate, "MM_yyyy")}.xlsx`);
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full">
       {/* Header Month Navigation */}
@@ -144,20 +208,31 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
           </button>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-600 dark:text-slate-300 w-full md:w-auto">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-600"></span> Trống
+        {/* Legend & Actions */}
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="flex items-center justify-center flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-3 h-3 rounded-sm bg-emerald-500 dark:bg-emerald-600"></span> Trống
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-3 h-3 rounded-sm bg-rose-500 dark:bg-rose-600"></span> Đang sử dụng
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-3 h-3 rounded-sm bg-amber-400 dark:bg-amber-500"></span> Đã đặt trước
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-3 h-3 rounded-sm bg-slate-900 dark:bg-slate-500"></span> Bảo trì
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-3 h-3 rounded-sm bg-rose-500 dark:bg-rose-600"></span> Đang sử dụng
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-3 h-3 rounded-sm bg-amber-400 dark:bg-amber-500"></span> Đã đặt trước
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-3 h-3 rounded-sm bg-slate-900 dark:bg-slate-500"></span> Bảo trì
-          </div>
+          
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-sm font-medium border border-emerald-200 dark:border-emerald-800/50"
+            title="Tải xuống Excel"
+          >
+            <Download className="w-4 h-4" />
+            <span className="hidden sm:inline">Xuất Excel</span>
+          </button>
         </div>
       </div>
 
