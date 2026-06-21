@@ -14,7 +14,7 @@ import {
   endOfWeek,
   isSameMonth
 } from "date-fns";
-import ExcelJS from "exceljs/dist/exceljs.min.js";
+import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import { ChevronLeft, ChevronRight, User, Download } from "lucide-react";
 import { cn } from "../lib/utils";

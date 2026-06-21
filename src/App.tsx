@@ -14,6 +14,7 @@ import BookingModal from "./components/BookingModal";
 import MultiBookingModal from "./components/MultiBookingModal";
 import UserGuide from "./components/UserGuide";
 import LandingPage from "./components/LandingPage";
+import SettingsView from "./components/SettingsView";
 import { useStore } from "./store";
 import { Room } from "./types";
 import { Loader2, PlusSquare, Building } from "lucide-react";
@@ -46,6 +47,7 @@ export default function App() {
     if (location.pathname === '/khach-dat') return 'guests';
     if (location.pathname === '/doanh-thu') return 'revenue';
     if (location.pathname === '/huong-dan') return 'guide';
+    if (location.pathname === '/cai-dat') return 'settings';
     return 'dashboard';
   })();
 
@@ -254,7 +256,7 @@ export default function App() {
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 bg-slate-900 md:bg-transparent transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#004b93] dark:bg-slate-950 shadow-2xl md:shadow-none transform transition-transform duration-300 ease-in-out md:relative md:scale-100 md:translate-x-0 ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -267,10 +269,14 @@ export default function App() {
               case 'guests': navigate('/khach-dat'); break;
               case 'revenue': navigate('/doanh-thu'); break;
               case 'guide': navigate('/huong-dan'); break;
+              case 'settings': navigate('/cai-dat'); break;
               case 'dashboard': default: navigate('/so-do-phong'); break;
             }
             if (view !== 'check') {
-              setIsMobileMenuOpen(false);
+              // Delayed closing for active state persistence feedback on mobile devices
+              setTimeout(() => {
+                setIsMobileMenuOpen(false);
+              }, 220);
             }
           }}
           onLogout={() => {
@@ -307,6 +313,7 @@ export default function App() {
               {currentView === "schedule" && "Lịch đặt"}
               {currentView === "guests" && "Khách đặt"}
               {currentView === "guide" && "Hướng dẫn"}
+              {currentView === "settings" && "Cấu hình & Cài đặt"}
             </h1>
           </div>
 
@@ -378,6 +385,7 @@ export default function App() {
                 />
               } />
               <Route path="/huong-dan" element={<UserGuide />} />
+              <Route path="/cai-dat" element={<SettingsView />} />
               <Route path="*" element={<Navigate to="/so-do-phong" replace />} />
             </Routes>
           </div>
