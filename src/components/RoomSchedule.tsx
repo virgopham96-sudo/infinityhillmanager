@@ -16,8 +16,10 @@ import {
 } from "date-fns";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { ChevronLeft, ChevronRight, User, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, Download, Cloud } from "lucide-react";
 import { cn } from "../lib/utils";
+import toast from "react-hot-toast";
+import { getAccessToken, googleSignIn } from "../firebase";
 
 interface RoomScheduleProps {
   rooms: Room[];
@@ -186,6 +188,100 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
     saveAs(blob, `Lich_Dat_Thang_${format(currentDate, "MM_yyyy")}.xlsx`);
   };
 
+  const handleSyncGoogleSheets = async () => {
+    let accessToken = await getAccessToken();
+    
+    if (!accessToken) {
+      toast.error("Vui lòng kết nối tài khoản Google Drive để đồng bộ!");
+      try {
+        const res = await googleSignIn();
+        if (res) {
+          accessToken = res.accessToken;
+          toast.success(`Đã kết nối tài khoản Google: ${res.user.email}!`);
+        } else {
+          return;
+        }
+      } catch (err: any) {
+        toast.error("Đăng nhập Google thất bại: " + (err?.message || "Lỗi chưa rõ"));
+        return;
+      }
+    }
+
+    if (!accessToken) return;
+
+    const loadToast = toast.loading("Đang đồng bộ dữ liệu hiện trạng sang Google Sheet...");
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet(`Thang_${format(currentDate, "MM_yyyy")}`);
+
+      const headerRow = ["Số phòng", "Loại", ...daysInMonth.map(day => format(day, "dd/MM"))];
+      worksheet.addRow(headerRow);
+
+      // Format header
+      const headerRowObj = worksheet.getRow(1);
+      headerRowObj.font = { bold: true };
+      headerRowObj.alignment = { horizontal: "center", vertical: "middle" };
+
+      // Column widths
+      worksheet.getColumn(1).width = 15; // Số phòng
+      worksheet.getColumn(2).width = 15; // Loại
+      for (let i = 0; i < daysInMonth.length; i++) {
+          worksheet.getColumn(i + 3).width = 20; // Days
+      }
+
+      const sortedRooms = [...rooms].sort((a, b) => a.id.localeCompare(b.id));
+
+      sortedRooms.forEach(room => {
+        const row = worksheet.addRow([room.id, room.type]);
+        
+        row.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+        row.getCell(2).alignment = { horizontal: "center", vertical: "middle" };
+        
+        daysInMonth.forEach((day, index) => {
+          const cellData = getCellData(room, day);
+          const cell = row.getCell(index + 3);
+          
+          let statusText = "Trống";
+          let bgColor = "FF10B981"; // emerald-500
+          
+          if (cellData.status === "occupied") {
+              statusText = "Đang ở";
+              bgColor = "FFF43F5E"; // rose-500
+          } else if (cellData.status === "reserved") {
+             const name = isPublicReadOnly ? "Đã đặt" : (cellData.guestName || "Khách");
+             statusText = `Đã đặt (${name})`;
+             bgColor = "FFFBBF24"; // amber-400
+          } else if (cellData.status === "maintenance") {
+              statusText = "Bảo trì";
+              bgColor = "FF0F172A"; // slate-900
+          }
+          
+          cell.value = statusText;
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: bgColor }
+          };
+          cell.font = { color: { argb: "FFFFFFFF" }, bold: true };
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      const hotelName = localStorage.getItem("hotelName")?.trim() || "Infinity Hill";
+      const cleanedHotel = hotelName.replace(/[^a-zA-Z0-9_đĐàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s]/g, "").replace(/\s+/g, "_");
+      const fileName = `HienTrang_DatPhong_${cleanedHotel}_Thang_${format(currentDate, "MM_yyyy")}.xlsx`;
+
+      const { uploadExcelToGoogleSheets } = await import("../utils/googleDriveBackup");
+      await uploadExcelToGoogleSheets(accessToken, fileName, buffer);
+
+      toast.success("Đồng bộ bản đồ hiện trạng phòng lên Google Sheets thành công!", { id: loadToast });
+    } catch (err: any) {
+      toast.error("Không thể đồng bộ: " + (err?.message || err), { id: loadToast });
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full">
       {/* Header Month Navigation */}
@@ -225,14 +321,25 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
             </div>
           </div>
           
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-sm font-medium border border-emerald-200 dark:border-emerald-800/50"
-            title="Tải xuống Excel"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Xuất Excel</span>
-          </button>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors text-xs font-semibold border border-emerald-200 dark:border-emerald-800/50 flex-1 md:flex-none cursor-pointer"
+              title="Tải xuống tập tin Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Tải Excel</span>
+            </button>
+
+            <button
+              onClick={handleSyncGoogleSheets}
+              className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-xs font-semibold border border-blue-200 dark:border-blue-800/50 flex-1 md:flex-none cursor-pointer"
+              title="Đồng bộ sang Google Sheets trực tuyến"
+            >
+              <Cloud className="w-3.5 h-3.5 animate-pulse text-blue-500" />
+              <span>Đồng bộ Sheets</span>
+            </button>
+          </div>
         </div>
       </div>
 

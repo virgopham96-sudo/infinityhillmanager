@@ -17,10 +17,13 @@ const databaseId = (firebaseConfig as any).firestoreDatabaseId || "ai-studio-11c
 export const db = getFirestore(app, databaseId);
 export const auth = getAuth();
 
-// OAuth Google Drive Setup
+// OAuth Google Drive & Sheets Setup
 const provider = new GoogleAuthProvider();
-provider.addScope("https://www.googleapis.com/auth/drive.file");
 provider.addScope("https://www.googleapis.com/auth/drive");
+provider.addScope("https://www.googleapis.com/auth/drive.file");
+provider.addScope("https://www.googleapis.com/auth/drive.readonly");
+provider.addScope("https://www.googleapis.com/auth/spreadsheets");
+provider.addScope("https://www.googleapis.com/auth/spreadsheets.readonly");
 
 let isSigningIn = false;
 let cachedAccessToken: string | null = null;

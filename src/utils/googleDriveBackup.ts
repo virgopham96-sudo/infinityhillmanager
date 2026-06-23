@@ -212,3 +212,60 @@ function getPreviousDayDateStr(d: Date): string {
   const date = String(prev.getDate()).padStart(2, "0");
   return `${year}-${month}-${date}`;
 }
+
+/**
+ * Uploads an Excel XLSX ArrayBuffer to Google Drive, converting it into a Google Sheet
+ */
+export async function uploadExcelToGoogleSheets(
+  accessToken: string,
+  fileName: string,
+  xlsxBuffer: ArrayBuffer
+): Promise<string> {
+  // Step 1: Create metadata and declare it as a Google Sheet
+  const metadata = {
+    name: fileName,
+    mimeType: "application/vnd.google-apps.spreadsheet", // Convert to Google Sheet!
+    parents: [BACKUP_FOLDER_ID],
+  };
+
+  const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+    body: JSON.stringify(metadata),
+  });
+
+  if (!createRes.ok) {
+    const errorText = await createRes.text();
+    throw new Error(`Tạo siêu dữ liệu Google Sheets thất bại: ${errorText}`);
+  }
+
+  const fileData = await createRes.json();
+  const fileId = fileData.id;
+
+  if (!fileId) {
+    throw new Error("Không nhận được ID tệp Google Sheets");
+  }
+
+  // Step 2: Upload Excel binary contents using standard PATCH media endpoint
+  const uploadRes = await fetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      },
+      body: xlsxBuffer,
+    }
+  );
+
+  if (!uploadRes.ok) {
+    const errorText = await uploadRes.text();
+    throw new Error(`Đồng bộ dữ liệu sang Google Sheets thất bại: ${errorText}`);
+  }
+
+  return fileId;
+}
