@@ -90,42 +90,58 @@ export function useStore() {
   }, []);
 
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const fbRooms = await fetchRoomsFromFirebase();
-        if (!fbRooms) {
-          // Initialize if empty
-          await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
-          setRooms(INITIAL_ROOMS);
-        } else {
-          setRooms(fbRooms);
-        }
+    let initialRoomsLoaded = false;
+    let initialBookingsLoaded = false;
 
-        const fbBookings = await fetchBookingsFromFirebase();
-        setBookings(fbBookings);
-      } catch (err) {
-        console.error("Failed to load data from Firebase:", err);
-      } finally {
+    const checkLoadingComplete = () => {
+      if (initialRoomsLoaded && initialBookingsLoaded) {
         setIsLoaded(true);
       }
     };
 
-    loadInitialData();
-
-    const unsubRooms = onSnapshot(collection(db, "rooms"), (snap) => {
-      if (!snap.empty) {
-        setRooms(
-          snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room),
-        );
+    const unsubRooms = onSnapshot(collection(db, "rooms"), async (snap) => {
+      try {
+        if (snap.empty) {
+          // If Firestore collection has no rooms yet, initialize it
+          await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
+          setRooms(INITIAL_ROOMS);
+        } else {
+          const roomsList = snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room);
+          // Sort to guarantee consistent grid render order
+          roomsList.sort((a, b) => {
+            if (a.floor !== b.floor) return a.floor - b.floor;
+            return a.id.localeCompare(b.id);
+          });
+          setRooms(roomsList);
+        }
+      } catch (err) {
+        console.error("Error setting up initial rooms:", err);
+      } finally {
+        initialRoomsLoaded = true;
+        checkLoadingComplete();
       }
+    }, (err) => {
+      console.error("Rooms snapshot listener error:", err);
+      initialRoomsLoaded = true;
+      checkLoadingComplete();
     });
 
     const unsubBookings = onSnapshot(collection(db, "bookings"), (snap) => {
-      setBookings(
-        snap.docs.map(
-          (doc) => ({ ...doc.data(), id: doc.id }) as BookingRecord,
-        ),
-      );
+      try {
+        const bookingsList = snap.docs.map(
+          (doc) => ({ ...doc.data(), id: doc.id }) as BookingRecord
+        );
+        setBookings(bookingsList);
+      } catch (err) {
+        console.error("Error updating bookings:", err);
+      } finally {
+        initialBookingsLoaded = true;
+        checkLoadingComplete();
+      }
+    }, (err) => {
+      console.error("Bookings snapshot listener error:", err);
+      initialBookingsLoaded = true;
+      checkLoadingComplete();
     });
 
     return () => {
