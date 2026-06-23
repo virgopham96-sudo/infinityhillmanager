@@ -15,7 +15,9 @@ import {
   LayoutGrid,
   TrendingUp,
   Sliders,
-  Sparkles
+  Sparkles,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { motion } from "motion/react";
 import toast from "react-hot-toast";
@@ -44,6 +46,7 @@ export default function SettingsView() {
   const [googleEmail, setGoogleEmail] = useState<string | null>(null);
   const [backupLogs, setBackupLogs] = useState<BackupLog[]>([]);
   const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  const [isDriveFolderVisible, setIsDriveFolderVisible] = useState(false);
 
   useEffect(() => {
     // Check if we already have an access token
@@ -528,133 +531,6 @@ export default function SettingsView() {
                 </div>
               </div>
 
-            </div>
-          </div>
-
-          {/* Card Google Drive Backup */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                  <Cloud className="w-5 h-5 animate-pulse" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Đồng bộ Google Drive Tự Động</h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Sao lưu lên Drive của phambinh.humg@gmail.com lúc 10h & 18h</p>
-                </div>
-              </div>
-              
-              {isGoogleConnected ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Đã kết nối
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 animate-pulse">
-                  Chưa kết nối
-                </span>
-              )}
-            </div>
-
-            <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-              <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">Thư mục Drive đích:</p>
-              <a 
-                href="https://drive.google.com/drive/folders/1w5WYFR49UWutPrU1093qc3HtqsWZa9lD?usp=sharing" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 font-mono underline hover:text-blue-700 break-all flex items-center gap-1.5 mt-0.5"
-              >
-                1w5WYFR49UWutPrU1093qc3HtqsWZa9lD (Mở trong tab mới)
-              </a>
-            </div>
-
-            <div className="space-y-3">
-              {!isGoogleConnected ? (
-                <button
-                  type="button"
-                  onClick={handleGoogleConnect}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50/20 dark:hover:bg-blue-950/20 focus:outline-none transition-all rounded-xl cursor-pointer"
-                >
-                  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5 shrink-0">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                  </svg>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Đăng nhập kết nối Google Drive</span>
-                </button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800/50">
-                    <span>Email Google liên kết:</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{googleEmail}</span>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={handleManualGoogleBackup}
-                      disabled={isUploadingToDrive}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      <Cloud className="w-4 h-4 animate-bounce" />
-                      {isUploadingToDrive ? "Đang đồng bộ..." : "Đồng bộ Drive ngay"}
-                    </button>
-                    
-                    <a
-                      href="https://drive.google.com/drive/folders/1w5WYFR49UWutPrU1093qc3HtqsWZa9lD?usp=sharing"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-all text-center border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                    >
-                      Kiểm tra thư mục
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* List of auto backups logs from Firestore */}
-            <div className="pt-2">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">
-                Nhật ký sao lưu tự động (Firestore DB)
-              </h4>
-              {backupLogs.length === 0 ? (
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 italic text-center py-5 bg-slate-50/50 dark:bg-slate-950/20 rounded-xl">
-                  Chưa ghi nhận bản sao lưu tự động nào.
-                </p>
-              ) : (
-                <div className="max-h-56 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                  {backupLogs.slice(0, 5).map((log) => (
-                    <div 
-                      key={log.id} 
-                      className="flex flex-col gap-1 p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800/60 text-[11px]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300 font-mono">
-                          {log.id.startsWith("manual") ? "Thủ công (Instant)" : `Slot: ${log.id}`}
-                        </span>
-                        {log.success ? (
-                          <span className="px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold text-[9px]">
-                            Thành công
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-semibold text-[9px]" title={log.error || ""}>
-                            Lưu lỗi
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-slate-400 dark:text-slate-500 truncate" title={log.fileName}>
-                        Tập tin: {log.fileName}
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 pt-0.5 border-t border-slate-100/30 dark:border-slate-800/30">
-                        <span>{new Date(log.timestamp).toLocaleString("vi-VN")}</span>
-                        <span className="italic font-mono">{log.operatorEmail?.split("@")[0] || "Hệ thống"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 

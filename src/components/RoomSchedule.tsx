@@ -330,15 +330,6 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
               <Download className="w-3.5 h-3.5" />
               <span>Tải Excel</span>
             </button>
-
-            <button
-              onClick={handleSyncGoogleSheets}
-              className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-xs font-semibold border border-blue-200 dark:border-blue-800/50 flex-1 md:flex-none cursor-pointer"
-              title="Đồng bộ sang Google Sheets trực tuyến"
-            >
-              <Cloud className="w-3.5 h-3.5 animate-pulse text-blue-500" />
-              <span>Đồng bộ Sheets</span>
-            </button>
           </div>
         </div>
       </div>
