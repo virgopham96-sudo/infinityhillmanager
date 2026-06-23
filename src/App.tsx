@@ -117,6 +117,39 @@ export default function App() {
     }
   }, [currentView, isLoaded, rooms, isAuthenticated]);
 
+  // Google Drive background auto-backup scheduler
+  useEffect(() => {
+    if (!isLoaded || !rooms || !isAuthenticated) return;
+
+    const checkAndRunBackup = async () => {
+      try {
+        const { runAutoBackupDirectly } = await import("./utils/googleDriveBackup");
+        const hotelName = localStorage.getItem("hotelName") || "Infinity Hill";
+        const email = localStorage.getItem("googleDriveUserEmail") || "automated@infinityhill.vn";
+        const res = await runAutoBackupDirectly(rooms, bookings, hotelName, email);
+        if (res.success && res.slot && !res.message.includes("đã được thực hiện")) {
+          toast.success(`[Hệ thống] Tự động tải thành công bản sao lưu lên Google Drive (${res.slot.split("-").pop()})!`, {
+            duration: 6000,
+            position: "bottom-right"
+          });
+        }
+      } catch (err) {
+        console.error("Lỗi xảy ra khi tự động sao lưu lên Drive:", err);
+      }
+    };
+
+    // Run 5 seconds after startup to not block initial loading
+    const initialTimer = setTimeout(checkAndRunBackup, 5000);
+
+    // Repeat every 10 minutes to verify if we entered a backup hour (10:00 or 18:00)
+    const interval = setInterval(checkAndRunBackup, 600000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [isLoaded, rooms, bookings, isAuthenticated]);
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">

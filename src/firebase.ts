@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from "firebase/auth";
 import {
   getFirestore,
   doc,
@@ -13,8 +13,67 @@ import firebaseConfig from "../firebase-applet-config.json";
 import { Room, BookingRecord } from "./types";
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+const databaseId = (firebaseConfig as any).firestoreDatabaseId || "ai-studio-11c999ec-57b6-489c-aa2c-79acadc2d1e1";
+export const db = getFirestore(app, databaseId);
 export const auth = getAuth();
+
+// OAuth Google Drive Setup
+const provider = new GoogleAuthProvider();
+provider.addScope("https://www.googleapis.com/auth/drive.file");
+provider.addScope("https://www.googleapis.com/auth/drive");
+
+let isSigningIn = false;
+let cachedAccessToken: string | null = null;
+
+export const initGoogleAuth = (
+  onAuthSuccess?: (user: User, token: string) => void,
+  onAuthFailure?: () => void
+) => {
+  return onAuthStateChanged(auth, async (user: User | null) => {
+    if (user) {
+      if (cachedAccessToken) {
+        if (onAuthSuccess) onAuthSuccess(user, cachedAccessToken);
+      } else if (!isSigningIn) {
+        // Try to see if we can refresh/get token or just let them authenticate.
+        if (onAuthFailure) onAuthFailure();
+      }
+    } else {
+      cachedAccessToken = null;
+      if (onAuthFailure) onAuthFailure();
+    }
+  });
+};
+
+export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
+  try {
+    isSigningIn = true;
+    const result = await signInWithPopup(auth, provider);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (!credential?.accessToken) {
+      throw new Error("Không thể lấy mã thông báo truy cập từ Firebase Auth");
+    }
+
+    cachedAccessToken = credential.accessToken;
+    return { user: result.user, accessToken: cachedAccessToken };
+  } catch (error: any) {
+    console.error("Lỗi đăng nhập Google:", error);
+    throw error;
+  } finally {
+    isSigningIn = false;
+  }
+};
+
+export const getAccessToken = async (): Promise<string | null> => {
+  return cachedAccessToken;
+};
+
+export const setAccessToken = (token: string | null) => {
+  cachedAccessToken = token;
+};
+
+export const logoutGoogle = async () => {
+  cachedAccessToken = null;
+};
 
 export enum OperationType {
   CREATE = "create",
