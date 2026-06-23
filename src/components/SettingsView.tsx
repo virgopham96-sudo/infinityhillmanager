@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import toast from "react-hot-toast";
+import { 
+  generateSqlBackup, 
+  parseSqlBackup, 
+  normalizeJsonBackup 
+} from "../utils/backup";
 
 export default function SettingsView() {
   const { rooms, bookings, restoreData } = useStore();
@@ -84,7 +89,19 @@ export default function SettingsView() {
     a.download = `${hotelName.toLowerCase().replace(/\s+/g, "_")}_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Đã tạo file sao lưu và tải xuống!");
+    toast.success("Đã tạo file sao lưu JSON và tải xuống!");
+  };
+
+  const handleBackupSql = () => {
+    const sqlContent = generateSqlBackup(rooms, bookings, hotelName);
+    const blob = new Blob([sqlContent], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${hotelName.toLowerCase().replace(/\s+/g, "_")}_supabase_backup_${new Date().toISOString().slice(0, 10)}.sql`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Đã tạo file SQL Supabase và tải xuống thành công!");
   };
 
   const processBackupFile = async (file: File) => {
@@ -92,19 +109,44 @@ export default function SettingsView() {
     reader.onload = async (event) => {
       let toastId = "";
       try {
-        const data = JSON.parse(event.target?.result as string);
-        if (data.rooms && data.bookings) {
-          if (window.confirm("Thao tác này sẽ xóa sạch dữ liệu phòng và lịch đặt hiện tại để thay bằng bản sao lưu của bạn. Bạn chắc chắn chứ?")) {
-            toastId = toast.loading("Đang khôi phục dữ liệu...");
-            await restoreData(data.rooms, data.bookings);
-            toast.success("Khôi phục dữ liệu hệ thống thành công!", { id: toastId });
+        const text = event.target?.result as string;
+        const trimmedText = text.trim();
+        
+        // Check if SQL format
+        const isSql = file.name.endsWith(".sql") || 
+                      trimmedText.startsWith("--") || 
+                      trimmedText.toLowerCase().startsWith("create") || 
+                      trimmedText.toLowerCase().startsWith("insert");
+
+        if (isSql) {
+          const parsed = parseSqlBackup(text);
+          if (parsed.rooms.length > 0 || parsed.bookings.length > 0) {
+            if (window.confirm(`Phát hiện file sao lưu SQL Supabase gồm ${parsed.rooms.length} phòng và ${parsed.bookings.length} lượt đặt. Bạn có thực sự muốn xóa dữ liệu hiện tại để thay thế bằng dữ liệu từ SQLite/Supabase này?`)) {
+              toastId = toast.loading("Đang khôi phục từ SQL...");
+              await restoreData(parsed.rooms, parsed.bookings);
+              toast.success("Hoàn tất khôi phục dữ liệu từ SQL Supabase!", { id: toastId });
+            }
+          } else {
+            toast.error("Không tìm thấy dữ liệu SQL hợp lệ (INSERT INTO rooms hoặc bookings)!");
           }
         } else {
-          toast.error("File sao lưu không hợp lệ! Vui lòng kiểm tra lại cấu trúc file.");
+          // JSON path
+          const data = JSON.parse(text);
+          const parsed = normalizeJsonBackup(data);
+          
+          if ((parsed.rooms && parsed.rooms.length > 0) || (parsed.bookings && parsed.bookings.length > 0)) {
+            if (window.confirm("Thao tác này sẽ xóa sạch dữ liệu phòng và lịch đặt hiện tại để thay bằng bản sao lưu của bạn. Bạn chắc chắn chứ?")) {
+              toastId = toast.loading("Đang khôi phục dữ liệu...");
+              await restoreData(parsed.rooms || [], parsed.bookings || []);
+              toast.success("Khôi phục dữ liệu hệ thống thành công!", { id: toastId });
+            }
+          } else {
+            toast.error("Nội dung file JSON trống hoặc không khớp định dạng!");
+          }
         }
       } catch (err: any) {
         if (toastId) {
-          toast.error("Khôi phục thất bại: " + (err?.message || "Lỗi đọc file JSON."), { id: toastId });
+          toast.error("Khôi phục thất bại: " + (err?.message || "Lỗi xử lý file."), { id: toastId });
         } else {
           toast.error("Không thể đọc file sao lưu. Vui lòng thử lại.");
         }
@@ -131,10 +173,10 @@ export default function SettingsView() {
     setIsDragActive(false);
     
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type === "application/json") {
+    if (file && (file.type === "application/json" || file.name.endsWith(".json") || file.name.endsWith(".sql"))) {
       await processBackupFile(file);
     } else {
-      toast.error("Vui lòng chỉ thả tập tin định dạng .json");
+      toast.error("Vui lòng chỉ thả tập tin định dạng .json hoặc .sql");
     }
   };
 
@@ -335,19 +377,30 @@ export default function SettingsView() {
               </div>
 
               {/* Download Backup */}
-              <button
-                type="button"
-                onClick={handleBackup}
-                className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-300 dark:hover:border-slate-600"
-              >
-                <Download className="w-4 h-4 text-slate-500" />
-                Sao lưu dữ liệu xuống máy (.json)
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleBackup}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-300 dark:hover:border-slate-600 uppercase tracking-wide"
+                >
+                  <Download className="w-4 h-4 text-indigo-500" />
+                  Sao lưu dạng JSON (.json)
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={handleBackupSql}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all cursor-pointer border border-transparent hover:border-indigo-300 dark:hover:border-indigo-800 uppercase tracking-wide"
+                >
+                  <Database className="w-4 h-4 text-emerald-500" />
+                  Sao lưu dạng SQL (.sql)
+                </button>
+              </div>
 
               {/* Custom File Upload Drag and Drop zone */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                  Phục hồi từ File sao lưu
+                  Phục hồi từ File sao lưu (JSON hoặc SQL)
                 </label>
                 <div
                   onDragOver={handleDragOver}
@@ -364,17 +417,17 @@ export default function SettingsView() {
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileInputChange}
-                    accept="application/json"
+                    accept="application/json,.sql,text/plain"
                     className="hidden"
                   />
                   <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full mb-3 shadow-inner">
                     <Upload className="w-5 h-5" />
                   </div>
                   <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Nhấp để chọn hoặc Kéo thả tập tin JSON vào đây
+                    Nhấp để chọn hoặc Kéo thả tập tin JSON/SQL vào đây
                   </p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                    Chỉ hỗ trợ file cấu trúc backup của Infinity Hill Manager
+                    Hỗ trợ cả file cấu trúc .json và file SQL backup (.sql) tương thích với SQLite / Supabase / PostgreSQL.
                   </p>
                 </div>
               </div>

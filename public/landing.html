@@ -1,6 +1,70 @@
 <!DOCTYPE html>
 <html lang="vi" class="scroll-smooth">
 <head>
+    <script>
+      // Global error listener to suppress platform-level and environment-level fetch errors
+      (function() {
+        try {
+          window.addEventListener('error', function(event) {
+            var msg = event.message || '';
+            if (
+              msg.indexOf("Cannot set property fetch") > -1 ||
+              msg.indexOf("fetch of #<Window>") > -1 ||
+              msg.indexOf("fetch has only a getter") > -1 ||
+              msg.indexOf("Script error") > -1
+            ) {
+              event.stopImmediatePropagation();
+              event.preventDefault();
+              return true;
+            }
+          }, true);
+          
+          window.addEventListener('unhandledrejection', function(event) {
+            var reason = event.reason && event.reason.message ? event.reason.message : '';
+            if (
+              reason.indexOf("Cannot set property fetch") > -1 ||
+              reason.indexOf("fetch of #<Window>") > -1 ||
+              reason.indexOf("fetch has only a getter") > -1
+            ) {
+              event.stopImmediatePropagation();
+              event.preventDefault();
+              return true;
+            }
+          }, true);
+
+          var oldOnError = window.onerror;
+          window.onerror = function(message, source, lineno, colno, error) {
+            var msg = String(message || '');
+            if (
+              msg.indexOf("Cannot set property fetch") > -1 ||
+              msg.indexOf("fetch of #<Window>") > -1 ||
+              msg.indexOf("fetch has only a getter") > -1 ||
+              msg.indexOf("Script error") > -1
+            ) {
+              return true; 
+            }
+            if (oldOnError) {
+              return oldOnError.apply(this, arguments);
+            }
+          };
+
+          var originalFetch = window.fetch;
+          var currentFetch = originalFetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return currentFetch;
+            },
+            set: function(val) {
+              currentFetch = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          console.warn("Could not redefine window.fetch setter: ", e);
+        }
+      })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Infinity Hill Hotel - Tuyệt tác nghỉ dưỡng tại đảo Quan Lạn. Trải nghiệm không gian sang trọng, dịch vụ đẳng cấp và cảnh quan tuyệt đẹp tại khách sạn của chúng tôi.">
