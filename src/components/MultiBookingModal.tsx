@@ -25,7 +25,7 @@ export default function MultiBookingModal({
     milliseconds: 0,
   });
   const defaultCheckOut = addDays(
-    set(new Date(), { hours: 12, minutes: 0, seconds: 0, milliseconds: 0 }),
+    set(new Date(), { hours: 11, minutes: 0, seconds: 0, milliseconds: 0 }),
     1,
   );
 

@@ -70,7 +70,7 @@ export default function RevenueReport({
     (sum, item) => sum + item.price * (editMinibar[item.id] || 0),
     0
   );
-  const editTotalPrice = editRoomPrice + editMinibarTotal + editCompensation - editDeposit;
+  const editTotalPrice = (editRoomPrice > 0 ? editRoomPrice : editDeposit) + editMinibarTotal + editCompensation;
 
   const completedBookings = useMemo(() => {
     let start, end;

@@ -16,10 +16,11 @@ import {
 } from "date-fns";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
-import { ChevronLeft, ChevronRight, User, Download, Cloud } from "lucide-react";
-import { cn } from "../lib/utils";
+import { ChevronLeft, ChevronRight, User, Download, Cloud, RefreshCw } from "lucide-react";
+import { cn, calculateTotalPrice } from "../lib/utils";
 import toast from "react-hot-toast";
 import { getAccessToken, googleSignIn } from "../firebase";
+import { useStore } from "../store";
 
 interface RoomScheduleProps {
   rooms: Room[];
@@ -29,6 +30,7 @@ interface RoomScheduleProps {
 }
 
 export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicReadOnly = false }: RoomScheduleProps) {
+  const { bookings } = useStore();
   const [currentDate, setCurrentDate] = useState(startOfMonth(new Date()));
   const [selectedMobileDate, setSelectedMobileDate] = useState(startOfDay(new Date()));
   const [selectedGuestInfo, setSelectedGuestInfo] = useState<{
@@ -269,7 +271,7 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
 
       const buffer = await workbook.xlsx.writeBuffer();
       
-      const hotelName = localStorage.getItem("hotelName")?.trim() || "Infinity Hill";
+      const hotelName = localStorage.getItem("hotelName")?.trim() || "Infinity Hill Hotel";
       const cleanedHotel = hotelName.replace(/[^a-zA-Z0-9_đĐàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s]/g, "").replace(/\s+/g, "_");
       const fileName = `HienTrang_DatPhong_${cleanedHotel}_Thang_${format(currentDate, "MM_yyyy")}.xlsx`;
 
@@ -329,6 +331,149 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
             >
               <Download className="w-3.5 h-3.5" />
               <span>Tải Excel</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                const defaultUrl = "https://script.google.com/macros/s/AKfycbzHHwWgZHy-4NZVqhHrMy8Oky34rJ9ZQEcMc1raNBarMn7Mi9vi5c6y_CcELGgjjU5r/exec";
+                const sheetsUrl = localStorage.getItem("google_sheets_web_app_url") || defaultUrl;
+                const loadToast = toast.loading("Đang đồng bộ dữ liệu sang Google Sheets...");
+                
+                // 1. Gather completed and cancelled bookings
+                const syncedBookings = bookings.map(b => ({
+                  id: b.id,
+                  roomId: b.roomId,
+                  guestName: b.guestName,
+                  checkIn: b.checkIn,
+                  checkOut: b.checkOut,
+                  totalPrice: b.totalPrice,
+                  status: b.status,
+                  createdAt: b.createdAt,
+                  notes: b.notes || "",
+                  checkoutDetails: b.checkoutDetails || {},
+                }));
+
+                // 2. Gather live active bookings and future reservations from rooms state
+                rooms.forEach(room => {
+                  if (room.status === "occupied" && room.guestName) {
+                    const calculatedPrice = room.isFlexiblePrice 
+                      ? (room.flexiblePrice || 0) 
+                      : calculateTotalPrice(
+                          room.checkInTime || new Date().toISOString(),
+                          room.checkOutTime || new Date().toISOString(),
+                          room.weekdayPrice,
+                          room.weekendPrice
+                        );
+
+                    syncedBookings.push({
+                      id: `B_active_${room.id}`,
+                      roomId: room.id,
+                      guestName: room.guestName,
+                      checkIn: room.checkInTime || new Date().toISOString(),
+                      checkOut: room.checkOutTime || new Date().toISOString(),
+                      totalPrice: calculatedPrice,
+                      status: "active" as any,
+                      createdAt: room.checkInTime || new Date().toISOString(),
+                      notes: room.notes || "",
+                      checkoutDetails: {
+                        roomPrice: calculatedPrice,
+                        deposit: room.deposit || 0,
+                        minibar: {},
+                        compensation: 0,
+                      }
+                    });
+                  }
+
+                  if (room.status === "reserved" && room.guestName) {
+                    const calculatedPrice = room.isFlexiblePrice 
+                      ? (room.flexiblePrice || 0) 
+                      : calculateTotalPrice(
+                          room.checkInTime || new Date().toISOString(),
+                          room.checkOutTime || new Date().toISOString(),
+                          room.weekdayPrice,
+                          room.weekendPrice
+                        );
+
+                    syncedBookings.push({
+                      id: `R_main_${room.id}`,
+                      roomId: room.id,
+                      guestName: room.guestName,
+                      checkIn: room.checkInTime || new Date().toISOString(),
+                      checkOut: room.checkOutTime || new Date().toISOString(),
+                      totalPrice: calculatedPrice,
+                      status: "reserved" as any,
+                      createdAt: room.checkInTime || new Date().toISOString(),
+                      notes: room.notes || "",
+                      checkoutDetails: {
+                        roomPrice: calculatedPrice,
+                        deposit: room.deposit || 0,
+                        minibar: {},
+                        compensation: 0,
+                      }
+                    });
+                  }
+
+                  if (room.reservations && room.reservations.length > 0) {
+                    room.reservations.forEach(res => {
+                      const calculatedPrice = res.isFlexiblePrice 
+                        ? (res.flexiblePrice || 0) 
+                        : calculateTotalPrice(
+                            res.checkInTime,
+                            res.checkOutTime,
+                            room.weekdayPrice,
+                            room.weekendPrice
+                          );
+
+                      syncedBookings.push({
+                        id: `R_res_${res.id}`,
+                        roomId: room.id,
+                        guestName: res.guestName,
+                        checkIn: res.checkInTime,
+                        checkOut: res.checkOutTime,
+                        totalPrice: calculatedPrice,
+                        status: "reserved" as any,
+                        createdAt: res.checkInTime,
+                        notes: res.notes || "",
+                        checkoutDetails: {
+                          roomPrice: calculatedPrice,
+                          deposit: res.deposit || 0,
+                          minibar: {},
+                          compensation: 0,
+                        }
+                      });
+                    });
+                  }
+                });
+
+                try {
+                  await fetch(sheetsUrl, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      action: "sync",
+                      rooms: rooms.map(r => ({
+                        id: r.id,
+                        floor: r.floor,
+                        type: r.type,
+                        status: r.status,
+                        notes: r.notes || "",
+                      })),
+                      bookings: syncedBookings,
+                    }),
+                  });
+                  toast.success("Yêu cầu đồng bộ dữ liệu sang Google Sheets thành công!", { id: loadToast });
+                } catch (err: any) {
+                  toast.error("Đồng bộ thất bại: " + (err?.message || err), { id: loadToast });
+                }
+              }}
+              className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors text-xs font-semibold border border-blue-200 dark:border-blue-800/50 flex-1 md:flex-none cursor-pointer"
+              title="Đồng bộ dữ liệu trực tiếp sang Google Sheets"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-blue-500" />
+              <span>Đồng bộ Sheets</span>
             </button>
           </div>
         </div>

@@ -69,6 +69,17 @@ export default function App() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
 
+  // Migration / Initialization hook for the requested hotel profile info
+  useEffect(() => {
+    const currentName = localStorage.getItem("hotelName");
+    if (!currentName || currentName === "Infinity Hill" || currentName.trim() === "") {
+      localStorage.setItem("hotelName", "Infinity Hill Hotel");
+      localStorage.setItem("hotelPhone", "0383696666");
+      localStorage.setItem("hotelAddress", "Đảo Quan Lạn, Vân Đồn, Quảng Ninh");
+      window.dispatchEvent(new Event("hotel-name-updated"));
+    }
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && currentView === "dashboard" && isLoaded && rooms && rooms.length > 0) {
       const now = new Date();
@@ -124,7 +135,7 @@ export default function App() {
     const checkAndRunBackup = async () => {
       try {
         const { runAutoBackupDirectly } = await import("./utils/googleDriveBackup");
-        const hotelName = localStorage.getItem("hotelName") || "Infinity Hill";
+        const hotelName = localStorage.getItem("hotelName") || "Infinity Hill Hotel";
         const email = localStorage.getItem("googleDriveUserEmail") || "automated@infinityhill.vn";
         const res = await runAutoBackupDirectly(rooms, bookings, hotelName, email);
         if (res.success && res.slot && !res.message.includes("đã được thực hiện")) {

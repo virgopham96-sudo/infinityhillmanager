@@ -17,7 +17,10 @@ import {
   Sliders,
   Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  RefreshCw,
+  Lock,
+  Unlock
 } from "lucide-react";
 import { motion } from "motion/react";
 import toast from "react-hot-toast";
@@ -37,6 +40,7 @@ import {
   BackupLog 
 } from "../utils/googleDriveBackup";
 import { onAuthStateChanged } from "firebase/auth";
+import { calculateTotalPrice } from "../lib/utils";
 
 export default function SettingsView() {
   const { rooms, bookings, restoreData } = useStore();
@@ -47,6 +51,33 @@ export default function SettingsView() {
   const [backupLogs, setBackupLogs] = useState<BackupLog[]>([]);
   const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
   const [isDriveFolderVisible, setIsDriveFolderVisible] = useState(false);
+
+  // Google Sheets Sync state
+  const DEFAULT_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzHHwWgZHy-4NZVqhHrMy8Oky34rJ9ZQEcMc1raNBarMn7Mi9vi5c6y_CcELGgjjU5r/exec";
+  const [sheetsUrl, setSheetsUrl] = useState<string>(() => {
+    const stored = localStorage.getItem("google_sheets_web_app_url");
+    if (!stored) {
+      localStorage.setItem("google_sheets_web_app_url", DEFAULT_SHEETS_URL);
+      return DEFAULT_SHEETS_URL;
+    }
+    return stored;
+  });
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [isSheetsUnlocked, setIsSheetsUnlocked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+
+  const handleUnlockSheets = () => {
+    if (passwordInput === "1234") {
+      setIsSheetsUnlocked(true);
+      setPasswordError(false);
+      toast.success("Đã mở khóa thay đổi cấu hình Google Sheets!");
+    } else {
+      setPasswordError(true);
+      toast.error("Mật khẩu không chính xác!");
+    }
+  };
 
   useEffect(() => {
     // Check if we already have an access token
@@ -80,6 +111,161 @@ export default function SettingsView() {
   const loadBackupLogs = async () => {
     const logs = await fetchBackupLogs();
     setBackupLogs(logs);
+  };
+
+  const handleSyncToSheets = async () => {
+    if (!sheetsUrl) {
+      toast.error("Vui lòng cấu hình Google Sheets Web App URL trước!");
+      return;
+    }
+
+    setIsSyncingSheets(true);
+    setSyncStatus(null);
+    const loadToast = toast.loading("Đang gửi yêu cầu đồng bộ sang Google Sheets...");
+
+    // 1. Gather completed and cancelled bookings
+    const syncedBookings = bookings.map(b => ({
+      id: b.id,
+      roomId: b.roomId,
+      guestName: b.guestName,
+      checkIn: b.checkIn,
+      checkOut: b.checkOut,
+      totalPrice: b.totalPrice,
+      status: b.status,
+      createdAt: b.createdAt,
+      notes: b.notes || "",
+      checkoutDetails: b.checkoutDetails || {},
+    }));
+
+    // 2. Gather live active bookings and future reservations from rooms state
+    rooms.forEach(room => {
+      if (room.status === "occupied" && room.guestName) {
+        const calculatedPrice = room.isFlexiblePrice 
+          ? (room.flexiblePrice || 0) 
+          : calculateTotalPrice(
+              room.checkInTime || new Date().toISOString(),
+              room.checkOutTime || new Date().toISOString(),
+              room.weekdayPrice,
+              room.weekendPrice
+            );
+
+        syncedBookings.push({
+          id: `B_active_${room.id}`,
+          roomId: room.id,
+          guestName: room.guestName,
+          checkIn: room.checkInTime || new Date().toISOString(),
+          checkOut: room.checkOutTime || new Date().toISOString(),
+          totalPrice: calculatedPrice,
+          status: "active" as any,
+          createdAt: room.checkInTime || new Date().toISOString(),
+          notes: room.notes || "",
+          checkoutDetails: {
+            roomPrice: calculatedPrice,
+            deposit: room.deposit || 0,
+            minibar: room.minibar || {},
+            compensation: room.compensation || 0,
+          }
+        });
+      }
+
+      if (room.status === "reserved" && room.guestName) {
+        const calculatedPrice = room.isFlexiblePrice 
+          ? (room.flexiblePrice || 0) 
+          : calculateTotalPrice(
+              room.checkInTime || new Date().toISOString(),
+              room.checkOutTime || new Date().toISOString(),
+              room.weekdayPrice,
+              room.weekendPrice
+            );
+
+        syncedBookings.push({
+          id: `R_main_${room.id}`,
+          roomId: room.id,
+          guestName: room.guestName,
+          checkIn: room.checkInTime || new Date().toISOString(),
+          checkOut: room.checkOutTime || new Date().toISOString(),
+          totalPrice: calculatedPrice,
+          status: "reserved" as any,
+          createdAt: room.checkInTime || new Date().toISOString(),
+          notes: room.notes || "",
+          checkoutDetails: {
+            roomPrice: calculatedPrice,
+            deposit: room.deposit || 0,
+            minibar: {},
+            compensation: 0,
+          }
+        });
+      }
+
+      if (room.reservations && room.reservations.length > 0) {
+        room.reservations.forEach(res => {
+          const calculatedPrice = res.isFlexiblePrice 
+            ? (res.flexiblePrice || 0) 
+            : calculateTotalPrice(
+                res.checkInTime,
+                res.checkOutTime,
+                room.weekdayPrice,
+                room.weekendPrice
+              );
+
+          syncedBookings.push({
+            id: `R_res_${res.id}`,
+            roomId: room.id,
+            guestName: res.guestName,
+            checkIn: res.checkInTime,
+            checkOut: res.checkOutTime,
+            totalPrice: calculatedPrice,
+            status: "reserved" as any,
+            createdAt: res.checkInTime,
+            notes: res.notes || "",
+            checkoutDetails: {
+              roomPrice: calculatedPrice,
+              deposit: res.deposit || 0,
+              minibar: {},
+              compensation: 0,
+            }
+          });
+        });
+      }
+    });
+
+    try {
+      await fetch(sheetsUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "sync",
+          rooms: rooms.map(r => ({
+            id: r.id,
+            floor: r.floor,
+            type: r.type,
+            status: r.status,
+            weekdayPrice: r.weekdayPrice,
+            weekendPrice: r.weekendPrice,
+            notes: r.notes || "",
+          })),
+          bookings: syncedBookings,
+        }),
+      });
+
+      toast.success("Đã kích hoạt đồng bộ hóa thành công sang Google Sheets!", { id: loadToast });
+      setSyncStatus({
+        success: true,
+        message: "Yêu cầu đồng bộ dữ liệu sang Google Sheets đã được gửi thành công! Xin vui lòng kiểm tra bảng tính Sheets của bạn.",
+      });
+    } catch (err: any) {
+      console.error("Sync error:", err);
+      toast.error("Đồng bộ thất bại: " + (err?.message || err), { id: loadToast });
+      setSyncStatus({
+        success: false,
+        message: "Lỗi kết nối: " + (err?.message || "Không thể truy cập Web App URL. Xin kiểm tra cài đặt CORS/quyền Deploy."),
+      });
+    } finally {
+      setIsSyncingSheets(false);
+    }
   };
 
   useEffect(() => {
@@ -128,9 +314,9 @@ export default function SettingsView() {
   };
   
   // Hotel info state
-  const [hotelName, setHotelName] = useState(() => localStorage.getItem("hotelName") || "Infinity Hill");
-  const [hotelPhone, setHotelPhone] = useState(() => localStorage.getItem("hotelPhone") || "0987 654 321");
-  const [hotelAddress, setHotelAddress] = useState(() => localStorage.getItem("hotelAddress") || "Lương Sơn, Hòa Bình");
+  const [hotelName, setHotelName] = useState(() => localStorage.getItem("hotelName") || "Infinity Hill Hotel");
+  const [hotelPhone, setHotelPhone] = useState(() => localStorage.getItem("hotelPhone") || "0383696666");
+  const [hotelAddress, setHotelAddress] = useState(() => localStorage.getItem("hotelAddress") || "Đảo Quan Lạn, Vân Đồn, Quảng Ninh");
   const [accentColor, setAccentColor] = useState(() => localStorage.getItem("hotelAccent") || "#004b93");
 
   // Theme support
@@ -531,6 +717,134 @@ export default function SettingsView() {
                 </div>
               </div>
 
+            </div>
+          </div>
+
+          {/* Card Google Sheets Sync */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                  <Database className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Đồng bộ Google Sheets trực tiếp</h3>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Gửi dữ liệu phòng và lịch đặt phòng sang Google Sheets của bạn</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Google Apps Script Web App URL
+                  </label>
+                  {isSheetsUnlocked ? (
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">
+                      <Unlock className="w-3 h-3 text-emerald-500" />
+                      Đã mở khóa thay đổi
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-900/30">
+                      <Lock className="w-3 h-3 text-amber-500" />
+                      Đang khóa thay đổi
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={isSheetsUnlocked ? "text" : "password"}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    value={sheetsUrl}
+                    disabled={!isSheetsUnlocked}
+                    onChange={(e) => {
+                      setSheetsUrl(e.target.value);
+                      localStorage.setItem("google_sheets_web_app_url", e.target.value);
+                    }}
+                    className={`w-full px-3 py-2 text-xs border ${
+                      isSheetsUnlocked 
+                        ? "border-emerald-200 dark:border-emerald-800 focus:border-emerald-500 bg-white dark:bg-slate-950" 
+                        : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 cursor-not-allowed opacity-80"
+                    } text-slate-800 dark:text-slate-100 rounded-xl focus:outline-none font-mono`}
+                  />
+                </div>
+
+                {!isSheetsUnlocked ? (
+                  <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800/80 flex flex-col sm:flex-row items-center gap-3 justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Cần nhập mật khẩu (1234) để mở khóa và thay đổi URL
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <input
+                        type="password"
+                        placeholder="Mật khẩu"
+                        value={passwordInput}
+                        onChange={(e) => {
+                          setPasswordInput(e.target.value);
+                          setPasswordError(false);
+                        }}
+                        className={`px-3 py-1 text-xs border ${
+                          passwordError ? "border-rose-500" : "border-slate-200 dark:border-slate-800"
+                        } rounded-lg bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 w-full sm:w-32 focus:outline-none focus:border-indigo-500`}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleUnlockSheets();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleUnlockSheets}
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shrink-0"
+                      >
+                        Mở khóa
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSheetsUnlocked(false);
+                        setPasswordInput("");
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 underline"
+                    >
+                      Khóa lại chỉnh sửa
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2">
+                  Dán đường dẫn Web App URL sau khi bạn Deploy Google Apps Script dưới dạng "Web app" (Chọn Anyone can access).
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSyncToSheets}
+                disabled={isSyncingSheets || !sheetsUrl}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider font-semibold"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheets ? "animate-spin" : ""}`} />
+                {isSyncingSheets ? "Đang đồng bộ..." : "Đồng bộ Sheets ngay"}
+              </button>
+              
+              {syncStatus && (
+                <div className={`text-xs p-3 rounded-xl border ${
+                  syncStatus.success 
+                    ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-300" 
+                    : "bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/40 text-rose-700 dark:text-rose-300"
+                }`}>
+                  {syncStatus.message}
+                </div>
+              )}
             </div>
           </div>
 

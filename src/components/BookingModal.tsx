@@ -54,7 +54,7 @@ export default function BookingModal({
     milliseconds: 0,
   });
   const defaultCheckOut = addDays(
-    set(initialCheckInDate || new Date(), { hours: 12, minutes: 0, seconds: 0, milliseconds: 0 }),
+    set(initialCheckInDate || new Date(), { hours: 11, minutes: 0, seconds: 0, milliseconds: 0 }),
     1,
   );
 
@@ -92,8 +92,8 @@ export default function BookingModal({
     format(defaultCheckOut, "yyyy-MM-dd'T'HH:mm"),
   );
 
-  const [minibar, setMinibar] = useState<Record<string, number>>({});
-  const [compensation, setCompensation] = useState<number>(0);
+  const [minibar, setMinibar] = useState<Record<string, number>>(isNewBooking ? {} : (room.minibar || {}));
+  const [compensation, setCompensation] = useState<number>(isNewBooking ? 0 : (room.compensation || 0));
   
   const [confirmDeleteFutureId, setConfirmDeleteFutureId] = useState<string | null>(null);
 
@@ -199,20 +199,77 @@ export default function BookingModal({
       return;
     }
     if (!validatePrimaryDates()) return;
-    
-    // If we are making a reservation while the room is available TODAY, we shouldn't wipe out future reservations.
-    onUpdateRoom({
-      ...room,
-      status: "reserved",
-      guestName,
-      deposit,
-      notes,
-      isFlexiblePrice,
-      flexiblePrice,
-      checkInTime: new Date(checkIn).toISOString(),
-      checkOutTime: new Date(checkOut).toISOString(),
-      reservations: getSafeReservations(),
+
+    const inDate = new Date(checkIn);
+    const outDate = new Date(checkOut);
+
+    // Overlap with existing reservations in array
+    let overlappingRes = room.reservations?.find((res) => {
+      const resIn = new Date(res.checkInTime);
+      const resOut = new Date(res.checkOutTime);
+      return inDate < resOut && resIn < outDate;
     });
+
+    // Overlap with main stay (if any)
+    let overlapWithMain = false;
+    if (
+      !overlappingRes &&
+      (room.status === "occupied" || room.status === "reserved") &&
+      room.checkInTime &&
+      room.checkOutTime
+    ) {
+      const mainIn = new Date(room.checkInTime);
+      const mainOut = new Date(room.checkOutTime);
+      if (inDate < mainOut && mainIn < outDate) {
+        overlapWithMain = true;
+      }
+    }
+
+    if (overlappingRes) {
+      toast.error(`Phòng đã được đặt trước bởi khách '${overlappingRes.guestName}' trong thời gian này!`);
+      setError(`Thời gian này bị trùng với lịch đặt trước khác (khách: '${overlappingRes.guestName}').`);
+      return;
+    }
+
+    if (overlapWithMain) {
+      toast.error(`Phòng đang có khách hoặc đã đặt trước (${room.guestName})!`);
+      setError(`Thời gian này bị trùng với lịch hiện tại của phòng (khách: '${room.guestName || "Khách vãng lai"}').`);
+      return;
+    }
+
+    const isFuture = startOfDay(inDate) > startOfDay(new Date()) || room.status === "occupied" || room.status === "maintenance";
+
+    if (isFuture) {
+      const newRes: Reservation = {
+        id: `R${Date.now()}`,
+        guestName,
+        deposit,
+        notes,
+        isFlexiblePrice,
+        flexiblePrice,
+        checkInTime: inDate.toISOString(),
+        checkOutTime: outDate.toISOString(),
+      };
+      onUpdateRoom({
+        ...room,
+        reservations: [...(room.reservations || []), newRes],
+      });
+      toast.success("Đã thêm lịch đặt trước thành công!");
+    } else {
+      onUpdateRoom({
+        ...room,
+        status: "reserved",
+        guestName,
+        deposit,
+        notes,
+        isFlexiblePrice,
+        flexiblePrice,
+        checkInTime: inDate.toISOString(),
+        checkOutTime: outDate.toISOString(),
+        reservations: getSafeReservations(),
+      });
+      toast.success("Đã lưu đặt phòng thành công!");
+    }
     onClose();
   };
 
@@ -246,7 +303,10 @@ export default function BookingModal({
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
       reservations: cleanRes,
+      minibar: {},
+      compensation: 0,
     });
+    toast.success("Nhận phòng thành công!");
     onClose();
   };
 
@@ -265,7 +325,10 @@ export default function BookingModal({
       flexiblePrice,
       checkInTime: new Date(checkIn).toISOString(),
       checkOutTime: new Date(checkOut).toISOString(),
+      minibar,
+      compensation,
     });
+    toast.success("Cập nhật thông tin phòng thành công!");
     onClose();
   };
 
@@ -320,7 +383,7 @@ export default function BookingModal({
       guestName: guestName || room.guestName || "Khách",
       checkIn: room.checkInTime || new Date(checkIn).toISOString(),
       checkOut: end.toISOString(),
-      totalPrice: actualPaid,
+      totalPrice: (totalPrice > 0 ? totalPrice : (room.deposit || 0)) + totalSurcharge,
       status: "completed",
       createdAt: new Date().toISOString(),
       notes: notes || room.notes,
@@ -346,6 +409,8 @@ export default function BookingModal({
       flexiblePrice: undefined,
       checkInTime: undefined,
       checkOutTime: undefined,
+      minibar: undefined,
+      compensation: undefined,
       reservations: getSafeReservations(),
     });
 

@@ -132,7 +132,7 @@ export async function runAutoBackupDirectly(
   }
 
   // Run upload
-  const cleanHotelName = hotelName.trim() || "Infinity Hill";
+  const cleanHotelName = hotelName.trim() || "Infinity Hill Hotel";
   const label = force ? "manual" : (hour >= 10 && hour < 18 ? "10h_sang" : "18h_toi");
   const fileName = `${cleanHotelName.replace(/[^a-zA-Z0-9_đĐàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹ\s]/g, "").replace(/\s+/g, "_")}_backup_${dateStr}_${label}.json`;
 

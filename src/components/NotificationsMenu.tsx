@@ -75,6 +75,31 @@ export default function NotificationsMenu({ rooms, onRoomSelect }: Notifications
       });
     }
 
+    // Check-in alert for the room's main active reservation
+    if (room.status === "reserved" && room.checkInTime) {
+      try {
+        const inDate = parseISO(room.checkInTime);
+        const inDateStr = format(inDate, "yyyy-MM-dd");
+        const todayStr = format(new Date(), "yyyy-MM-dd");
+        
+        if (todayStr === inDateStr) {
+          const timeStr = format(inDate, "HH:mm");
+          // Prevent duplicates if it is somehow also in roomNotifs
+          if (!roomNotifs.some(n => n.roomId === room.id && n.type === "checkin")) {
+            roomNotifs.push({
+              id: `checkin-main-${room.id}`,
+              roomId: room.id,
+              timeStr,
+              guestName: room.guestName || "Khách đặt trước",
+              type: "checkin",
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing room checkin time for alert:", e);
+      }
+    }
+
     return roomNotifs;
   }).filter(Boolean);
 

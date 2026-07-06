@@ -106,7 +106,17 @@ export function useStore() {
           await saveMultipleRoomsToFirebase(INITIAL_ROOMS);
           setRooms(INITIAL_ROOMS);
         } else {
-          const roomsList = snap.docs.map((doc) => ({ ...doc.data(), id: doc.id }) as Room);
+          const roomsList = snap.docs.map((doc) => {
+            const data = doc.data();
+            const rId = doc.id;
+            const fallback = ROOM_DATA[rId] || { type: "G2", weekday: 1400000, weekend: 1600000 };
+            return {
+              ...data,
+              id: rId,
+              weekdayPrice: typeof data.weekdayPrice === 'number' && data.weekdayPrice > 0 ? data.weekdayPrice : fallback.weekday,
+              weekendPrice: typeof data.weekendPrice === 'number' && data.weekendPrice > 0 ? data.weekendPrice : fallback.weekend,
+            } as Room;
+          });
           // Sort to guarantee consistent grid render order
           roomsList.sort((a, b) => {
             if (a.floor !== b.floor) return a.floor - b.floor;
@@ -173,6 +183,19 @@ export function useStore() {
   const restoreData = async (roomsToRestore: Room[], bookingsToRestore: BookingRecord[]) => {
     await restoreDataToFirebase(roomsToRestore, bookingsToRestore);
   };
+
+  // Auto Google Sheets synchronization on rooms/bookings data changes
+  useEffect(() => {
+    if (!isLoaded || rooms.length === 0) return;
+
+    const timer = setTimeout(() => {
+      import("./utils/sheetsSync").then(({ syncRoomsAndBookingsToSheets }) => {
+        syncRoomsAndBookingsToSheets(rooms, bookings);
+      });
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [rooms, bookings, isLoaded]);
 
   return {
     rooms,

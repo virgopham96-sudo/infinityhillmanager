@@ -1,0 +1,2173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinity Hill Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js CDN for robust, lightweight reactive UI state -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    [x-cloak] { display: none !important; }
+    /* Beautiful Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              200: '#b9defe',
+              300: '#7cc2fd',
+              400: '#36a2fc',
+              500: '#0c85eb',
+              600: '#0066cc',
+              700: '#0052a3',
+              800: '#054687',
+              900: '#0a3b70',
+              950: '#07254a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#f8fafc] text-slate-800 min-h-screen flex flex-col antialiased" x-data="appState()" x-init="initApp()">
+
+  <!-- Toast Notification System -->
+  <div class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div class="p-4 rounded-xl shadow-lg border flex items-start gap-3 transform transition-all duration-300 translate-y-0"
+           :class="{
+             'bg-emerald-50 border-emerald-100 text-emerald-800': toast.type === 'success',
+             'bg-rose-50 border-rose-100 text-rose-800': toast.type === 'error',
+             'bg-blue-50 border-blue-100 text-blue-800': toast.type === 'info',
+             'bg-amber-50 border-amber-100 text-amber-800': toast.type === 'warning'
+           }">
+        <div class="mt-0.5">
+          <i :data-lucide="toast.type === 'success' ? 'check-circle' : (toast.type === 'error' ? 'alert-triangle' : 'info')" class="w-5 h-5"
+             :class="{
+               'text-emerald-500': toast.type === 'success',
+               'text-rose-500': toast.type === 'error',
+               'text-blue-500': toast.type === 'info',
+               'text-amber-500': toast.type === 'warning'
+             }"></i>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-semibold" x-text="toast.title"></p>
+          <p class="text-xs opacity-90 mt-0.5" x-text="toast.message"></p>
+        </div>
+        <button @click="removeToast(toast.id)" class="text-slate-400 hover:text-slate-600 transition-colors">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <!-- Loading Fullscreen Overlay -->
+  <div x-show="globalLoading" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[99] flex flex-col items-center justify-center" x-cloak>
+    <div class="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center gap-4 max-w-xs w-full text-center">
+      <div class="w-12 h-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+      <div>
+        <h4 class="font-bold text-slate-900 text-sm">Đang tải tài nguyên</h4>
+        <p class="text-xs text-slate-500 mt-1">Hệ thống đang đồng bộ dữ liệu với Google Sheets...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Shell -->
+  <div class="flex flex-1 min-h-screen overflow-hidden">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 flex-shrink-0 z-30">
+      <!-- Brand Header -->
+      <div class="p-6 border-b border-slate-800 bg-slate-950/40 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-bold text-base tracking-wider font-mono">
+          IH
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-100 text-sm leading-tight" x-text="settings.HotelName || 'Infinity Hill'"></h1>
+          <p class="text-[10px] text-brand-400 font-mono mt-0.5 uppercase tracking-widest font-semibold">Hotel System</p>
+        </div>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="flex-1 p-4 space-y-1">
+        <button @click="currentTab = 'dashboard'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'dashboard' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Bàn điều khiển</span>
+        </button>
+
+        <button @click="currentTab = 'timeline'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'timeline' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="calendar-range" class="w-4 h-4"></i>
+          <span>Dòng thời gian</span>
+        </button>
+
+        <button @click="currentTab = 'bookings'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'bookings' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Danh sách khách</span>
+        </button>
+
+        <button @click="currentTab = 'services'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'services' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="coffee" class="w-4 h-4"></i>
+          <span>Bảng giá dịch vụ</span>
+        </button>
+
+        <button @click="currentTab = 'reports'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'reports' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+          <span>Báo cáo doanh thu</span>
+        </button>
+
+        <button @click="currentTab = 'settings'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all uppercase duration-200"
+                :class="currentTab === 'settings' ? 'bg-brand-600 text-white font-bold shadow-md shadow-brand-600/10' : 'hover:bg-slate-800 hover:text-slate-100'">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+          <span>Cài đặt hệ thống</span>
+        </button>
+      </nav>
+
+      <!-- Footer Action -->
+      <div class="p-4 border-t border-slate-800 space-y-2">
+        <button @click="syncWithSheets()" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600/10 text-emerald-400 hover:bg-emerald-600/20 rounded-lg text-[11px] font-bold border border-emerald-500/30 tracking-wider transition-all uppercase duration-200">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin-slow"></i>
+          <span>Làm mới Google Sheet</span>
+        </button>
+        <button @click="openGoogleSheetDatabase()" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg text-[10px] font-semibold border border-slate-700 tracking-wide transition-all uppercase duration-200">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          <span>Mở bảng tính dữ liệu</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Workspace -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      
+      <!-- Top Bar Header -->
+      <header class="bg-white border-b border-slate-100 h-16 flex items-center justify-between px-8 flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <h2 class="text-lg font-bold text-slate-800" x-text="getTabTitle()"></h2>
+          <span class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-500 rounded-md font-mono" x-text="'Hệ thống trực tiếp'"></span>
+        </div>
+
+        <div class="flex items-center gap-6">
+          <div class="text-right">
+            <p class="text-xs font-semibold text-slate-500">Giờ hệ thống (GMT+7)</p>
+            <p class="text-xs font-bold text-slate-800 font-mono mt-0.5" x-text="todayTime"></p>
+          </div>
+          <div class="h-8 w-px bg-slate-200"></div>
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">
+              AD
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-slate-800">Quản trị viên</p>
+              <p class="text-[10px] text-slate-400 leading-tight">Infinity Hill</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Active View Controller Container -->
+      <div class="flex-1 overflow-y-auto p-8" x-cloak>
+
+        <!-- Tab 1: Dashboard -->
+        <div x-show="currentTab === 'dashboard'" class="space-y-6">
+          
+          <!-- Fast Metrics Panel -->
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+            
+            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Phòng Trống</span>
+                <p class="text-3xl font-extrabold text-slate-800 font-mono mt-1" x-text="metrics.available || 0"></p>
+              </div>
+              <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Đang Ở</span>
+                <p class="text-3xl font-extrabold text-slate-800 font-mono mt-1" x-text="metrics.occupied || 0"></p>
+              </div>
+              <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
+                <i data-lucide="bed" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Đặt Trước</span>
+                <p class="text-3xl font-extrabold text-slate-800 font-mono mt-1" x-text="metrics.reserved || 0"></p>
+              </div>
+              <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                <i data-lucide="clock" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bảo Trì</span>
+                <p class="text-3xl font-extrabold text-slate-800 font-mono mt-1" x-text="metrics.maintenance || 0"></p>
+              </div>
+              <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+                <i data-lucide="wrench" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-5 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hiệu Suất</span>
+                <p class="text-3xl font-extrabold text-slate-800 font-mono mt-1" x-text="(metrics.occupancy || 0) + '%'"></p>
+              </div>
+              <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <i data-lucide="pie-chart" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Room Layout Floor Categorization with Actions -->
+          <div class="flex items-center justify-between">
+            <div class="flex gap-2">
+              <button @click="filterType = 'ALL'" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-all"
+                      :class="filterType === 'ALL' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+                TẤT CẢ PHÒNG
+              </button>
+              <button @click="filterType = 'G1'" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-all"
+                      :class="filterType === 'G1' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+                STD ĐƠN
+              </button>
+              <button @click="filterType = 'G2'" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-all"
+                      :class="filterType === 'G2' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+                STD ĐÔI
+              </button>
+              <button @click="filterType = 'G3'" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-all"
+                      :class="filterType === 'G3' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+                STD GIA ĐÌNH
+              </button>
+              <button @click="filterType = 'VIP'" class="px-3 py-1.5 text-xs font-bold rounded-xl transition-all"
+                      :class="filterType === 'VIP' ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'">
+                VIP VIEW ĐẸP
+              </button>
+            </div>
+
+            <div class="flex gap-2">
+              <button @click="openQuickBookingModal()" class="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all uppercase tracking-wide">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Đặt Lẻ</span>
+              </button>
+              <button @click="openGroupBookingModal()" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm hover:shadow transition-all uppercase tracking-wide">
+                <i data-lucide="users-round" class="w-4 h-4"></i>
+                <span>Đặt Đoàn</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Room Visual Bento Grid grouped by Floor -->
+          <div class="space-y-8">
+            <template x-for="floorNum in floors" :key="floorNum">
+              <div class="space-y-3" x-show="getFloorRooms(floorNum).length > 0">
+                <div class="flex items-center gap-3">
+                  <h3 class="font-bold text-slate-900 text-sm tracking-wide uppercase" x-text="'Tầng ' + floorNum"></h3>
+                  <div class="h-px flex-1 bg-slate-100"></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                  <template x-for="room in getFloorRooms(floorNum)" :key="room.roomNumber">
+                    <div @click="handleRoomClick(room)" 
+                         class="border rounded-2xl p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between h-36 select-none relative group overflow-hidden"
+                         :class="{
+                           'bg-emerald-50/50 border-emerald-100 hover:bg-emerald-50 hover:shadow-md hover:shadow-emerald-100/50': room.status === 'AVAILABLE',
+                           'bg-blue-50/70 border-blue-100 hover:bg-blue-50 hover:shadow-md hover:shadow-blue-100/50': room.status === 'OCCUPIED',
+                           'bg-amber-50/50 border-amber-100 hover:bg-amber-50 hover:shadow-md hover:shadow-amber-100/50': room.status === 'RESERVED',
+                           'bg-slate-100/70 border-slate-200 hover:bg-slate-100 hover:shadow-md hover:shadow-slate-200/50': room.status === 'MAINTENANCE'
+                         }">
+                      
+                      <!-- Status Indicator Badge (Relative Left Top corner) -->
+                      <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md tracking-wider font-mono"
+                              :class="{
+                                'bg-emerald-200 text-emerald-800': room.status === 'AVAILABLE',
+                                'bg-blue-200 text-blue-800': room.status === 'OCCUPIED',
+                                'bg-amber-200 text-amber-800': room.status === 'RESERVED',
+                                'bg-slate-200 text-slate-800': room.status === 'MAINTENANCE'
+                              }" x-text="room.status"></span>
+                        
+                        <span class="text-[10px] text-slate-400 font-mono font-bold" x-text="room.roomType"></span>
+                      </div>
+
+                      <!-- Center Room Number & Specs -->
+                      <div class="my-auto">
+                        <h4 class="text-xl font-extrabold text-slate-800 font-mono leading-none tracking-tight" x-text="room.roomNumber"></h4>
+                        <!-- Guest Label -->
+                        <p class="text-[11px] font-semibold text-slate-500 mt-1 truncate" 
+                           x-text="room.status === 'OCCUPIED' ? room.activeBooking.guestName : (room.status === 'RESERVED' ? room.nextBooking.guestName : (room.status === 'MAINTENANCE' ? 'Đang bảo trì' : 'Phòng trống'))"></p>
+                      </div>
+
+                      <!-- Bottom spec details -->
+                      <div class="flex items-center justify-between text-[9px] text-slate-400 font-bold border-t border-slate-100 dark:border-slate-800/20 pt-1.5 mt-1">
+                        <span x-text="getRoomTypeName(room.roomType)"></span>
+                      </div>
+
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+
+        </div>
+
+        <!-- Tab 2: Timeline View -->
+        <div x-show="currentTab === 'timeline'" class="space-y-6">
+          <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <button @click="navigateTimeline(-7)" class="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition-all">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <input type="date" x-model="timelineStartDate" @change="loadTimelineData()" class="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:outline-none focus:border-brand-500">
+                <button @click="navigateTimeline(7)" class="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition-all">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+
+              <div class="flex gap-4 text-xs font-semibold text-slate-500">
+                <div class="flex items-center gap-1.5">
+                  <div class="w-3.5 h-3.5 bg-blue-100 border border-blue-200 rounded-md"></div>
+                  <span>Đang lưu trú (CHECKED_IN)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <div class="w-3.5 h-3.5 bg-amber-100 border border-amber-200 rounded-md"></div>
+                  <span>Lịch đặt trước (RESERVED)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timeline visual diagram table -->
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+              <table class="w-full border-collapse min-w-[1000px]">
+                <thead>
+                  <tr class="bg-slate-50 text-left border-b border-slate-100">
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-100 w-24">Phòng</th>
+                    <template x-for="day in timelineDays" :key="day.date">
+                      <th class="p-2 text-center text-[10px] font-bold text-slate-500 tracking-wider border-r border-slate-100">
+                        <div x-text="day.label" class="font-mono"></div>
+                      </th>
+                    </template>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="room in rooms" :key="room.roomNumber">
+                    <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                      <td class="p-3 font-mono font-bold text-slate-800 border-r border-slate-100 flex items-center justify-between bg-slate-50/20">
+                        <span x-text="room.roomNumber"></span>
+                        <span class="text-[9px] px-1 bg-slate-200 text-slate-600 rounded" x-text="room.roomType"></span>
+                      </td>
+
+                      <template x-for="day in timelineDays" :key="day.date">
+                        <td class="p-1 border-r border-slate-100 text-center h-12 relative overflow-hidden group/cell">
+                          <!-- Find occupancy for this day -->
+                          <template x-if="getTimelineOccupancy(room.roomNumber, day.date)">
+                            <div class="absolute inset-1 rounded-lg flex items-center justify-center text-[10px] font-bold p-1 leading-none shadow-sm cursor-pointer"
+                                 @click="viewBooking(getTimelineOccupancy(room.roomNumber, day.date).id)"
+                                 :class="getTimelineOccupancy(room.roomNumber, day.date).status === 'CHECKED_IN' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-amber-100 text-amber-800 border border-amber-200'"
+                                 :title="getTimelineOccupancy(room.roomNumber, day.date).guestName">
+                              <span class="truncate" x-text="getTimelineOccupancy(room.roomNumber, day.date).guestName"></span>
+                            </div>
+                          </template>
+                          <!-- Empty cell hover click to book -->
+                          <template x-if="!getTimelineOccupancy(room.roomNumber, day.date)">
+                            <div class="absolute inset-0 hover:bg-emerald-50/50 cursor-pointer flex items-center justify-center text-slate-300 opacity-0 group-hover/cell:opacity-100 transition-all"
+                                 @click="openTimelineBooking(room.roomNumber, day.date)"
+                                 title="Đặt phòng nhanh ngày này">
+                              <i data-lucide="plus" class="w-4 h-4 text-emerald-600"></i>
+                            </div>
+                          </template>
+                        </td>
+                      </template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Guest List/Bookings -->
+        <div x-show="currentTab === 'bookings'" class="space-y-6">
+          <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            
+            <!-- Filter Bar -->
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex-1 max-w-md relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" x-model="searchQuery" @input.debounce.300ms="loadGuestBookings()" placeholder="Tìm theo tên khách, số điện thoại, số phòng hoặc mã đoàn..." class="w-full pl-10 pr-4 py-2 text-xs border border-slate-200 bg-[#f8fafc] text-slate-800 rounded-xl focus:outline-none focus:border-brand-500">
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button @click="loadGuestBookings()" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-all">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Booking list table -->
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mã đoàn</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tên khách hàng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Điện thoại</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nhận phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trả phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tiền phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="item in guestBookings" :key="item.id">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50/50 text-xs">
+                      <td class="p-3 font-semibold text-slate-500 font-mono" x-text="item.groupCode || '-'"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="item.roomNumber"></td>
+                      <td class="p-3 font-semibold text-slate-800" x-text="item.guestName"></td>
+                      <td class="p-3 font-semibold text-slate-500 font-mono" x-text="item.phone || '-'"></td>
+                      <td class="p-3 font-semibold text-slate-500" x-text="formatDateShort(item.checkIn)"></td>
+                      <td class="p-3 font-semibold text-slate-500" x-text="formatDateShort(item.checkOut)"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="formatCurrency(item.roomTotal)"></td>
+                      <td class="p-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-extrabold font-mono"
+                              :class="{
+                                'bg-blue-100 text-blue-800': item.status === 'CHECKED_IN',
+                                'bg-amber-100 text-amber-800': item.status === 'RESERVED',
+                                'bg-emerald-100 text-emerald-800': item.status === 'CHECKED_OUT',
+                                'bg-slate-100 text-slate-800': item.status === 'CANCELLED'
+                              }" x-text="item.status"></span>
+                      </td>
+                      <td class="p-3 text-right">
+                        <button @click="viewBooking(item.id)" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-[10px] transition-all uppercase tracking-wider">
+                          Chi tiết
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tab 4: Service Table -->
+        <div x-show="currentTab === 'services'" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          <!-- Column Left: New service form -->
+          <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm tracking-wide uppercase border-b border-slate-50 pb-3">Thêm / Sửa dịch vụ</h3>
+            
+            <form @submit.prevent="handleSaveService()" class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Mã vật tư / dịch vụ</label>
+                <input type="text" x-model="serviceForm.code" placeholder="Ví dụ: MI_HAO_HAO" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500 font-mono" required>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tên hiển thị</label>
+                <input type="text" x-model="serviceForm.name" placeholder="Ví dụ: Mì tôm Hảo Hảo cốc" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500" required>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Giá bán lẻ (VNĐ)</label>
+                <input type="number" x-model="serviceForm.price" placeholder="Ví dụ: 20000" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500 font-mono" required>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="service_active" x-model="serviceForm.active" class="rounded text-brand-500 focus:ring-brand-500">
+                <label for="service_active" class="text-xs font-semibold text-slate-600">Dịch vụ đang hoạt động</label>
+              </div>
+
+              <div class="flex gap-2 pt-2">
+                <button type="submit" class="flex-1 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl transition-all uppercase tracking-wider shadow-sm">
+                  Lưu thông tin
+                </button>
+                <button type="button" @click="resetServiceForm()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-all uppercase tracking-wider">
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Column Right: Service Catalog Table -->
+          <div class="lg:col-span-2 bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-50 pb-3">
+              <h3 class="font-bold text-slate-900 text-sm tracking-wide uppercase">Danh mục dịch vụ minibar</h3>
+              <button @click="syncDefaultMinibar()" class="px-3 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all">
+                Đồng bộ giá chuẩn
+              </button>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mã</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tên dịch vụ</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Giá bán</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="item in services" :key="item.code">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50/50 text-xs">
+                      <td class="p-3 font-semibold text-slate-500 font-mono" x-text="item.code"></td>
+                      <td class="p-3 font-bold text-slate-800" x-text="item.name"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="formatCurrency(item.price)"></td>
+                      <td class="p-3 text-right">
+                        <button @click="editServiceItem(item)" class="px-2.5 py-1 bg-brand-50 hover:bg-brand-100 text-brand-700 font-bold rounded-lg text-[10px] transition-all uppercase tracking-wider">
+                          Sửa
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Tab 5: Revenue Reports -->
+        <div x-show="currentTab === 'reports'" class="space-y-6">
+          <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-6">
+            
+            <!-- Filters & Actions -->
+            <div class="flex items-end justify-between gap-4 flex-wrap">
+              <div class="flex gap-4">
+                <div>
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Từ ngày</label>
+                  <input type="date" x-model="reportFilter.dateFrom" class="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Đến ngày</label>
+                  <input type="date" x-model="reportFilter.dateTo" class="px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white focus:outline-none focus:border-brand-500">
+                </div>
+              </div>
+
+              <div class="flex gap-2">
+                <button @click="loadReportData()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wider">
+                  Xem báo cáo
+                </button>
+              </div>
+            </div>
+
+            <!-- Report Totals Dashboard Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+              
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Doanh thu phòng</span>
+                <p class="text-2xl font-extrabold text-slate-800 font-mono mt-1" x-text="formatCurrency(reportData.totals.room || 0)"></p>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Doanh thu minibar</span>
+                <p class="text-2xl font-extrabold text-slate-800 font-mono mt-1" x-text="formatCurrency(reportData.totals.minibar || 0)"></p>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bồi thường / Phát sinh</span>
+                <p class="text-2xl font-extrabold text-slate-800 font-mono mt-1" x-text="formatCurrency(reportData.totals.compensation || 0)"></p>
+              </div>
+
+              <div class="bg-slate-50 border border-slate-100 rounded-2xl p-5 bg-gradient-to-br from-brand-900 to-[#004e9c] text-white">
+                <span class="text-xs font-semibold opacity-80 uppercase tracking-wider">Thực thu nhận về</span>
+                <p class="text-2xl font-extrabold font-mono mt-1" x-text="formatCurrency((reportData.totals.room || 0) + (reportData.totals.minibar || 0) + (reportData.totals.compensation || 0))"></p>
+              </div>
+
+            </div>
+
+            <!-- Report Table -->
+            <div class="overflow-x-auto border border-slate-100 rounded-xl">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 border-b border-slate-100 text-left">
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mã đoàn</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Khách đại diện</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nhận / Trả thực tế</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tiền phòng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dịch vụ</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bồi thường</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tổng cộng</th>
+                    <th class="p-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phương thức</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in reportData.rows" :key="row.id">
+                    <tr class="border-b border-slate-50 hover:bg-slate-50/50 text-xs">
+                      <td class="p-3 font-semibold text-slate-500 font-mono" x-text="row.groupCode || '-'"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="row.roomNumber"></td>
+                      <td class="p-3 font-semibold text-slate-800" x-text="row.guestName"></td>
+                      <td class="p-3 text-slate-500">
+                        <div x-text="'N: ' + formatDateShort(row.checkIn)"></div>
+                        <div x-text="'T: ' + formatDateShort(row.checkOut)" class="mt-0.5"></div>
+                      </td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="formatCurrency(row.roomTotal)"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="formatCurrency(row.minibarTotal)"></td>
+                      <td class="p-3 font-bold text-slate-800 font-mono" x-text="formatCurrency(row.compensation)"></td>
+                      <td class="p-3 font-extrabold text-slate-900 font-mono" x-text="formatCurrency(row.roomTotal + row.minibarTotal + row.compensation)"></td>
+                      <td class="p-3 font-semibold text-slate-500" x-text="row.paymentMethod || 'Tiền mặt'"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tab 6: Settings -->
+        <div x-show="currentTab === 'settings'" class="space-y-6">
+          <div class="bg-white border border-slate-100 rounded-2xl shadow-sm p-6 space-y-6 max-w-2xl">
+            <h3 class="font-bold text-slate-900 text-sm tracking-wide uppercase border-b border-slate-50 pb-3">Cấu hình khách sạn</h3>
+
+            <form @submit.prevent="handleSaveSettings()" class="space-y-5">
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tên khách sạn / khu nghỉ dưỡng</label>
+                <input type="text" x-model="settingsForm.HotelName" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500" required>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Số điện thoại liên hệ</label>
+                <input type="text" x-model="settingsForm.HotelPhone" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500 font-mono">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Địa chỉ</label>
+                <textarea x-model="settingsForm.HotelAddress" rows="3" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500"></textarea>
+              </div>
+
+              <div class="pt-2">
+                <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wider">
+                  Lưu cấu hình hệ thống
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Booking Details & Action Modal (CHECKED_IN or RESERVED) -->
+  <div x-show="modals.details" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4" x-cloak>
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" @click.away="modals.details = false">
+      
+      <!-- Header -->
+      <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-base" x-text="'Chi tiết phòng ' + activeRoom.roomNumber"></h3>
+          <p class="text-xs text-slate-400 mt-0.5" x-text="'Loại phòng: ' + getRoomTypeName(activeRoom.roomType)"></p>
+        </div>
+        
+        <div class="flex items-center gap-2 ml-auto">
+          <button @click="modals.details = false; openRoomHistory(activeRoom.roomNumber)" 
+                  class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all uppercase tracking-wide border border-slate-200">
+            <i data-lucide="history" class="w-4 h-4"></i>
+            <span>Xem lịch sử phòng</span>
+          </button>
+
+          <template x-if="activeRoom.status === 'OCCUPIED' || activeRoom.status === 'RESERVED'">
+            <button @click="modals.details = false; openQuickBookingForCurrentRoom()" 
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wide">
+              <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+              <span>Đặt lịch mới gối đầu</span>
+            </button>
+          </template>
+          
+          <button @click="modals.details = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        <!-- Booking basic data info -->
+        <template x-if="bookingDetail.booking">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            <div class="md:col-span-2 space-y-4">
+              <!-- Grid info card -->
+              <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Tên khách hàng</span>
+                  <p class="text-xs font-bold text-slate-800 mt-0.5" x-text="bookingDetail.booking.guestName"></p>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Điện thoại</span>
+                  <p class="text-xs font-bold text-slate-800 mt-0.5" x-text="bookingDetail.booking.phone || '-'"></p>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Ngày nhận dự kiến</span>
+                  <p class="text-xs font-bold text-slate-800 mt-0.5" x-text="formatDateShort(bookingDetail.booking.checkIn)"></p>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Ngày trả dự kiến</span>
+                  <p class="text-xs font-bold text-slate-800 mt-0.5" x-text="formatDateShort(bookingDetail.booking.checkOut)"></p>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div class="space-y-1.5">
+                <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Ghi chú phòng</span>
+                <p class="text-xs text-slate-600 bg-slate-50/50 p-3 rounded-xl border border-dashed border-slate-200" x-text="bookingDetail.booking.note || 'Không có ghi chú nào.'"></p>
+              </div>
+
+              <!-- Financial overview -->
+              <div class="border border-slate-100 rounded-xl overflow-hidden">
+                <div class="bg-slate-50 px-4 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bảng giá kê chi phí</div>
+                <div class="p-4 space-y-2.5 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Tiền phòng</span>
+                    <span class="font-bold text-slate-800 font-mono" x-text="formatCurrency(bookingDetail.booking.roomTotal)"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Minibar</span>
+                    <span class="font-bold text-slate-800 font-mono" x-text="formatCurrency(bookingDetail.minibarTotal || 0)"></span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Dịch vụ phát sinh / đền bù</span>
+                    <span class="font-bold text-slate-800 font-mono" x-text="formatCurrency(bookingDetail.compensation || 0)"></span>
+                  </div>
+                  <div class="flex justify-between text-blue-600 font-bold border-t border-slate-100 pt-2">
+                    <span>Tổng tiền phòng & dịch vụ</span>
+                    <span class="font-mono" x-text="formatCurrency(bookingDetail.booking.roomTotal + bookingDetail.minibarTotal + bookingDetail.compensation)"></span>
+                  </div>
+                  <div class="flex justify-between text-emerald-600 font-bold">
+                    <span>Đã đặt cọc trả trước</span>
+                    <span class="font-mono" x-text="formatCurrency(bookingDetail.booking.deposit)"></span>
+                  </div>
+                  <div class="flex justify-between text-red-600 font-extrabold border-t border-slate-100 pt-2 text-sm bg-red-50/50 p-2 rounded-lg">
+                    <span>CẦN THANH TOÁN</span>
+                    <span class="font-mono" x-text="formatCurrency(bookingDetail.payable || 0)"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side column: Minibar Quick action input -->
+            <div class="space-y-6">
+              
+              <!-- Check-in RESERVED Action -->
+              <template x-if="bookingDetail.booking.status === 'RESERVED'">
+                <div class="bg-amber-50 border border-amber-100 p-4 rounded-xl space-y-3">
+                  <div class="flex items-start gap-2 text-amber-800">
+                    <i data-lucide="info" class="w-5 h-5 text-amber-500 mt-0.5"></i>
+                    <div>
+                      <h4 class="font-bold text-xs">Lịch đặt chờ nhận phòng</h4>
+                      <p class="text-[10px] opacity-90 mt-0.5">Vui lòng kiểm tra kỹ phòng và các thủ tục cần thiết trước khi nhận phòng.</p>
+                    </div>
+                  </div>
+                  <button @click="triggerCheckIn()" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">
+                    Xác nhận Nhận phòng (Check-in)
+                  </button>
+                  <button @click="triggerCancelReservation()" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-all uppercase tracking-wider">
+                    Hủy lịch đặt trước
+                  </button>
+                </div>
+              </template>
+
+              <!-- Checked In Operations -->
+              <template x-if="bookingDetail.booking.status === 'CHECKED_IN'">
+                <div class="space-y-4">
+                  <!-- Minibar quick updates -->
+                  <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-xs tracking-wider uppercase">Thêm đồ uống / Minibar</h4>
+                    <div class="space-y-2.5">
+                      <div>
+                        <select x-model="minibarUsageForm.serviceCode" class="w-full px-2 py-1.5 text-xs border border-slate-200 bg-white rounded-lg focus:outline-none">
+                          <option value="">-- Chọn vật tư --</option>
+                          <template x-for="item in services" :key="item.code">
+                            <option :value="item.code" x-text="item.name + ' - ' + formatCurrency(item.price)"></option>
+                          </template>
+                        </select>
+                      </div>
+                      <div class="flex gap-2">
+                        <input type="number" x-model="minibarUsageForm.qty" placeholder="SL" class="w-16 px-2 py-1 border border-slate-200 bg-white rounded-lg text-xs font-mono focus:outline-none">
+                        <button @click="submitMinibarUsage()" class="flex-1 py-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">Thêm</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Extra compensation fee update -->
+                  <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-xs tracking-wider uppercase">Phí phát sinh / Bồi thường</h4>
+                    <div class="space-y-2">
+                      <input type="text" x-model="compensationForm.item" placeholder="Lý do..." class="w-full px-2 py-1.5 text-xs border border-slate-200 bg-white rounded-lg focus:outline-none">
+                      <input type="number" x-model="compensationForm.amount" placeholder="Số tiền (VNĐ)..." class="w-full px-2 py-1.5 text-xs border border-slate-200 bg-white rounded-lg font-mono focus:outline-none">
+                      <button @click="submitCompensation()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">Áp dụng phí</button>
+                    </div>
+                  </div>
+
+                  <!-- Room transfer operations -->
+                  <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                    <h4 class="font-bold text-slate-800 text-xs tracking-wider uppercase">Chuyển sang phòng mới</h4>
+                    <div class="flex gap-2">
+                      <select x-model="transferForm.targetRoom" class="flex-1 px-2 py-1 text-xs border border-slate-200 bg-white rounded-lg focus:outline-none font-mono">
+                        <option value="">-- Phòng --</option>
+                        <template x-for="r in rooms" :key="r.roomNumber">
+                          <option :value="r.roomNumber" x-show="r.status === 'AVAILABLE'" x-text="r.roomNumber + ' (' + r.roomType + ')'"></option>
+                        </template>
+                      </select>
+                      <button @click="submitRoomTransfer()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all uppercase tracking-wider">Chuyển</button>
+                    </div>
+                  </div>
+
+                </div>
+              </template>
+
+            </div>
+
+          </div>
+        </template>
+
+        <!-- Room is vacant/maintenance (no active booking) -->
+        <template x-if="!bookingDetail.booking">
+          <div class="space-y-6 text-center py-8">
+            <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
+                 :class="activeRoom.status === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'">
+              <i :data-lucide="activeRoom.status === 'AVAILABLE' ? 'check-circle' : 'wrench'" class="w-8 h-8"></i>
+            </div>
+
+            <div class="max-w-md mx-auto space-y-2">
+              <h4 class="font-extrabold text-slate-800 text-lg"
+                  x-text="activeRoom.status === 'AVAILABLE' ? 'Phòng này đang trống' : 'Phòng đang bảo trì'"></h4>
+              <p class="text-xs text-slate-500"
+                 x-text="activeRoom.status === 'AVAILABLE'
+                   ? 'Sẵn sàng đón khách nhận phòng trực tiếp hoặc đặt trước một khoảng thời gian trong tương lai.'
+                   : 'Phòng đang được sửa chữa, dọn dẹp hoặc nâng cấp vật tư thiết bị.'"></p>
+            </div>
+
+            <!-- Price specs for this vacant room -->
+            <div class="max-w-xs mx-auto grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+              <div>
+                <span class="text-slate-400 font-semibold block text-[10px] uppercase">Giá ngày thường</span>
+                <span class="font-bold text-slate-800 font-mono block mt-0.5" x-text="formatCurrency(activeRoom.weekdayPrice || 0)"></span>
+              </div>
+              <div>
+                <span class="text-slate-400 font-semibold block text-[10px] uppercase">Giá cuối tuần</span>
+                <span class="font-bold text-slate-800 font-mono block mt-0.5" x-text="formatCurrency(activeRoom.weekendPrice || 0)"></span>
+              </div>
+            </div>
+
+            <div class="flex justify-center gap-3">
+              <template x-if="activeRoom.status === 'AVAILABLE'">
+                <button @click="modals.details = false; openQuickBookingModal()" class="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all uppercase tracking-wider">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  Đặt lẻ ngay
+                </button>
+              </template>
+              <template x-if="activeRoom.status === 'AVAILABLE'">
+                <button @click="modals.details = false; openGroupBookingModal(activeRoom.roomNumber)" class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all uppercase tracking-wider">
+                  <i data-lucide="users-round" class="w-4 h-4"></i>
+                  Ghép vào đoàn
+                </button>
+              </template>
+            </div>
+          </div>
+        </template>
+
+      </div>
+
+      <!-- Footer Action Buttons -->
+      <div class="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+        <div>
+          <!-- Maintenance switches -->
+          <template x-if="activeRoom.status === 'AVAILABLE'">
+            <button @click="setRoomMaintenance(true)" class="px-4 py-2 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-bold rounded-xl transition-all uppercase tracking-wider border border-rose-100">
+              Chuyển sang bảo trì
+            </button>
+          </template>
+          <template x-if="activeRoom.status === 'MAINTENANCE'">
+            <button @click="setRoomMaintenance(false)" class="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold rounded-xl transition-all uppercase tracking-wider border border-emerald-100">
+              Hoàn thành bảo trì
+            </button>
+          </template>
+        </div>
+
+        <div class="flex gap-2">
+          <!-- Checkout buttons if Checked In -->
+          <template x-if="bookingDetail.booking && bookingDetail.booking.status === 'CHECKED_IN'">
+            <button @click="triggerCheckout()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wider">
+              Thanh toán & Trả phòng (Checkout)
+            </button>
+          </template>
+          <button @click="modals.details = false" class="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all uppercase tracking-wider">
+            Đóng
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Quick Booking / Reservation Form Modal -->
+  <div x-show="modals.booking" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4" x-cloak>
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-lg w-full max-h-[90vh] flex flex-col overflow-hidden" @click.away="modals.booking = false">
+      <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 class="font-extrabold text-slate-900 text-base">Tạo lượt đặt phòng lẻ mới</h3>
+        <button @click="modals.booking = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form @submit.prevent="submitBooking()" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Số phòng</label>
+            <select x-model="bookingForm.roomNumber" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white rounded-xl focus:outline-none font-mono" required>
+              <option value="">-- Chọn phòng --</option>
+              <template x-for="r in rooms" :key="r.roomNumber">
+                <option :value="r.roomNumber" x-text="r.roomNumber + ' - ' + r.roomType + (r.status === 'AVAILABLE' ? '' : ' (' + (r.status === 'MAINTENANCE' ? 'Bảo trì' : 'Bận') + ')')"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Trạng thái ban đầu</label>
+            <select x-model="bookingForm.mode" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white rounded-xl focus:outline-none" required>
+              <option value="CHECKED_IN">Nhận phòng ngay (CHECKED_IN)</option>
+              <option value="RESERVED">Đặt trước chờ (RESERVED)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tên khách hàng</label>
+          <input type="text" x-model="bookingForm.guestName" placeholder="Tên khách hàng đại diện..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500" required>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Số điện thoại liên hệ</label>
+          <input type="text" x-model="bookingForm.phone" placeholder="Số điện thoại..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500 font-mono">
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Thời gian nhận</label>
+            <input type="datetime-local" x-model="bookingForm.checkIn" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Thời gian trả dự kiến</label>
+            <input type="datetime-local" x-model="bookingForm.checkOut" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Chế độ định giá</label>
+            <select x-model="bookingForm.pricingMode" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white rounded-xl focus:outline-none" required>
+              <option value="AUTO">Bảng giá tự động chuẩn</option>
+              <option value="FLEX">Giá tùy biến linh hoạt (FLEX)</option>
+              <option value="CUSTOM">Tùy chỉnh (Áp dụng riêng đơn này)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Giá tùy biến / tùy chỉnh (VNĐ)</label>
+            <input type="number" x-model="bookingForm.flexPrice" placeholder="Giá tiền phòng..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+            <template x-if="bookingForm.pricingMode === 'CUSTOM'">
+              <p class="text-[10px] text-amber-600 mt-1">* Hệ thống sẽ giữ nguyên giá gốc của phòng tại danh mục.</p>
+            </template>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tiền đặt cọc trả trước</label>
+          <input type="number" x-model="bookingForm.deposit" placeholder="0" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Ghi chú phòng</label>
+          <textarea x-model="bookingForm.note" rows="2" placeholder="Ghi chú đính kèm..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500"></textarea>
+        </div>
+
+        <!-- Live Estimate Price Badge -->
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between" x-show="bookingForm.roomNumber">
+          <div class="flex items-center gap-2 text-blue-800">
+            <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+            <span class="text-xs font-bold">Tổng tiền phòng ước tính:</span>
+          </div>
+          <span class="text-sm font-extrabold text-blue-700 font-mono" x-text="formatCurrency(getBookingFormEstimatedPrice())"></span>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+          <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wider">Lưu đặt phòng</button>
+          <button type="button" @click="modals.booking = false" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all uppercase tracking-wider">Hủy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Group Booking Form Modal -->
+  <div x-show="modals.groupBooking" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4" x-cloak>
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden" @click.away="modals.groupBooking = false">
+      <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 class="font-extrabold text-slate-900 text-base">Tạo lượt đặt phòng theo ĐOÀN</h3>
+        <button @click="modals.groupBooking = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form @submit.prevent="submitGroupBooking()" class="flex-1 overflow-y-auto p-6 space-y-4">
+        
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tên đoàn / Đại diện đoàn</label>
+          <input type="text" x-model="groupBookingForm.guestName" placeholder="Tên đoàn hoặc khách đại diện..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none focus:border-brand-500" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Mã nhóm / đoàn</label>
+            <input type="text" x-model="groupBookingForm.groupCode" placeholder="Mã tự tạo hoặc sinh ngẫu nhiên..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Số điện thoại</label>
+            <input type="text" x-model="groupBookingForm.phone" placeholder="Số điện thoại..." class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Thời gian nhận</label>
+            <input type="datetime-local" x-model="groupBookingForm.checkIn" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none" required>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Thời gian trả dự kiến</label>
+            <input type="datetime-local" x-model="groupBookingForm.checkOut" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none" required>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Chọn danh sách phòng gán cho đoàn</label>
+          <div class="grid grid-cols-3 gap-2 border border-slate-100 p-3 rounded-xl max-h-40 overflow-y-auto bg-slate-50">
+            <template x-for="r in rooms" :key="r.roomNumber">
+              <label class="flex items-center justify-between gap-1.5 p-1.5 border border-slate-200 rounded-lg hover:bg-white cursor-pointer select-none">
+                <div class="flex items-center gap-1.5">
+                  <input type="checkbox" :value="r.roomNumber" x-model="groupBookingForm.rooms" class="rounded text-brand-500">
+                  <span class="text-xs font-mono font-bold text-slate-800" x-text="r.roomNumber"></span>
+                </div>
+                <span class="text-[9px] px-1 py-0.5 rounded font-bold" 
+                      :class="r.status === 'AVAILABLE' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : (r.status === 'MAINTENANCE' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-amber-50 text-amber-600 border border-amber-100')"
+                      x-text="r.status === 'AVAILABLE' ? 'Trống' : (r.status === 'MAINTENANCE' ? 'Bảo trì' : 'Bận')">
+                </span>
+              </label>
+            </template>
+          </div>
+        </div>
+
+        <!-- Danh sách phòng trong đoàn & Giá tùy chỉnh -->
+        <div class="space-y-2" x-show="groupBookingForm.rooms.length > 0">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Danh sách phòng trong đoàn & Giá tùy chỉnh</label>
+          <div class="space-y-1.5 border border-slate-100 p-3 rounded-xl bg-slate-50 max-h-48 overflow-y-auto">
+            <template x-for="rNum in groupBookingForm.rooms" :key="rNum">
+              <div class="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 shadow-sm gap-3">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-md" x-text="'P.' + rNum"></span>
+                  <span class="text-[11px] text-slate-500 font-medium" x-text="getRoomTypeName(rooms.find(r => r.roomNumber.toString() === rNum.toString())?.roomType || '')"></span>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] text-slate-400">Giá riêng:</span>
+                  <input type="number" x-model.number="groupBookingForm.customPrices[rNum]" 
+                         :placeholder="'Gốc: ' + formatCurrency(rooms.find(r => r.roomNumber.toString() === rNum.toString())?.weekdayPrice || 0)"
+                         class="w-32 bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-800 text-xs text-right focus:outline-none focus:border-brand-500 font-mono">
+                  <span class="text-[10px] text-slate-400 font-semibold">đ/đêm</span>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Chế độ định giá</label>
+            <select x-model="groupBookingForm.pricingMode" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white rounded-xl focus:outline-none" required>
+              <option value="AUTO">Tự động tính theo bảng giá</option>
+              <option value="FLEX_TOTAL">Cả đoàn trọn gói linh hoạt</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Giá trị trọn gói (nếu chọn gói)</label>
+            <input type="number" x-model="groupBookingForm.flexPrice" placeholder="Ví dụ: 15000000" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Tiền đặt cọc đặt trước của đoàn</label>
+          <input type="number" x-model="groupBookingForm.deposit" placeholder="Ví dụ: 5000000" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white text-slate-800 rounded-xl focus:outline-none font-mono">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Trạng thái ban đầu</label>
+          <select x-model="groupBookingForm.mode" class="w-full px-3 py-2 text-xs border border-slate-200 bg-white rounded-xl focus:outline-none" required>
+            <option value="CHECKED_IN">Nhận phòng ngay (CHECKED_IN)</option>
+            <option value="RESERVED">Đặt trước chờ (RESERVED)</option>
+          </select>
+        </div>
+
+        <!-- Live Estimate Group Price Badge -->
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between" x-show="groupBookingForm.rooms.length > 0">
+          <div class="flex items-center gap-2 text-blue-800">
+            <i data-lucide="info" class="w-4 h-4 text-blue-500"></i>
+            <span class="text-xs font-bold">Tổng tiền phòng ước tính (<span x-text="groupBookingForm.rooms.length"></span> phòng):</span>
+          </div>
+          <span class="text-sm font-extrabold text-blue-700 font-mono" x-text="formatCurrency(getGroupBookingEstimatedPrice())"></span>
+        </div>
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+          <button type="submit" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all uppercase tracking-wider">Lưu đoàn đặt</button>
+          <button type="button" @click="modals.groupBooking = false" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition-all uppercase tracking-wider">Hủy</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Lịch sử Đặt phòng (Room Booking History) -->
+  <div x-show="roomHistoryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-50 flex items-center justify-center p-4" x-cloak>
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-xl w-full max-h-[85vh] flex flex-col overflow-hidden" @click.away="roomHistoryModal = false">
+      <div class="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-base" x-text="'Lịch sử phòng ' + selectedRoomForHistory"></h3>
+          <p class="text-[11px] text-slate-400 font-semibold mt-0.5">Danh sách các lượt đặt lịch trước đó và hiện tại</p>
+        </div>
+        <button @click="roomHistoryModal = false" class="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6 space-y-4">
+        <!-- Nút Đặt gối đầu ngay từ lịch sử -->
+        <div class="flex justify-end pb-2">
+          <button @click="quickNewBooking(selectedRoomForHistory)" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
+            <i data-lucide="plus" class="w-4 h-4"></i> ĐẶT LỊCH GỐI ĐẦU MỚI
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <template x-for="hist in selectedRoomHistoryList" :key="hist.id">
+            <div class="p-4 rounded-xl border flex items-center justify-between shadow-sm"
+                 :class="{
+                   'border-emerald-200 bg-emerald-50/20': hist.status === 'CHECKED_IN',
+                   'border-amber-200 bg-amber-50/20': hist.status === 'RESERVED',
+                   'border-slate-200 bg-white': hist.status === 'COMPLETED' || hist.status === 'CANCELLED'
+                 }">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-800 text-xs" x-text="hist.guestName"></span>
+                  <span class="text-[9px] px-1.5 py-0.5 font-bold rounded"
+                        :class="{
+                          'bg-emerald-100 text-emerald-800': hist.status === 'CHECKED_IN',
+                          'bg-amber-100 text-amber-800': hist.status === 'RESERVED',
+                          'bg-blue-100 text-blue-800': hist.status === 'COMPLETED',
+                          'bg-rose-100 text-rose-800': hist.status === 'CANCELLED'
+                        }" x-text="hist.statusLabel"></span>
+                </div>
+                <div class="text-[11px] text-slate-500 font-medium">
+                  <span class="text-slate-400">Nhận:</span> <span x-text="formatDateView(hist.checkIn)"></span>
+                </div>
+                <div class="text-[11px] text-slate-500 font-medium">
+                  <span class="text-slate-400">Trả:</span> <span x-text="formatDateView(hist.checkOut)"></span>
+                </div>
+              </div>
+              
+              <!-- Nút xem chi tiết đơn hàng này -->
+              <div>
+                <button @click="roomHistoryModal = false; viewBooking(hist.id)" 
+                        class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all"
+                        title="Xem chi tiết hóa đơn">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </template>
+          
+          <template x-if="selectedRoomHistoryList.length === 0">
+            <div class="text-center py-8 text-slate-400 text-xs">
+              <i data-lucide="history" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+              Chưa có lịch sử đặt phòng nào cho phòng này.
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function appState() {
+      return {
+        currentTab: 'dashboard',
+        toasts: [],
+        globalLoading: false,
+        isSyncing: false,
+        rooms: [],
+        floors: [1, 2, 3, 4],
+        filterType: 'ALL',
+        services: [],
+        guestBookings: [],
+        searchQuery: '',
+        todayTime: '',
+        metrics: { available: 0, occupied: 0, reserved: 0, maintenance: 0, occupancy: 0 },
+        settings: { HotelName: 'Infinity Hill Manager' },
+        timelineStartDate: new Date().toISOString().split('T')[0],
+        timelineDays: [],
+        timelineBookings: [],
+        
+        // Modal states
+        modals: {
+          details: false,
+          booking: false,
+          groupBooking: false
+        },
+        
+        // Room history state variables
+        roomHistoryModal: false,
+        selectedRoomForHistory: '',
+        selectedRoomHistoryList: [],
+        
+        // Active room item being clicked or managed
+        activeRoom: {},
+        bookingDetail: {},
+        
+        // Forms setup
+        bookingForm: {
+          roomNumber: '',
+          guestName: '',
+          phone: '',
+          checkIn: '',
+          checkOut: '',
+          pricingMode: 'AUTO',
+          flexPrice: 0,
+          deposit: 0,
+          mode: 'CHECKED_IN',
+          note: ''
+        },
+        
+        groupBookingForm: {
+          guestName: '',
+          groupCode: '',
+          phone: '',
+          checkIn: '',
+          checkOut: '',
+          rooms: [],
+          pricingMode: 'AUTO',
+          flexPrice: 0,
+          deposit: 0,
+          mode: 'CHECKED_IN'
+        },
+
+        minibarUsageForm: {
+          serviceCode: '',
+          qty: 1
+        },
+
+        compensationForm: {
+          item: '',
+          amount: 0
+        },
+
+        transferForm: {
+          targetRoom: ''
+        },
+
+        serviceForm: {
+          code: '',
+          name: '',
+          price: 0,
+          active: true
+        },
+
+        settingsForm: {
+          HotelName: '',
+          HotelPhone: '',
+          HotelAddress: ''
+        },
+
+        reportFilter: {
+          dateFrom: new Date().toISOString().split('T')[0],
+          dateTo: new Date().toISOString().split('T')[0]
+        },
+        reportData: {
+          rows: [],
+          totals: { room: 0, minibar: 0, compensation: 0, deposit: 0, payable: 0 }
+        },
+
+        // Toast utilities
+        toast(title, message, type = 'success') {
+          const id = Date.now();
+          this.toasts.push({ id, title, message, type });
+          setTimeout(() => this.removeToast(id), 5000);
+          this.$nextTick(() => lucide.createIcons());
+        },
+        removeToast(id) {
+          this.toasts = this.toasts.filter(x => x.id !== id);
+        },
+
+        // Formatting utilities
+        formatCurrency(v) {
+          return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
+        },
+        formatDateShort(d) {
+          if (!d) return '';
+          const date = new Date(d);
+          return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        },
+        getLocalISOString(date) {
+          const tzoffset = date.getTimezoneOffset() * 60000;
+          return (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
+        },
+
+         getBookingFormEstimatedPrice() {
+          if (!this.bookingForm.roomNumber) return 0;
+          const room = this.rooms.find(r => r.roomNumber.toString() === this.bookingForm.roomNumber.toString());
+          if (!room) return 0;
+
+          if (this.bookingForm.pricingMode === 'FLEX' || this.bookingForm.pricingMode === 'CUSTOM') {
+            return Number(this.bookingForm.flexPrice || 0);
+          }
+
+          if (!this.bookingForm.checkIn || !this.bookingForm.checkOut) return 0;
+
+          const start = new Date(this.bookingForm.checkIn);
+          let end = new Date(this.bookingForm.checkOut);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+          if (end <= start) {
+            end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          }
+
+          let total = 0;
+          let current = new Date(start.getTime());
+          const days = [];
+          while (current < end) {
+            days.push(new Date(current.getTime()));
+            current.setDate(current.getDate() + 1);
+          }
+
+          if (days.length > 1) {
+            days.pop();
+          }
+
+          days.forEach(d => {
+            const dayOfWeek = d.getDay();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6);
+            total += isWeekend ? (room.weekendPrice || 0) : (room.weekdayPrice || 0);
+          });
+
+          return total;
+        },
+
+        getGroupBookingEstimatedPrice() {
+          if (!this.groupBookingForm.rooms.length) return 0;
+
+          let grandTotal = 0;
+
+          if (this.groupBookingForm.pricingMode === 'FLEX' || this.groupBookingForm.pricingMode === 'FLEX_TOTAL') {
+            return Number(this.groupBookingForm.flexPrice || 0);
+          }
+
+          if (!this.groupBookingForm.checkIn || !this.groupBookingForm.checkOut) return 0;
+
+          const start = new Date(this.groupBookingForm.checkIn);
+          let end = new Date(this.groupBookingForm.checkOut);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+          if (end <= start) {
+            end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          }
+
+          const days = [];
+          let current = new Date(start.getTime());
+          while (current < end) {
+            days.push(new Date(current.getTime()));
+            current.setDate(current.getDate() + 1);
+          }
+          if (days.length > 1) {
+            days.pop();
+          }
+
+          const daysCount = days.length > 0 ? days.length : 1;
+
+          this.groupBookingForm.rooms.forEach(rNum => {
+            const customPrice = this.groupBookingForm.customPrices && this.groupBookingForm.customPrices[rNum];
+            if (customPrice && Number(customPrice) > 0) {
+              grandTotal += Number(customPrice) * daysCount;
+              return;
+            }
+
+            const room = this.rooms.find(r => r.roomNumber.toString() === rNum.toString());
+            if (!room) return;
+
+            days.forEach(d => {
+              const dayOfWeek = d.getDay();
+              const isWeekend = (dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6);
+              grandTotal += isWeekend ? (room.weekendPrice || 0) : (room.weekdayPrice || 0);
+            });
+          });
+
+          return grandTotal;
+        },
+
+        initApp() {
+          this.updateClock();
+          setInterval(() => this.updateClock(), 1000);
+          this.syncWithSheets();
+          lucide.createIcons();
+        },
+
+        updateClock() {
+          const now = new Date();
+          this.todayTime = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + ' - ' + now.toLocaleTimeString('vi-VN');
+        },
+
+        getTabTitle() {
+          const titles = {
+            dashboard: 'Bàn điều khiển chính',
+            timeline: 'Sơ đồ dòng thời gian 14 ngày',
+            bookings: 'Danh sách khách hàng lưu trú',
+            services: 'Bảng giá & Danh mục vật tư',
+            reports: 'Báo cáo tài chính doanh thu',
+            settings: 'Cài đặt hệ thống'
+          };
+          return titles[this.currentTab] || 'Infinity Hill Manager';
+        },
+
+        getRoomTypeName(type) {
+          const m = {
+            G1: ' STD Đơn (1 giường)',
+            G2: ' STD Đôi (2 giường)',
+            G3: ' STD Gia Đình (Rộng)',
+            G1V: ' VIP Đơn (Có View Đẹp)',
+            G2V: ' VIP Đôi (Có View Đẹp)'
+          };
+          return m[type] || type;
+        },
+
+        // Remote database retrieval
+        syncWithSheets(quiet = false) {
+          if (quiet) {
+            this.isSyncing = true;
+          } else {
+            this.globalLoading = true;
+          }
+          const self = this;
+          
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(data) {
+                self.rooms = data.rooms || [];
+                self.services = data.services || [];
+                self.metrics = data.metrics || {};
+                self.settings = data.settings || { HotelName: 'Infinity Hill Manager' };
+                self.settingsForm = { ...self.settings };
+                self.globalLoading = false;
+                self.isSyncing = false;
+                self.loadTimelineData();
+                self.loadGuestBookings();
+                if (!quiet) {
+                  self.toast('Đồng bộ thành công', 'Hệ thống đã cập nhật dữ liệu mới nhất từ Google Sheets.');
+                }
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.isSyncing = false;
+                self.toast('Lỗi đồng bộ', err.message || 'Không thể liên kết với Apps Script', 'error');
+              })
+              .getDashboardData();
+          } else {
+            // Mock dynamic loading for development view outside script environment
+            setTimeout(() => {
+              self.rooms = [
+                { roomNumber: '101', floor: 1, roomType: 'G2', status: 'AVAILABLE' },
+                { roomNumber: '102', floor: 1, roomType: 'G2', status: 'OCCUPIED', activeBooking: { id: 'bk1', guestName: 'Nguyễn Văn A', phone: '0987654321', checkIn: new Date(), checkOut: new Date(), deposit: 500000, roomTotal: 1400000 } },
+                { roomNumber: '201', floor: 2, roomType: 'G3', status: 'RESERVED', nextBooking: { id: 'bk2', guestName: 'Phạm Bình', checkIn: new Date(), checkOut: new Date() } },
+                { roomNumber: '301', floor: 3, roomType: 'G2V', status: 'MAINTENANCE' }
+              ];
+              self.services = [
+                { code: 'BIA_HALONG', name: 'Bia Hạ Long Bạc', price: 25000 },
+                { code: 'MI_COC', name: 'Mì cốc Hảo Hảo', price: 20000 }
+              ];
+              self.metrics = { available: 15, occupied: 5, reserved: 3, maintenance: 1, occupancy: 25 };
+              self.globalLoading = false;
+              self.isSyncing = false;
+              self.loadTimelineData();
+              if (!quiet) {
+                self.toast('Chế độ giả lập', 'Hệ thống đang chạy ngoại tuyến ngoài Google Apps Script.');
+              }
+            }, 800);
+          }
+        },
+
+        openGoogleSheetDatabase() {
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(url) {
+                window.open(url, '_blank');
+              })
+              .openDatabase();
+          } else {
+            this.toast('Không khả dụng', 'Tính năng chỉ hoạt động khi chạy trên Google Apps Script chính thức.', 'warning');
+          }
+        },
+
+        getFloorRooms(floorNum) {
+          return this.rooms.filter(r => r.floor === floorNum && (this.filterType === 'ALL' || r.roomType === this.filterType || (this.filterType === 'VIP' && r.roomType.includes('V'))));
+        },
+
+        // Handlers
+        handleRoomClick(room) {
+          this.activeRoom = room;
+          if (room.status === 'AVAILABLE' || room.status === 'MAINTENANCE') {
+            this.bookingDetail = {};
+            this.modals.details = true;
+            this.$nextTick(() => lucide.createIcons());
+          } else {
+            const bookingId = room.status === 'OCCUPIED' ? room.activeBooking.id : room.nextBooking.id;
+            this.loadBookingDetail(bookingId);
+          }
+        },
+
+        loadBookingDetail(id) {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(detail) {
+                self.bookingDetail = detail;
+                self.modals.details = true;
+                self.globalLoading = false;
+                self.$nextTick(() => lucide.createIcons());
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .getBookingDetail(id);
+          } else {
+            // Mock details
+            setTimeout(() => {
+              self.bookingDetail = {
+                booking: { id, roomNumber: '102', guestName: 'Nguyễn Văn A', phone: '0987654321', checkIn: new Date().toISOString(), checkOut: new Date().toISOString(), roomTotal: 1400000, deposit: 500000, status: 'CHECKED_IN', note: 'Khách cần check-out sớm' },
+                minibarTotal: 45000,
+                compensation: 0,
+                payable: 945000
+              };
+              self.modals.details = true;
+              self.globalLoading = false;
+              self.$nextTick(() => lucide.createIcons());
+            }, 500);
+          }
+        },
+
+        // Booking methods
+        openQuickBookingModal() {
+          const now = new Date();
+          const checkOut = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          this.bookingForm = {
+            roomNumber: this.activeRoom?.roomNumber || '',
+            guestName: '',
+            phone: '',
+            checkIn: this.getLocalISOString(now),
+            checkOut: this.getLocalISOString(checkOut),
+            pricingMode: 'AUTO',
+            flexPrice: 0,
+            deposit: 0,
+            mode: 'CHECKED_IN',
+            note: ''
+          };
+          this.modals.booking = true;
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        submitBooking() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.booking = false;
+                self.syncWithSheets(true);
+                self.toast('Đặt phòng thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi đặt phòng', err.message, 'error');
+              })
+              .saveBooking(JSON.parse(JSON.stringify(this.bookingForm)));
+          } else {
+            setTimeout(() => {
+              self.modals.booking = false;
+              self.syncWithSheets(true);
+              self.toast('Thành công', 'Đã lưu thông tin lượt đặt lẻ mới (Chế độ giả lập).');
+            }, 600);
+          }
+        },
+
+        openGroupBookingModal(roomNumber) {
+          const now = new Date();
+          const checkOut = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          this.groupBookingForm = {
+            guestName: '',
+            groupCode: 'GRP-' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0'),
+            phone: '',
+            checkIn: this.getLocalISOString(now),
+            checkOut: this.getLocalISOString(checkOut),
+            rooms: roomNumber ? [roomNumber.toString()] : [],
+            pricingMode: 'AUTO',
+            flexPrice: 0,
+            deposit: 0,
+            mode: 'CHECKED_IN',
+            customPrices: {}
+          };
+          this.modals.groupBooking = true;
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        openQuickBookingForCurrentRoom() {
+          const now = new Date();
+          const checkOut = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          
+          this.bookingForm = {
+            roomNumber: this.activeRoom?.roomNumber || '',
+            guestName: '',
+            phone: '',
+            checkIn: this.getLocalISOString(now),
+            checkOut: this.getLocalISOString(checkOut),
+            pricingMode: 'AUTO',
+            flexPrice: 0,
+            deposit: 0,
+            mode: 'RESERVED', // Default to RESERVED since current room is occupied
+            note: 'Đặt lịch gối đầu trực tiếp từ Bàn điều khiển.'
+          };
+          
+          this.modals.booking = true;
+          this.$nextTick(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); });
+        },
+
+        submitGroupBooking() {
+          if (!this.groupBookingForm.rooms.length) {
+            this.toast('Yêu cầu', 'Vui lòng tích chọn ít nhất một phòng cho đoàn.', 'warning');
+            return;
+          }
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.groupBooking = false;
+                self.syncWithSheets(true);
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi đặt đoàn', err.message, 'error');
+              })
+              .saveGroupBookings(JSON.parse(JSON.stringify(this.groupBookingForm)));
+          } else {
+            setTimeout(() => {
+              self.modals.groupBooking = false;
+              self.syncWithSheets(true);
+              self.toast('Thành công', 'Đã tạo lịch đặt cho đoàn phòng (Giả lập).');
+            }, 600);
+          }
+        },
+
+        // Active booking operations
+        triggerCheckIn() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.details = false;
+                self.syncWithSheets(true);
+                self.toast('Nhận phòng thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi nhận phòng', err.message, 'error');
+              })
+              .checkInReservedBooking({ bookingId: this.bookingDetail.booking.id });
+          } else {
+            this.bookingDetail.booking.status = 'CHECKED_IN';
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Đã xác nhận nhận phòng.');
+          }
+        },
+
+        triggerCancelReservation() {
+          const reason = prompt('Nhập lý do hủy đặt phòng:');
+          if (reason === null) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.details = false;
+                self.syncWithSheets(true);
+                self.toast('Đã hủy đặt phòng', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi hủy phòng', err.message, 'error');
+              })
+              .cancelReservation({ bookingId: this.bookingDetail.booking.id, reason });
+          } else {
+            this.modals.details = false;
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Hủy lịch thành công.');
+          }
+        },
+
+        submitMinibarUsage() {
+          if (!this.minibarUsageForm.serviceCode) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.loadBookingDetail(self.bookingDetail.booking.id);
+                self.minibarUsageForm = { serviceCode: '', qty: 1 };
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .addMinibarUsage({ bookingId: this.bookingDetail.booking.id, serviceCode: this.minibarUsageForm.serviceCode, qty: this.minibarUsageForm.qty });
+          } else {
+            this.bookingDetail.minibarTotal += 20000;
+            this.bookingDetail.payable += 20000;
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Thêm minibar thành công.');
+          }
+        },
+
+        submitCompensation() {
+          if (!this.compensationForm.amount || !this.compensationForm.item) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.loadBookingDetail(self.bookingDetail.booking.id);
+                self.compensationForm = { item: '', amount: 0 };
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .addCompensation({ bookingId: this.bookingDetail.booking.id, item: this.compensationForm.item, amount: this.compensationForm.amount });
+          } else {
+            this.bookingDetail.compensation += Number(this.compensationForm.amount);
+            this.bookingDetail.payable += Number(this.compensationForm.amount);
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Đã thêm phí phát sinh.');
+          }
+        },
+
+        submitRoomTransfer() {
+          if (!this.transferForm.targetRoom) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.details = false;
+                self.syncWithSheets(true);
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi chuyển phòng', err.message, 'error');
+              })
+              .transferBooking({ bookingId: this.bookingDetail.booking.id, targetRoom: this.transferForm.targetRoom });
+          } else {
+            this.modals.details = false;
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Chuyển phòng thành công.');
+          }
+        },
+
+        triggerCheckout() {
+          const method = prompt('Nhập phương thức thanh toán (Tiền mặt / Chuyển khoản):', 'Tiền mặt');
+          if (method === null) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.details = false;
+                self.syncWithSheets(true);
+                self.toast('Thanh toán thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi thanh toán', err.message, 'error');
+              })
+              .checkoutBooking({ bookingId: this.bookingDetail.booking.id, paymentMethod: method });
+          } else {
+            this.modals.details = false;
+            this.syncWithSheets(true);
+            this.toast('Giả lập', 'Trả phòng thành công.');
+          }
+        },
+
+        setRoomMaintenance(m) {
+          const note = m ? prompt('Nhập lý do bảo trì phòng:') : '';
+          if (m && note === null) return;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.modals.details = false;
+                self.syncWithSheets();
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .setMaintenance({ roomNumber: this.activeRoom.roomNumber, maintenance: m, note });
+          } else {
+            this.modals.details = false;
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Thao tác bảo trì thành công.');
+          }
+        },
+
+        // Timeline management
+        loadTimelineData() {
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(data) {
+                self.timelineDays = data.days || [];
+                self.timelineBookings = data.bookings || [];
+              })
+              .getTimelineData(this.timelineStartDate);
+          } else {
+            // Mock Timeline
+            this.timelineDays = Array.from({ length: 14 }, (_, i) => {
+              const d = new Date();
+              d.setDate(d.getDate() + i);
+              return { date: d.toISOString().split('T')[0], label: d.getDate() + '/' + (d.getMonth() + 1) };
+            });
+            this.timelineBookings = [];
+          }
+        },
+
+        navigateTimeline(days) {
+          const d = new Date(this.timelineStartDate);
+          d.setDate(d.getDate() + days);
+          this.timelineStartDate = d.toISOString().split('T')[0];
+          this.loadTimelineData();
+        },
+
+        viewBooking(id) {
+          this.loadBookingDetail(id);
+        },
+
+        openTimelineBooking(roomNumber, dateStr) {
+          const start = new Date(dateStr);
+          const checkInDate = new Date(start.getTime());
+          checkInDate.setHours(14, 0, 0, 0); // Check-in standard is 14:00
+          
+          const checkOutDate = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+          checkOutDate.setHours(12, 0, 0, 0); // Check-out standard is 12:00
+          
+          this.bookingForm = {
+            bookingId: '',
+            roomNumber: roomNumber.toString(),
+            guestName: '',
+            phone: '',
+            checkIn: this.getLocalISOString(checkInDate),
+            checkOut: this.getLocalISOString(checkOutDate),
+            pricingMode: 'AUTO',
+            flexPrice: 0,
+            deposit: 0,
+            mode: 'RESERVED', // Default to RESERVED for future bookings
+            note: ''
+          };
+          this.modals.booking = true;
+          this.$nextTick(() => lucide.createIcons());
+        },
+
+        getTimelineOccupancy(roomNumber, dateStr) {
+          if (!this.timelineBookings || !this.timelineBookings.length) return null;
+          
+          const targetDate = new Date(dateStr);
+          targetDate.setHours(0,0,0,0);
+
+          for (let i = 0; i < this.timelineBookings.length; i++) {
+            const b = this.timelineBookings[i];
+            if (b.roomNumber.toString() !== roomNumber.toString()) continue;
+
+            const bStatus = b.status.toString().toUpperCase();
+            if (bStatus !== "CHECKED_IN" && bStatus !== "RESERVED" && bStatus !== "ACTIVE") continue;
+
+            const checkInDate = new Date(b.checkIn);
+            const checkOutDate = new Date(b.checkOut);
+
+            // Normalize dates to midnight for date-only comparison
+            const checkInClean = new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate());
+            const checkOutClean = new Date(checkOutDate.getFullYear(), checkOutDate.getMonth(), checkOutDate.getDate());
+
+            // A booking occupies the room from checkIn up to (but not including) checkOut
+            // If they check in and check out on the same day (day use), we count that day
+            if (checkInClean.getTime() === checkOutClean.getTime()) {
+              if (targetDate.getTime() === checkInClean.getTime()) {
+                return {
+                  id: b.id,
+                  guestName: b.guestName,
+                  status: bStatus === "ACTIVE" ? "CHECKED_IN" : bStatus
+                };
+              }
+            } else {
+              if (targetDate >= checkInClean && targetDate < checkOutClean) {
+                return {
+                  id: b.id,
+                  guestName: b.guestName,
+                  status: bStatus === "ACTIVE" ? "CHECKED_IN" : bStatus
+                };
+              }
+            }
+          }
+          return null;
+        },
+
+        // Bookings tab search
+        loadGuestBookings() {
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(bookings) {
+                self.guestBookings = bookings || [];
+              })
+              .getGuestBookings(this.searchQuery);
+          } else {
+            this.guestBookings = [
+              { id: 'bk1', groupCode: 'GRP-20260702', roomNumber: '102', guestName: 'Nguyễn Văn A', phone: '0987654321', checkIn: new Date(), checkOut: new Date(), roomTotal: 1400000, status: 'CHECKED_IN' }
+            ];
+          }
+        },
+
+        // Service Catalog additions & modifications
+        editServiceItem(item) {
+          this.serviceForm = { ...item, active: true };
+        },
+
+        resetServiceForm() {
+          this.serviceForm = { code: '', name: '', price: 0, active: true };
+        },
+
+        handleSaveService() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.resetServiceForm();
+                self.syncWithSheets(true);
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .saveServiceCatalogItem(this.serviceForm);
+          } else {
+            this.services.push({ ...this.serviceForm });
+            this.resetServiceForm();
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Lưu dịch vụ thành công.');
+          }
+        },
+
+        syncDefaultMinibar() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.syncWithSheets(true);
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .syncDefaultMinibarPrices();
+          } else {
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Cập nhật giá minibar chuẩn.');
+          }
+        },
+
+        // Financial reports data
+        loadReportData() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(data) {
+                self.reportData = data;
+                self.globalLoading = false;
+                self.toast('Đã tải báo cáo', 'Cập nhật dữ liệu báo cáo mới hoàn tất.');
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi tải báo cáo', err.message, 'error');
+              })
+              .getReportData(this.reportFilter.dateFrom, this.reportFilter.dateTo);
+          } else {
+            setTimeout(() => {
+              self.reportData = {
+                rows: [
+                  { id: 'rep1', groupCode: 'GRP-20260701', roomNumber: '101', guestName: 'Nguyễn Thị B', checkIn: new Date().toISOString(), checkOut: new Date().toISOString(), roomTotal: 1200000, minibarTotal: 40000, compensation: 0, paymentMethod: 'Tiền mặt' }
+                ],
+                totals: { room: 1200000, minibar: 40000, compensation: 0, deposit: 200000, payable: 1040000 }
+              };
+              self.globalLoading = false;
+              self.toast('Giả lập', 'Tải báo cáo thành công.');
+            }, 600);
+          }
+        },
+
+        // Settings tab saving
+        handleSaveSettings() {
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(res) {
+                self.syncWithSheets();
+                self.toast('Thành công', res.message);
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi', err.message, 'error');
+              })
+              .updateAppSettings(this.settingsForm);
+          } else {
+            this.settings = { ...this.settingsForm };
+            this.globalLoading = false;
+            this.toast('Giả lập', 'Lưu thông tin cài đặt thành công.');
+          }
+        },
+
+        openRoomHistory(roomNumber) {
+          this.selectedRoomForHistory = roomNumber.toString();
+          this.selectedRoomHistoryList = [];
+          this.roomHistoryModal = true;
+          this.globalLoading = true;
+          const self = this;
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+              .withSuccessHandler(function(history) {
+                self.selectedRoomHistoryList = history || [];
+                self.globalLoading = false;
+                self.$nextTick(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+              })
+              .withFailureHandler(function(err) {
+                self.globalLoading = false;
+                self.toast('Lỗi tải lịch sử', err.message, 'error');
+              })
+              .getRoomBookingHistory(roomNumber);
+          } else {
+            // Mock history
+            setTimeout(() => {
+              self.selectedRoomHistoryList = [
+                { id: 'mock-1', guestName: 'Nguyễn Văn A', checkIn: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(), checkOut: new Date(Date.now() - 1 * 24 * 3600 * 1000).toISOString(), status: 'COMPLETED', statusLabel: 'Đã trả phòng' },
+                { id: 'mock-2', guestName: 'Trần Thị B', checkIn: new Date().toISOString(), checkOut: new Date(Date.now() + 1 * 24 * 3600 * 1000).toISOString(), status: 'CHECKED_IN', statusLabel: 'Đang lưu trú' }
+              ];
+              self.globalLoading = false;
+              self.$nextTick(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+            }, 500);
+          }
+        },
+
+        quickNewBooking(roomNumber) {
+          this.roomHistoryModal = false;
+          // Set activeRoom so that openQuickBookingForCurrentRoom has context
+          this.activeRoom = this.rooms.find(r => r.roomNumber.toString() === roomNumber.toString()) || { roomNumber: roomNumber.toString() };
+          this.openQuickBookingForCurrentRoom();
+        },
+
+        formatDateView(dateStr) {
+          if (!dateStr) return '-';
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return dateStr;
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const hours = String(d.getHours()).padStart(2, '0');
+          const minutes = String(d.getMinutes()).padStart(2, '0');
+          return `${hours}:${minutes} ${day}/${month}/${d.getFullYear()}`;
+        }
+      }
+    }
+  </script>
+</body>
+</html>

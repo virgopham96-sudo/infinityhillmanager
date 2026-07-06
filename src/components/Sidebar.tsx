@@ -20,11 +20,11 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, onChangeView, onLogout }: SidebarProps) {
   // Reactive hotel name from localStorage settings
-  const [hotelName, setHotelName] = useState(() => localStorage.getItem("hotelName") || "Infinity Hill");
+  const [hotelName, setHotelName] = useState(() => localStorage.getItem("hotelName") || "Infinity Hill Hotel");
 
   useEffect(() => {
     const handleUpdate = () => {
-      setHotelName(localStorage.getItem("hotelName") || "Infinity Hill");
+      setHotelName(localStorage.getItem("hotelName") || "Infinity Hill Hotel");
     };
     window.addEventListener("hotel-name-updated", handleUpdate);
     return () => window.removeEventListener("hotel-name-updated", handleUpdate);

@@ -26,6 +26,8 @@ export interface Room {
   reservations?: Reservation[]; // Future reservations
   isFlexiblePrice?: boolean;
   flexiblePrice?: number;
+  minibar?: Record<string, number>;
+  compensation?: number;
 }
 
 export interface BookingRecord {
