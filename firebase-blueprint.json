@@ -32,6 +32,21 @@
         "createdAt": { "type": "string" }
       },
       "required": ["roomId", "guestName", "checkIn", "checkOut", "totalPrice", "status", "createdAt"]
+    },
+    "BackupLog": {
+      "title": "BackupLog",
+      "description": "A log of automatic and manual Google Drive backups",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "success": { "type": "boolean" },
+        "error": { "type": "string" },
+        "operatorEmail": { "type": "string" }
+      },
+      "required": ["id", "fileName", "timestamp", "success"]
     }
   },
   "firestore": {
@@ -42,6 +57,10 @@
     "bookings/{bookingId}": {
       "schema": { "$ref": "#/entities/BookingRecord" },
       "description": "Booking records"
+    },
+    "backup_logs/{logId}": {
+      "schema": { "$ref": "#/entities/BackupLog" },
+      "description": "Backup logs"
     }
   }
 }

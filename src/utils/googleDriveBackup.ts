@@ -1,4 +1,4 @@
-import { db, getAccessToken } from "../firebase";
+import { db, getAccessToken, handleFirestoreError, OperationType } from "../firebase";
 import { doc, setDoc, getDoc, getDocs, collection, query, orderBy, limit } from "firebase/firestore";
 import { Room, BookingRecord } from "../types";
 
@@ -157,7 +157,11 @@ export async function runAutoBackupDirectly(
       success: true,
       operatorEmail: userEmail,
     };
-    await setDoc(doc(db, "backup_logs", slotId), logData);
+    try {
+      await setDoc(doc(db, "backup_logs", slotId), logData);
+    } catch (fsErr) {
+      handleFirestoreError(fsErr, OperationType.WRITE, `backup_logs/${slotId}`);
+    }
 
     return { 
       success: true, 
@@ -178,7 +182,11 @@ export async function runAutoBackupDirectly(
       error: errorMessage,
       operatorEmail: userEmail,
     };
-    await setDoc(doc(db, "backup_logs", slotId), logData);
+    try {
+      await setDoc(doc(db, "backup_logs", slotId), logData);
+    } catch (fsErr) {
+      handleFirestoreError(fsErr, OperationType.WRITE, `backup_logs/${slotId}`);
+    }
 
     return { 
       success: false, 
@@ -199,6 +207,7 @@ export async function fetchBackupLogs(): Promise<BackupLog[]> {
     // Sort descending by timestamp
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   } catch (e) {
+    handleFirestoreError(e, OperationType.LIST, "backup_logs");
     console.error("Lỗi lấy lịch sử sao lưu:", e);
     return [];
   }

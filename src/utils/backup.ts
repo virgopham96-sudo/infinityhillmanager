@@ -35,30 +35,154 @@ export function normalizeObject(obj: any): any {
   return newObj;
 }
 
-export function normalizeJsonBackup(data: any): { rooms?: any[]; bookings?: any[] } {
+export function normalizeJsonBackup(data: any): { rooms?: Room[]; bookings?: BookingRecord[] } {
   if (!data) return {};
+  
+  let rawRooms: any[] = [];
+  let rawBookings: any[] = [];
   
   // Standard backup
   if (data.rooms || data.bookings) {
-    return {
-      rooms: data.rooms ? normalizeObject(data.rooms) : undefined,
-      bookings: data.bookings ? normalizeObject(data.bookings) : undefined
-    };
-  }
-  
-  // If data is an array of objects
-  if (Array.isArray(data)) {
+    rawRooms = data.rooms ? normalizeObject(data.rooms) : [];
+    rawBookings = data.bookings ? normalizeObject(data.bookings) : [];
+  } else if (Array.isArray(data)) {
     const normalizedList = normalizeObject(data);
     const hasRoomProp = normalizedList.some((item: any) => item.floor !== undefined || item.weekdayPrice !== undefined);
     const hasBookingProp = normalizedList.some((item: any) => item.roomId !== undefined || item.totalPrice !== undefined);
     if (hasRoomProp) {
-      return { rooms: normalizedList };
+      rawRooms = normalizedList;
     } else if (hasBookingProp) {
-      return { bookings: normalizedList };
+      rawBookings = normalizedList;
     }
   }
-  
-  return {};
+
+  // If no rooms are present, return normalized raw data
+  if (rawRooms.length === 0) {
+    return {
+      rooms: undefined,
+      bookings: rawBookings.length > 0 ? rawBookings : undefined
+    };
+  }
+
+  // 2. Reconstruct room states and future reservations from the bookings list
+  const roomMap: Record<string, Room> = {};
+  rawRooms.forEach((r: any) => {
+    roomMap[r.id] = {
+      id: String(r.id),
+      floor: Number(r.floor !== undefined ? r.floor : 1),
+      type: r.type || "G",
+      status: "available", // default fallback, will be updated by active bookings below
+      weekdayPrice: Number(r.weekdayPrice || 0),
+      weekendPrice: Number(r.weekendPrice || 0),
+      notes: r.notes || "",
+      reservations: Array.isArray(r.reservations) ? r.reservations : []
+    };
+  });
+
+  const historicalBookings: BookingRecord[] = [];
+
+  rawBookings.forEach((b: any) => {
+    if (!b || !b.roomId) return;
+    
+    const idStr = String(b.id || "");
+    const statusStr = String(b.status || "").toLowerCase();
+    const roomId = String(b.roomId);
+    
+    // Check if it is an active check-in (occupied)
+    if (idStr.startsWith("B_active_") || statusStr === "active" || statusStr === "checked_in" || statusStr === "occupied") {
+      if (roomMap[roomId]) {
+        roomMap[roomId].status = "occupied";
+        roomMap[roomId].guestName = b.guestName || "Khách";
+        roomMap[roomId].checkInTime = b.checkIn;
+        roomMap[roomId].checkOutTime = b.checkOut;
+        roomMap[roomId].deposit = Number(b.deposit || b.checkoutDetails?.deposit || 0);
+        roomMap[roomId].notes = b.notes || roomMap[roomId].notes || "";
+        roomMap[roomId].minibar = b.checkoutDetails?.minibar || {};
+        roomMap[roomId].compensation = Number(b.checkoutDetails?.compensation || 0);
+      }
+    }
+    // Check if it is a main active reservation for a room
+    else if (idStr.startsWith("R_main_") || (statusStr === "reserved" && (idStr.includes("_main") || !idStr.includes("_res_")))) {
+      if (roomMap[roomId]) {
+        // Only set status to reserved if not occupied
+        if (roomMap[roomId].status !== "occupied") {
+          roomMap[roomId].status = "reserved";
+          roomMap[roomId].guestName = b.guestName || "Khách đặt trước";
+          roomMap[roomId].checkInTime = b.checkIn;
+          roomMap[roomId].checkOutTime = b.checkOut;
+          roomMap[roomId].deposit = Number(b.deposit || 0);
+          roomMap[roomId].notes = b.notes || roomMap[roomId].notes || "";
+        } else {
+          // If the room is already occupied, this acts as a future reservation
+          if (!roomMap[roomId].reservations) {
+            roomMap[roomId].reservations = [];
+          }
+          const resId = idStr.replace("R_main_", "").replace("R_res_", "") || `R_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          if (!roomMap[roomId].reservations!.some(r => r.id === resId)) {
+            roomMap[roomId].reservations!.push({
+              id: resId,
+              guestName: b.guestName || "Khách đặt trước",
+              checkInTime: b.checkIn,
+              checkOutTime: b.checkOut,
+              deposit: Number(b.deposit || 0),
+              notes: b.notes || ""
+            });
+          }
+        }
+      }
+    }
+    // Check if it is a future nested reservation
+    else if (idStr.startsWith("R_res_") || statusStr === "reserved") {
+      if (roomMap[roomId]) {
+        if (!roomMap[roomId].reservations) {
+          roomMap[roomId].reservations = [];
+        }
+        const resId = idStr.replace("R_res_", "").replace("R_main_", "") || `R_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        if (!roomMap[roomId].reservations!.some(r => r.id === resId)) {
+          roomMap[roomId].reservations!.push({
+            id: resId,
+            guestName: b.guestName || "Khách đặt trước",
+            checkInTime: b.checkIn,
+            checkOutTime: b.checkOut,
+            deposit: Number(b.deposit || 0),
+            notes: b.notes || ""
+          });
+        }
+      }
+    }
+    // Otherwise, this is a real completed or cancelled booking record to keep in history
+    else {
+      let finalStatus: "active" | "completed" | "cancelled" = "completed";
+      if (statusStr === "cancelled" || statusStr === "cancel") {
+        finalStatus = "cancelled";
+      } else if (statusStr === "active" || statusStr === "checked_in") {
+        finalStatus = "active";
+      }
+      
+      historicalBookings.push({
+        id: b.id,
+        roomId: roomId,
+        guestName: b.guestName || "Khách",
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        totalPrice: Number(b.totalPrice || 0),
+        status: finalStatus,
+        createdAt: b.createdAt || new Date().toISOString(),
+        notes: b.notes || "",
+        checkoutDetails: b.checkoutDetails || {
+          roomPrice: Number(b.totalPrice || 0),
+          deposit: Number(b.deposit || 0),
+          minibar: {},
+          compensation: 0
+        }
+      });
+    }
+  });
+
+  return {
+    rooms: Object.values(roomMap),
+    bookings: historicalBookings
+  };
 }
 
 export function formatSqlValue(val: any): string {

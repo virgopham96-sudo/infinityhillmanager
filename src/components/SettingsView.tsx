@@ -63,10 +63,12 @@ export default function SettingsView() {
     return stored;
   });
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
+  const [isPullingFromAppscript, setIsPullingFromAppscript] = useState(false);
   const [syncStatus, setSyncStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [isSheetsUnlocked, setIsSheetsUnlocked] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   const handleUnlockSheets = () => {
     if (passwordInput === "1234") {
@@ -234,7 +236,7 @@ export default function SettingsView() {
         method: "POST",
         mode: "no-cors",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain;charset=utf-8",
         },
         body: JSON.stringify({
           action: "sync",
@@ -265,6 +267,57 @@ export default function SettingsView() {
       });
     } finally {
       setIsSyncingSheets(false);
+    }
+  };
+
+  const handlePullFromAppscript = async () => {
+    if (!sheetsUrl) {
+      toast.error("Vui lòng cấu hình Google Sheets Web App URL trước!");
+      return;
+    }
+    
+    if (!window.confirm("Thao tác này sẽ xóa sạch dữ liệu phòng và lịch đặt hiện tại trên Web để thay bằng bản sao lưu JSON được lưu trữ trên Google Drive/Apps Script của bạn. Bạn chắc chắn chứ?")) {
+      return;
+    }
+
+    setIsPullingFromAppscript(true);
+    const loadToast = toast.loading("Đang kết nối tới Apps Script và tải dữ liệu JSON...");
+    try {
+      const response = await fetch(`${sheetsUrl}?action=getBackupData`, {
+        method: "GET",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Phản hồi mạng lỗi: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
+      
+      const parsed = normalizeJsonBackup(data);
+      
+      if ((parsed.rooms && parsed.rooms.length > 0) || (parsed.bookings && parsed.bookings.length > 0)) {
+        await restoreData(parsed.rooms || [], parsed.bookings || []);
+        toast.success("Đồng bộ ngược dữ liệu từ Apps Script JSON thành công!", { id: loadToast });
+        setSyncStatus({
+          success: true,
+          message: "Đã tải dữ liệu thành công từ file JSON lưu trên Apps Script và phục hồi lại trạng thái Web!",
+        });
+      } else {
+        throw new Error("Dữ liệu sao lưu trên Apps Script trống hoặc không hợp lệ.");
+      }
+    } catch (err: any) {
+      console.error("Pull sync error:", err);
+      toast.error("Đồng bộ ngược thất bại: " + (err?.message || "Không thể lấy dữ liệu. Hãy kiểm tra cài đặt doGet trong Apps Script."), { id: loadToast });
+      setSyncStatus({
+        success: false,
+        message: "Lỗi đồng bộ ngược: " + (err?.message || "Không thể tải dữ liệu JSON từ Google Apps Script Web App."),
+      });
+    } finally {
+      setIsPullingFromAppscript(false);
     }
   };
 
@@ -776,7 +829,7 @@ export default function SettingsView() {
                     <div className="flex items-center gap-2">
                       <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                       <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Cần nhập mật khẩu (1234) để mở khóa và thay đổi URL
+                        Cần nhập mật khẩu để mở khóa và thay đổi URL
                       </span>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -826,15 +879,159 @@ export default function SettingsView() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSyncToSheets}
-                disabled={isSyncingSheets || !sheetsUrl}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider font-semibold"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheets ? "animate-spin" : ""}`} />
-                {isSyncingSheets ? "Đang đồng bộ..." : "Đồng bộ Sheets ngay"}
-              </button>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleSyncToSheets}
+                  disabled={isSyncingSheets || isPullingFromAppscript || !sheetsUrl}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingSheets ? "animate-spin" : ""}`} />
+                  {isSyncingSheets ? "Đang đẩy dữ liệu lên Sheets..." : "Đồng bộ Sheets ngay"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePullFromAppscript}
+                  disabled={isSyncingSheets || isPullingFromAppscript || !sheetsUrl}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:bg-slate-200 dark:disabled:bg-slate-850 disabled:text-slate-400 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm hover:shadow-md uppercase tracking-wider border border-slate-200/50 dark:border-slate-700"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isPullingFromAppscript ? "animate-spin" : ""}`} />
+                  {isPullingFromAppscript ? "Đang kéo từ Apps Script..." : "Đồng bộ ngược từ Apps Script (JSON)"}
+                </button>
+              </div>
+
+              {/* Collapsible Apps Script Guide */}
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden bg-slate-50/50 dark:bg-slate-950/20">
+                <button
+                  type="button"
+                  onClick={() => setIsGuideOpen(!isGuideOpen)}
+                  className="w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors flex items-center justify-between"
+                >
+                  <span>Hướng dẫn cấu hình Apps Script & Code mẫu</span>
+                  <span className="text-slate-400">{isGuideOpen ? "▲ Ẩn" : "▼ Hiện"}</span>
+                </button>
+                
+                {isGuideOpen && (
+                  <div className="p-4 border-t border-slate-100 dark:border-slate-800 space-y-3 max-h-[380px] overflow-y-auto text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <p className="font-semibold text-slate-700 dark:text-slate-300">Các bước thực hiện:</p>
+                    <ol className="list-decimal list-inside space-y-1.5 pl-1">
+                      <li>Truy cập <a href="https://script.google.com/" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 underline hover:text-indigo-500">Google Apps Script</a> và tạo Dự án mới.</li>
+                      <li>Xóa sạch code mặc định trong file <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">Mã.gs</code> và dán toàn bộ đoạn mã bên dưới vào.</li>
+                      <li>Lưu dự án lại, nhấp nút <b>Triển khai (Deploy)</b> ở góc trên bên phải → chọn <b>Triển khai mới (New deployment)</b>.</li>
+                      <li>Nhấp vào biểu tượng bánh răng cài đặt ở "Loại triển khai" → Chọn <b>Ứng dụng web (Web app)</b>.</li>
+                      <li>Mục <b>Quyền truy cập (Who has access)</b>: BẮT BUỘC chọn <b>Bất kỳ ai (Anyone)</b>.</li>
+                      <li>Mục <b>Thực hiện dưới dạng (Execute as)</b>: Chọn <b>Tôi (Me)</b>.</li>
+                      <li>Nhấp Triển khai, cấp quyền truy cập Drive/Sheets nếu Google yêu cầu, sau đó copy link Web App URL dán vào ô nhập phía trên.</li>
+                    </ol>
+
+                    <p className="font-semibold text-slate-700 dark:text-slate-300 mt-2">Mã nguồn Google Apps Script (GS):</p>
+                    <div className="relative">
+                      <pre className="p-3 bg-slate-900 text-slate-200 rounded-xl overflow-x-auto font-mono text-[10px] leading-tight select-all max-h-48">
+{`/* 
+===================================================================
+GOOGLE APPS SCRIPT CODE - HỆ THỐNG QUẢN LÝ PHÒNG INFINITY HILL HOTEL
+===================================================================
+*/
+
+function doPost(e) {
+  var responseOutput;
+  try {
+    var postData = JSON.parse(e.postData.contents);
+    var action = postData.action;
+
+    if (action === "sync") {
+      var rooms = postData.rooms;
+      var bookings = postData.bookings;
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      
+      // 1. Đồng bộ danh sách Phòng (Tab "ROOMS")
+      var roomSheet = ss.getSheetByName("ROOMS");
+      if (!roomSheet) {
+        roomSheet = ss.insertSheet("ROOMS");
+      }
+      roomSheet.clear();
+      roomSheet.appendRow(["Mã Phòng", "Tầng", "Loại Phòng", "Trạng Thái", "Giá Ngày Thường", "Giá Cuối Tuần", "Ghi Chú"]);
+      
+      if (rooms && rooms.length > 0) {
+        var roomRows = rooms.map(function(r) {
+          return [r.id, r.floor, r.type, r.status, r.weekdayPrice, r.weekendPrice, r.notes || ""];
+        });
+        roomSheet.getRange(2, 1, roomRows.length, roomRows[0].length).setValues(roomRows);
+      }
+
+      // 2. Đồng bộ danh sách Lịch đặt (Tab "BOOKINGS")
+      var bookingSheet = ss.getSheetByName("BOOKINGS");
+      if (!bookingSheet) {
+        bookingSheet = ss.insertSheet("BOOKINGS");
+      }
+      bookingSheet.clear();
+      bookingSheet.appendRow(["Mã Đặt Phòng", "Mã Phòng", "Tên Khách", "Ngày Nhận", "Ngày Trả", "Tổng Tiền", "Trạng Thái", "Ngày Tạo", "Ghi Chú"]);
+      
+      if (bookings && bookings.length > 0) {
+        var bookingRows = bookings.map(function(b) {
+          return [b.id, b.roomId, b.guestName, b.checkIn, b.checkOut, b.totalPrice, b.status, b.createdAt, b.notes || ""];
+        });
+        bookingSheet.getRange(2, 1, bookingRows.length, bookingRows[0].length).setValues(bookingRows);
+      }
+
+      // 3. TỰ ĐỘNG TẠO FILE SAO LƯU JSON TRÊN GOOGLE DRIVE
+      try {
+        var fileName = "hotel_backup_data.json";
+        var files = DriveApp.getFilesByName(fileName);
+        var file;
+        if (files.hasNext()) {
+          file = files.next();
+          file.setContent(JSON.stringify(postData));
+        } else {
+          file = DriveApp.createFile(fileName, JSON.stringify(postData), MimeType.PLAIN_TEXT);
+        }
+      } catch (driveErr) {
+        // Bỏ qua lỗi Drive nếu thiếu quyền DriveApp
+      }
+
+      responseOutput = { success: true, message: "Đã đồng bộ sang Google Sheets và cập nhật file JSON sao lưu thành công!" };
+    } else {
+      responseOutput = { success: false, message: "Hành động không hợp lệ" };
+    }
+  } catch (err) {
+    responseOutput = { success: false, message: "Lỗi hệ thống: " + err.toString() };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(responseOutput))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet(e) {
+  var action = e.parameter.action;
+  
+  if (action === "getBackupData") {
+    try {
+      var fileName = "hotel_backup_data.json";
+      var files = DriveApp.getFilesByName(fileName);
+      if (files.hasNext()) {
+        var file = files.next();
+        var content = file.getBlob().getDataAsString();
+        return ContentService.createTextOutput(content)
+          .setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ error: "Không tìm thấy file sao lưu hotel_backup_data.json trên Google Drive của bạn. Vui lòng bấm 'Đồng bộ Sheets ngay' trên Web để tạo file backup trước!" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ error: "Lỗi truy cập Drive: " + err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({ status: "alive", message: "Web App Apps Script đang hoạt động tốt!" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {syncStatus && (
                 <div className={`text-xs p-3 rounded-xl border ${

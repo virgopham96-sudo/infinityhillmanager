@@ -125,9 +125,21 @@ export async function syncRoomsAndBookingsToSheets(rooms: Room[], bookings: Book
       method: "POST",
       mode: "no-cors",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "text/plain;charset=utf-8",
       },
-      body: JSON.stringify({ bookings: syncedBookings }),
+      body: JSON.stringify({
+        action: "sync",
+        rooms: rooms.map(r => ({
+          id: r.id,
+          floor: r.floor,
+          type: r.type,
+          status: r.status,
+          weekdayPrice: r.weekdayPrice,
+          weekendPrice: r.weekendPrice,
+          notes: r.notes || "",
+        })),
+        bookings: syncedBookings,
+      }),
     });
     console.log("Auto sync completed successfully.");
   } catch (err) {

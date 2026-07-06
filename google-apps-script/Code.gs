@@ -8,6 +8,208 @@
 // --- GLOBAL CONFIGURATION ---
 var DATABASE_NAME = "Infinity Hill Hotel Database";
 
+// =========================
+// PERFORMANCE HELPERS
+// =========================
+
+function ensureDatabaseReady_(ss) {
+  ss = ss || getSpreadsheet();
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('DB_READY') === '1') return ss;
+  initializeSheets(ss);
+  props.setProperty('DB_READY', '1');
+  return ss;
+}
+
+function getSheetData_(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Không tìm thấy sheet: ' + sheetName);
+
+  var values = sheet.getDataRange().getValues();
+  var headers = values.length ? values[0] : [];
+  var headerMap = {};
+
+  for (var i = 0; i < headers.length; i++) {
+    headerMap[String(headers[i]).trim()] = i;
+  }
+
+  return {
+    sheet: sheet,
+    values: values,
+    headers: headerMap,
+    lastRow: sheet.getLastRow(),
+    lastCol: sheet.getLastColumn() || headers.length || 1
+  };
+}
+
+function createDenseRow_(length) {
+  var row = [];
+  for (var i = 0; i < length; i++) row.push('');
+  return row;
+}
+
+function appendRowsBatch_(sheet, rows) {
+  if (!rows || !rows.length) return;
+  var startRow = sheet.getLastRow() + 1;
+  sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+function findRowById_(values, headerMap, headerName, target) {
+  var idx = headerMap[headerName];
+  if (idx === undefined) return -1;
+
+  for (var i = 1; i < values.length; i++) {
+    var cell = values[i][idx];
+    if (cell !== '' && cell !== null && cell !== undefined && String(cell) === String(target)) {
+      return i + 1; // row number in sheet
+    }
+  }
+  return -1;
+}
+
+function buildBookingRow_(headers, lastCol, data, currentRow) {
+  var row = currentRow ? currentRow.slice() : createDenseRow_(lastCol);
+  while (row.length < lastCol) row.push('');
+
+  function setVal(key, value) {
+    if (headers[key] !== undefined) row[headers[key]] = value;
+  }
+
+  setVal('Booking ID', data.bookingId || '');
+  setVal('Room Number', data.roomNumber || '');
+  setVal('Guest Name', data.guestName || '');
+  setVal('Phone', data.phone || '');
+  setVal('Check In', data.checkIn || '');
+  setVal('Check Out', data.checkOut || '');
+  setVal('Status', data.status || '');
+  setVal('Notes', data.notes || '');
+  setVal('Room Total', Number(data.roomTotal || 0));
+  setVal('Deposit', Number(data.deposit || 0));
+  setVal('Minibar Total', Number(data.minibarTotal || 0));
+  setVal('Compensation', Number(data.compensation || 0));
+  setVal('Payment Method', data.paymentMethod || '');
+  setVal('Created At', data.createdAt || '');
+  setVal('Group Code', data.groupCode || '');
+
+  return row;
+}
+
+function updateBookingTotalsFast_(bookingId) {
+  var ss = getSpreadsheet();
+  var bookingData = getSheetData_(ss, 'Bookings');
+  var minibarData = getSheetData_(ss, 'MinibarUsage');
+  var compData = getSheetData_(ss, 'Compensations');
+
+  var bookingRowNumber = findRowById_(bookingData.values, bookingData.headers, 'Booking ID', bookingId);
+  if (bookingRowNumber === -1) {
+    throw new Error('Không tìm thấy lượt đặt phòng có mã: ' + bookingId);
+  }
+
+  var minibarTotal = 0;
+  var mBookingIdx = minibarData.headers['Booking ID'];
+  var mQtyIdx = minibarData.headers['Qty'];
+  var mPriceIdx = minibarData.headers['Price'];
+
+  for (var i = 1; i < minibarData.values.length; i++) {
+    if (String(minibarData.values[i][mBookingIdx]) === String(bookingId)) {
+      minibarTotal += Number(minibarData.values[i][mQtyIdx] || 0) * Number(minibarData.values[i][mPriceIdx] || 0);
+    }
+  }
+
+  var compensationTotal = 0;
+  var cBookingIdx = compData.headers['Booking ID'];
+  var cAmountIdx = compData.headers['Amount'];
+
+  for (var j = 1; j < compData.values.length; j++) {
+    if (String(compData.values[j][cBookingIdx]) === String(bookingId)) {
+      compensationTotal += Number(compData.values[j][cAmountIdx] || 0);
+    }
+  }
+
+  var bookingRow = bookingData.sheet.getRange(bookingRowNumber, 1, 1, bookingData.lastCol).getValues()[0];
+
+  if (bookingData.headers['Minibar Total'] !== undefined) {
+    bookingRow[bookingData.headers['Minibar Total']] = minibarTotal;
+  }
+  if (bookingData.headers['Compensation'] !== undefined) {
+    bookingRow[bookingData.headers['Compensation']] = compensationTotal;
+  }
+
+  bookingData.sheet.getRange(bookingRowNumber, 1, 1, bookingData.lastCol).setValues([bookingRow]);
+
+  return {
+    bookingRow: bookingRowNumber,
+    minibarTotal: minibarTotal,
+    compensationTotal: compensationTotal
+  };
+}
+
+function updateBookingRowById_(bookingId, mutatorFn) {
+  var ss = getSpreadsheet();
+  var bookingData = getSheetData_(ss, 'Bookings');
+  var rowNumber = findRowById_(bookingData.values, bookingData.headers, 'Booking ID', bookingId);
+
+  if (rowNumber === -1) {
+    throw new Error('Không tìm thấy lượt đặt phòng có mã: ' + bookingId);
+  }
+
+  var row = bookingData.sheet.getRange(rowNumber, 1, 1, bookingData.lastCol).getValues()[0];
+  mutatorFn(row, bookingData.headers, bookingData);
+  bookingData.sheet.getRange(rowNumber, 1, 1, bookingData.lastCol).setValues([row]);
+
+  return {
+    sheet: bookingData.sheet,
+    headers: bookingData.headers,
+    rowNumber: rowNumber,
+    row: row
+  };
+}
+
+function updateRoomRowByNumber_(roomNumber, mutatorFn) {
+  var ss = getSpreadsheet();
+  var roomData = getSheetData_(ss, 'Rooms');
+  var rowNumber = findRowById_(roomData.values, roomData.headers, 'Room Number', roomNumber);
+
+  if (rowNumber === -1) {
+    throw new Error('Không tìm thấy mã phòng: ' + roomNumber);
+  }
+
+  var row = roomData.sheet.getRange(rowNumber, 1, 1, roomData.lastCol).getValues()[0];
+  mutatorFn(row, roomData.headers, roomData);
+  roomData.sheet.getRange(rowNumber, 1, 1, roomData.lastCol).setValues([row]);
+
+  return {
+    sheet: roomData.sheet,
+    headers: roomData.headers,
+    rowNumber: rowNumber,
+    row: row
+  };
+}
+
+function batchUpdateRoomStatuses_(roomStatusMap) {
+  var ss = getSpreadsheet();
+  var roomData = getSheetData_(ss, 'Rooms');
+  var roomIdx = roomData.headers['Room Number'];
+  var statusIdx = roomData.headers['Status'];
+
+  if (roomIdx === undefined || statusIdx === undefined) return;
+
+  var updates = [];
+  for (var i = 1; i < roomData.values.length; i++) {
+    var row = roomData.values[i].slice();
+    var roomNumber = String(row[roomIdx]);
+    if (roomStatusMap.hasOwnProperty(roomNumber)) {
+      while (row.length < roomData.lastCol) row.push('');
+      row[statusIdx] = roomStatusMap[roomNumber];
+      updates.push({ rowNumber: i + 1, row: row });
+    }
+  }
+
+  for (var j = 0; j < updates.length; j++) {
+    roomData.sheet.getRange(updates[j].rowNumber, 1, 1, roomData.lastCol).setValues([updates[j].row]);
+  }
+}
+
 /**
  * Hàm mặc định để khởi tạo và phân quyền cho cơ sở dữ liệu trên Google Sheets.
  * Giúp khắc phục lỗi "myFunction đã bị xóa" khi nhấn nút "Chạy" mặc định trong Apps Script.
@@ -20,9 +222,38 @@ function myFunction() {
 }
 
 /**
- * Serves the beautiful AlpineJS-powered hotel management portal.
+ * Serves the beautiful AlpineJS-powered hotel management portal and handles API requests.
  */
 function doGet(e) {
+  var action = e && e.parameter && e.parameter.action;
+  
+  if (action === "getBackupData") {
+    try {
+      var fileName = "hotel_backup_data.json";
+      var files = DriveApp.getFilesByName(fileName);
+      if (files.hasNext()) {
+        var file = files.next();
+        var content = file.getBlob().getDataAsString();
+        return ContentService.createTextOutput(content)
+          .setMimeType(ContentService.MimeType.JSON);
+      } else {
+        // Fallback: If no file exists, auto-generate from current Sheets!
+        var generated = createDriveBackupFile();
+        if (generated && generated.success) {
+          return ContentService.createTextOutput(generated.content)
+            .setMimeType(ContentService.MimeType.JSON);
+        }
+        return ContentService.createTextOutput(JSON.stringify({ 
+          error: "Không tìm thấy file sao lưu hotel_backup_data.json trên Google Drive. Hãy nhấn 'Tạo sao lưu JSON' trong Cấu hình trước!" 
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        error: "Lỗi truy cập Drive: " + err.toString() 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Infinity Hill Manager')
@@ -40,9 +271,29 @@ function doPost(e) {
 
     if (action === 'sync') {
       var result = syncDataFromWebApp(payload);
+      
+      // Auto-save a backup JSON file to Google Drive during sync
+      try {
+        var fileName = "hotel_backup_data.json";
+        var files = DriveApp.getFilesByName(fileName);
+        var fileContent = JSON.stringify({
+          rooms: payload.rooms || [],
+          bookings: payload.bookings || []
+        }, null, 2);
+        
+        if (files.hasNext()) {
+          var file = files.next();
+          file.setContent(fileContent);
+        } else {
+          DriveApp.createFile(fileName, fileContent, MimeType.PLAIN_TEXT);
+        }
+      } catch (driveErr) {
+        // Ignored if permissions are not fully authorized
+      }
+
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
-        message: "Đồng bộ thành công sang Google Sheets",
+        message: "Đồng bộ thành công sang Google Sheets và tự động cập nhật bản sao lưu JSON trên Drive!",
         details: result
       })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -267,124 +518,160 @@ function getSheetHeadersMap(sheet) {
 }
 
 /**
+ * Safe date parser that handles ISO strings, DD/MM/YYYY, YYYY-MM-DD, and Date objects.
+ */
+function parseSafeDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  var str = val.toString().trim();
+  if (!str) return null;
+
+  // Try parsing ISO/YMD format first: YYYY-MM-DD
+  var ymdMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (ymdMatch) {
+    var y = parseInt(ymdMatch[1], 10);
+    var m = parseInt(ymdMatch[2], 10) - 1;
+    var d = parseInt(ymdMatch[3], 10);
+    var timeMatch = str.match(/\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (timeMatch) {
+      var hh = parseInt(timeMatch[1], 10);
+      var mm = parseInt(timeMatch[2], 10);
+      var ss = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      return new Date(y, m, d, hh, mm, ss);
+    }
+    return new Date(y, m, d);
+  }
+
+  // Try parsing DMY format: DD/MM/YYYY
+  var dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (dmyMatch) {
+    var d = parseInt(dmyMatch[1], 10);
+    var m = parseInt(dmyMatch[2], 10) - 1;
+    var y = parseInt(dmyMatch[3], 10);
+    var timeMatch = str.match(/\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/);
+    if (timeMatch) {
+      var hh = parseInt(timeMatch[1], 10);
+      var mm = parseInt(timeMatch[2], 10);
+      var ss = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      return new Date(y, m, d, hh, mm, ss);
+    }
+    return new Date(y, m, d);
+  }
+
+  // Fallback to standard parser
+  var d = new Date(str);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+/**
  * Main dashboard data loading function.
  */
 function getDashboardData() {
   var ss = getSpreadsheet();
-  // KHÔNG gọi initializeSheets() ở đây nữa để tránh quét lại cấu trúc phòng vô ích.
-
-  var roomsSheet = ss.getSheetByName("Rooms");
+  var roomsSheet = ss.getSheetByName('Rooms');
   if (!roomsSheet) {
-    initializeSheets(ss); // Chỉ kích hoạt phòng hờ nếu database hoàn toàn trống rỗng
-    roomsSheet = ss.getSheetByName("Rooms");
+    ensureDatabaseReady_(ss);
   }
-  
-  var roomsData = roomsSheet.getDataRange().getValues();
-  var roomsHeaders = getSheetHeadersMap(roomsSheet);
 
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bookingsData = bookingsSheet.getDataRange().getValues();
-  var bookingsHeaders = getSheetHeadersMap(bookingsSheet);
+  var roomData = getSheetData_(ss, 'Rooms');
+  var bookingData = getSheetData_(ss, 'Bookings');
+  var serviceData = getSheetData_(ss, 'Services');
+  var settingsData = getSheetData_(ss, 'Settings');
 
-  var servicesSheet = ss.getSheetByName("Services");
-  var servicesData = servicesSheet.getDataRange().getValues();
-  var servicesHeaders = getSheetHeadersMap(servicesSheet);
-
-  var settingsSheet = ss.getSheetByName("Settings");
-  var settingsData = settingsSheet.getDataRange().getValues();
-
-  // Parse Settings
   var settings = {};
-  for (var i = 1; i < settingsData.length; i++) {
-    settings[settingsData[i][0]] = settingsData[i][1];
+  for (var i = 1; i < settingsData.values.length; i++) {
+    settings[settingsData.values[i][0]] = settingsData.values[i][1];
   }
 
-  // Parse Services
   var services = [];
-  for (var i = 1; i < servicesData.length; i++) {
-    if (servicesData[i][servicesHeaders["Active"]].toString().toUpperCase() === "TRUE") {
+  for (var s = 1; s < serviceData.values.length; s++) {
+    var activeVal = String(serviceData.values[s][serviceData.headers['Active']] || '').toUpperCase();
+    if (activeVal === 'TRUE') {
       services.push({
-        code: servicesData[i][servicesHeaders["Code"]],
-        name: servicesData[i][servicesHeaders["Name"]],
-        price: Number(servicesData[i][servicesHeaders["Price"]])
+        code: serviceData.values[s][serviceData.headers['Code']],
+        name: serviceData.values[s][serviceData.headers['Name']],
+        price: Number(serviceData.values[s][serviceData.headers['Price']] || 0)
       });
     }
   }
 
-  // Helper arrays for fast lookup
   var activeBookingsMap = {};
   var nextBookingsMap = {};
+  var today = new Date();
+  today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-  // Find latest active or upcoming bookings for each room
-  for (var i = 1; i < bookingsData.length; i++) {
-    var bId = bookingsData[i][bookingsHeaders["Booking ID"]];
-    var rNum = bookingsData[i][bookingsHeaders["Room Number"]].toString();
-    var bStatus = bookingsData[i][bookingsHeaders["Status"]];
-    var gName = bookingsData[i][bookingsHeaders["Guest Name"]];
-    var phone = bookingsData[i][bookingsHeaders["Phone"]];
-    var checkIn = bookingsData[i][bookingsHeaders["Check In"]];
-    var checkOut = bookingsData[i][bookingsHeaders["Check Out"]];
-    var deposit = Number(bookingsData[i][bookingsHeaders["Deposit"]] || 0);
-    var roomTotal = Number(bookingsData[i][bookingsHeaders["Room Total"]] || 0);
+  for (var b = 1; b < bookingData.values.length; b++) {
+    var row = bookingData.values[b];
+    var status = String(row[bookingData.headers['Status']] || '').toUpperCase();
+    var roomNumber = String(row[bookingData.headers['Room Number']] || '');
+    if (!roomNumber) continue;
 
     var bookingObj = {
-      id: bId,
-      guestName: gName,
-      phone: phone,
-      checkIn: checkIn,
-      checkOut: checkOut,
-      deposit: deposit,
-      roomTotal: roomTotal,
-      status: bStatus
+      id: row[bookingData.headers['Booking ID']],
+      guestName: row[bookingData.headers['Guest Name']],
+      phone: row[bookingData.headers['Phone']],
+      checkIn: row[bookingData.headers['Check In']],
+      checkOut: row[bookingData.headers['Check Out']],
+      deposit: Number(row[bookingData.headers['Deposit']] || 0),
+      roomTotal: Number(row[bookingData.headers['Room Total']] || 0),
+      status: status
     };
 
-    if (bStatus === "CHECKED_IN") {
-      activeBookingsMap[rNum] = bookingObj;
-    } else if (bStatus === "RESERVED") {
-      // Keep earliest upcoming reservation
-      if (!nextBookingsMap[rNum] || new Date(checkIn) < new Date(nextBookingsMap[rNum].checkIn)) {
-        nextBookingsMap[rNum] = bookingObj;
+    if (status === 'CHECKED_IN') {
+      activeBookingsMap[roomNumber] = bookingObj;
+      continue;
+    }
+
+    if (status === 'RESERVED') {
+      var checkInDate = parseSafeDate(bookingObj.checkIn);
+      var checkOutDate = parseSafeDate(bookingObj.checkOut);
+      if (!checkInDate || !checkOutDate) continue;
+
+      var checkOutDay = new Date(checkOutDate.getFullYear(), checkOutDate.getMonth(), checkOutDate.getDate());
+      if (checkOutDay < today) continue;
+
+      if (!nextBookingsMap[roomNumber] || checkInDate < parseSafeDate(nextBookingsMap[roomNumber].checkIn)) {
+        nextBookingsMap[roomNumber] = bookingObj;
       }
     }
   }
 
-  // Parse Rooms and assign status / bookings
   var rooms = [];
   var availableCount = 0;
   var occupiedCount = 0;
   var reservedCount = 0;
   var maintenanceCount = 0;
 
-  for (var i = 1; i < roomsData.length; i++) {
-    var rNum = roomsData[i][roomsHeaders["Room Number"]].toString();
-    var floor = Number(roomsData[i][roomsHeaders["Floor"]]);
-    var type = roomsData[i][roomsHeaders["Type"]];
-    var sheetStatus = roomsData[i][roomsHeaders["Status"]];
-    var weekdayPrice = Number(roomsData[i][roomsHeaders["Weekday Price"]]);
-    var weekendPrice = Number(roomsData[i][roomsHeaders["Weekend Price"]]);
-    var notes = roomsData[i][roomsHeaders["Notes"]];
+  for (var r = 1; r < roomData.values.length; r++) {
+    var roomRow = roomData.values[r];
+    var roomNumber = String(roomRow[roomData.headers['Room Number']] || '');
+    var sheetStatus = String(roomRow[roomData.headers['Status']] || 'AVAILABLE').toUpperCase();
+    var activeBooking = activeBookingsMap[roomNumber] || null;
+    var nextBooking = nextBookingsMap[roomNumber] || null;
+    var status = 'AVAILABLE';
 
-    var activeBooking = activeBookingsMap[rNum] || null;
-    var nextBooking = nextBookingsMap[rNum] || null;
-
-    // Determine room status dynamically based on current live bookings
-    var status = "AVAILABLE";
-    if (sheetStatus === "MAINTENANCE") {
-      status = "MAINTENANCE";
+    if (sheetStatus === 'MAINTENANCE') {
+      status = 'MAINTENANCE';
       maintenanceCount++;
     } else if (activeBooking) {
-      status = "OCCUPIED";
+      status = 'OCCUPIED';
       occupiedCount++;
     } else if (nextBooking) {
-      var checkInDate = new Date(nextBooking.checkIn);
-      var now = new Date();
-      var checkInDay = new Date(checkInDate.getFullYear(), checkInDate.getMonth(), checkInDate.getDate());
-      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (checkInDay <= today) {
-        status = "RESERVED";
-        reservedCount++;
+      var checkInDate2 = parseSafeDate(nextBooking.checkIn);
+      var checkOutDate2 = parseSafeDate(nextBooking.checkOut);
+
+      if (checkInDate2 && checkOutDate2) {
+        var checkInDay = new Date(checkInDate2.getFullYear(), checkInDate2.getMonth(), checkInDate2.getDate());
+        var checkOutDay2 = new Date(checkOutDate2.getFullYear(), checkOutDate2.getMonth(), checkOutDate2.getDate());
+
+        if (checkInDay <= today && today < checkOutDay2) {
+          status = 'RESERVED';
+          reservedCount++;
+        } else {
+          availableCount++;
+        }
       } else {
-        status = "AVAILABLE";
         availableCount++;
       }
     } else {
@@ -392,13 +679,13 @@ function getDashboardData() {
     }
 
     rooms.push({
-      roomNumber: rNum,
-      floor: floor,
-      roomType: type,
+      roomNumber: roomNumber,
+      floor: Number(roomRow[roomData.headers['Floor']] || 0),
+      roomType: roomRow[roomData.headers['Type']],
       status: status,
-      weekdayPrice: weekdayPrice,
-      weekendPrice: weekendPrice,
-      notes: notes,
+      weekdayPrice: Number(roomRow[roomData.headers['Weekday Price']] || 0),
+      weekendPrice: Number(roomRow[roomData.headers['Weekend Price']] || 0),
+      notes: roomRow[roomData.headers['Notes']] || '',
       activeBooking: activeBooking,
       nextBooking: nextBooking
     });
@@ -433,88 +720,73 @@ function openDatabase() {
  */
 function getBookingDetail(bookingId) {
   var ss = getSpreadsheet();
-  
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
+  var bookingData = getSheetData_(ss, 'Bookings');
+  var minibarData = getSheetData_(ss, 'MinibarUsage');
+  var compData = getSheetData_(ss, 'Compensations');
 
-  var bookingRow = -1;
-  for (var i = 1; i < bData.length; i++) {
-    if (bData[i][bHeaders["Booking ID"]] === bookingId) {
-      bookingRow = i;
-      break;
-    }
+  var bookingRowNumber = findRowById_(bookingData.values, bookingData.headers, 'Booking ID', bookingId);
+  if (bookingRowNumber === -1) {
+    throw new Error('Không tìm thấy lượt đặt phòng có mã: ' + bookingId);
   }
 
-  if (bookingRow === -1) {
-    throw new Error("Không tìm thấy lượt đặt phòng có mã: " + bookingId);
-  }
-
-  var row = bData[bookingRow];
+  var row = bookingData.sheet.getRange(bookingRowNumber, 1, 1, bookingData.lastCol).getValues()[0];
   var booking = {
-    id: row[bHeaders["Booking ID"]],
-    roomNumber: row[bHeaders["Room Number"]].toString(),
-    guestName: row[bHeaders["Guest Name"]],
-    phone: row[bHeaders["Phone"]],
-    checkIn: row[bHeaders["Check In"]],
-    checkOut: row[bHeaders["Check Out"]],
-    status: row[bHeaders["Status"]],
-    notes: row[bHeaders["Notes"]],
-    roomTotal: Number(row[bHeaders["Room Total"]] || 0),
-    deposit: Number(row[bHeaders["Deposit"]] || 0),
-    minibarTotal: Number(row[bHeaders["Minibar Total"]] || 0),
-    compensation: Number(row[bHeaders["Compensation"]] || 0),
-    paymentMethod: row[bHeaders["Payment Method"]],
-    groupCode: row[bHeaders["Group Code"]]
+    id: row[bookingData.headers['Booking ID']],
+    roomNumber: String(row[bookingData.headers['Room Number']] || ''),
+    guestName: row[bookingData.headers['Guest Name']],
+    phone: row[bookingData.headers['Phone']],
+    checkIn: row[bookingData.headers['Check In']],
+    checkOut: row[bookingData.headers['Check Out']],
+    status: row[bookingData.headers['Status']],
+    notes: row[bookingData.headers['Notes']],
+    roomTotal: Number(row[bookingData.headers['Room Total']] || 0),
+    deposit: Number(row[bookingData.headers['Deposit']] || 0),
+    minibarTotal: Number(row[bookingData.headers['Minibar Total']] || 0),
+    compensation: Number(row[bookingData.headers['Compensation']] || 0),
+    paymentMethod: row[bookingData.headers['Payment Method']],
+    groupCode: row[bookingData.headers['Group Code']]
   };
 
-  // Retrieve Minibar Items
-  var minibarSheet = ss.getSheetByName("MinibarUsage");
-  var mData = minibarSheet.getDataRange().getValues();
-  var mHeaders = getSheetHeadersMap(minibarSheet);
-  var minibarTotal = 0;
   var minibarItems = [];
-
-  for (var i = 1; i < mData.length; i++) {
-    if (mData[i][mHeaders["Booking ID"]] === bookingId) {
-      var price = Number(mData[i][mHeaders["Price"]]);
-      var qty = Number(mData[i][mHeaders["Qty"]]);
+  var minibarTotal = 0;
+  for (var i = 1; i < minibarData.values.length; i++) {
+    if (String(minibarData.values[i][minibarData.headers['Booking ID']]) === String(bookingId)) {
+      var price = Number(minibarData.values[i][minibarData.headers['Price']] || 0);
+      var qty = Number(minibarData.values[i][minibarData.headers['Qty']] || 0);
       var itemTotal = price * qty;
       minibarTotal += itemTotal;
       minibarItems.push({
-        code: mData[i][mHeaders["Service Code"]],
+        code: minibarData.values[i][minibarData.headers['Service Code']],
         qty: qty,
         price: price,
         total: itemTotal,
-        timestamp: mData[i][mHeaders["Timestamp"]]
+        timestamp: minibarData.values[i][minibarData.headers['Timestamp']]
       });
     }
   }
 
-  // Retrieve Compensations
-  var compSheet = ss.getSheetByName("Compensations");
-  var cData = compSheet.getDataRange().getValues();
-  var cHeaders = getSheetHeadersMap(compSheet);
-  var compensationTotal = 0;
   var compItems = [];
-
-  for (var i = 1; i < cData.length; i++) {
-    if (cData[i][cHeaders["Booking ID"]] === bookingId) {
-      var amount = Number(cData[i][cHeaders["Amount"]]);
+  var compensationTotal = 0;
+  for (var j = 1; j < compData.values.length; j++) {
+    if (String(compData.values[j][compData.headers['Booking ID']]) === String(bookingId)) {
+      var amount = Number(compData.values[j][compData.headers['Amount']] || 0);
       compensationTotal += amount;
       compItems.push({
-        item: cData[i][cHeaders["Item Name"]],
+        item: compData.values[j][compData.headers['Item Name']],
         amount: amount,
-        timestamp: cData[i][cHeaders["Timestamp"]]
+        timestamp: compData.values[j][compData.headers['Timestamp']]
       });
     }
   }
 
-  // Ensure database fields match computed sums if out of sync
-  var isOutOfSync = (booking.minibarTotal !== minibarTotal || booking.compensation !== compensationTotal);
-  if (isOutOfSync) {
-    bookingsSheet.getRange(bookingRow + 1, bHeaders["Minibar Total"] + 1).setValue(minibarTotal);
-    bookingsSheet.getRange(bookingRow + 1, bHeaders["Compensation"] + 1).setValue(compensationTotal);
+  if (booking.minibarTotal !== minibarTotal || booking.compensation !== compensationTotal) {
+    if (bookingData.headers['Minibar Total'] !== undefined) {
+      row[bookingData.headers['Minibar Total']] = minibarTotal;
+    }
+    if (bookingData.headers['Compensation'] !== undefined) {
+      row[bookingData.headers['Compensation']] = compensationTotal;
+    }
+    bookingData.sheet.getRange(bookingRowNumber, 1, 1, bookingData.lastCol).setValues([row]);
     booking.minibarTotal = minibarTotal;
     booking.compensation = compensationTotal;
   }
@@ -649,96 +921,75 @@ function formatDateTime(d) {
  * Saves a single room booking.
  */
 function saveBooking(form) {
-  var ss = getSpreadsheet();
-  initializeSheets(ss);
-  
-  var bookingId = form.bookingId || ("BK-" + Date.now());
+  var ss = ensureDatabaseReady_(getSpreadsheet());
+  var bookingId = form.bookingId || ('BK-' + Date.now());
 
-  // Check overlap first, excluding this bookingId
   checkBookingOverlap(form.roomNumber, form.checkIn, form.checkOut, bookingId);
 
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
+  var bookingData = getSheetData_(ss, 'Bookings');
 
-  var checkInDate = new Date(form.checkIn);
-  var checkOutDate = new Date(form.checkOut);
-
-  // Calculate pricing
   var roomTotal = 0;
-  if (form.pricingMode === "FLEX" || form.pricingMode === "FLEX_TOTAL" || form.pricingMode === "CUSTOM") {
+  if (form.pricingMode === 'FLEX' || form.pricingMode === 'FLEX_TOTAL' || form.pricingMode === 'CUSTOM') {
     roomTotal = Number(form.flexPrice || 0);
   } else {
     roomTotal = calculateRoomPrice(form.roomNumber, form.checkIn, form.checkOut);
   }
 
-  // Find if row exists to update instead of duplicate
-  var bData = bookingsSheet.getDataRange().getValues();
-  var existingRowIdx = -1;
-  for (var i = 1; i < bData.length; i++) {
-    var rowId = bData[i][bHeaders["Booking ID"]];
-    if (rowId && rowId.toString() === bookingId.toString()) {
-      existingRowIdx = i + 1;
-      break;
-    }
-  }
+  var existingRowNumber = findRowById_(bookingData.values, bookingData.headers, 'Booking ID', bookingId);
 
-  if (existingRowIdx !== -1) {
-    // Update existing row
-    if (bHeaders["Room Number"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Room Number"] + 1).setValue(form.roomNumber.toString());
-    if (bHeaders["Guest Name"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Guest Name"] + 1).setValue(form.guestName);
-    if (bHeaders["Phone"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Phone"] + 1).setValue(form.phone || "");
-    if (bHeaders["Check In"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Check In"] + 1).setValue(form.checkIn);
-    if (bHeaders["Check Out"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Check Out"] + 1).setValue(form.checkOut);
-    if (bHeaders["Status"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Status"] + 1).setValue(form.mode);
-    if (bHeaders["Notes"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Notes"] + 1).setValue(form.note || "");
-    if (bHeaders["Room Total"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Room Total"] + 1).setValue(roomTotal);
-    if (bHeaders["Deposit"] !== undefined) bookingsSheet.getRange(existingRowIdx, bHeaders["Deposit"] + 1).setValue(Number(form.deposit || 0));
+  var payload = {
+    bookingId: bookingId,
+    roomNumber: String(form.roomNumber),
+    guestName: form.guestName || '',
+    phone: form.phone || '',
+    checkIn: form.checkIn,
+    checkOut: form.checkOut,
+    status: form.mode,
+    notes: form.note || '',
+    roomTotal: roomTotal,
+    deposit: Number(form.deposit || 0),
+    minibarTotal: 0,
+    compensation: 0,
+    paymentMethod: '',
+    createdAt: new Date().toISOString(),
+    groupCode: ''
+  };
+
+  if (existingRowNumber !== -1) {
+    var currentRow = bookingData.sheet.getRange(existingRowNumber, 1, 1, bookingData.lastCol).getValues()[0];
+
+    payload.minibarTotal = currentRow[bookingData.headers['Minibar Total']] || 0;
+    payload.compensation = currentRow[bookingData.headers['Compensation']] || 0;
+    payload.paymentMethod = currentRow[bookingData.headers['Payment Method']] || '';
+    payload.createdAt = currentRow[bookingData.headers['Created At']] || payload.createdAt;
+    payload.groupCode = currentRow[bookingData.headers['Group Code']] || '';
+
+    var updatedRow = buildBookingRow_(bookingData.headers, bookingData.lastCol, payload, currentRow);
+    bookingData.sheet.getRange(existingRowNumber, 1, 1, bookingData.lastCol).setValues([updatedRow]);
   } else {
-    // Create booking row using dense array
-    var rowData = [];
-    var lastCol = bookingsSheet.getLastColumn() || 15;
-    for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-      rowData.push("");
-    }
-    if (bHeaders["Booking ID"] !== undefined) rowData[bHeaders["Booking ID"]] = bookingId;
-    if (bHeaders["Room Number"] !== undefined) rowData[bHeaders["Room Number"]] = form.roomNumber.toString();
-    if (bHeaders["Guest Name"] !== undefined) rowData[bHeaders["Guest Name"]] = form.guestName;
-    if (bHeaders["Phone"] !== undefined) rowData[bHeaders["Phone"]] = form.phone || "";
-    if (bHeaders["Check In"] !== undefined) rowData[bHeaders["Check In"]] = form.checkIn;
-    if (bHeaders["Check Out"] !== undefined) rowData[bHeaders["Check Out"]] = form.checkOut;
-    if (bHeaders["Status"] !== undefined) rowData[bHeaders["Status"]] = form.mode; // "CHECKED_IN" or "RESERVED"
-    if (bHeaders["Notes"] !== undefined) rowData[bHeaders["Notes"]] = form.note || "";
-    if (bHeaders["Room Total"] !== undefined) rowData[bHeaders["Room Total"]] = roomTotal;
-    if (bHeaders["Deposit"] !== undefined) rowData[bHeaders["Deposit"]] = Number(form.deposit || 0);
-    if (bHeaders["Minibar Total"] !== undefined) rowData[bHeaders["Minibar Total"]] = 0;
-    if (bHeaders["Compensation"] !== undefined) rowData[bHeaders["Compensation"]] = 0;
-    if (bHeaders["Payment Method"] !== undefined) rowData[bHeaders["Payment Method"]] = "";
-    if (bHeaders["Created At"] !== undefined) rowData[bHeaders["Created At"]] = new Date().toISOString();
-    if (bHeaders["Group Code"] !== undefined) rowData[bHeaders["Group Code"]] = "";
-
-    bookingsSheet.appendRow(rowData);
+    var newRow = buildBookingRow_(bookingData.headers, bookingData.lastCol, payload);
+    appendRowsBatch_(bookingData.sheet, [newRow]);
   }
 
-  // Update room status
   var now = new Date();
   var inDate = new Date(form.checkIn);
   var outDate = new Date(form.checkOut);
-  if (form.mode === "CHECKED_IN" || (now >= inDate && now < outDate && form.mode !== "RESERVED")) {
-    updateRoomStatus(form.roomNumber, "OCCUPIED");
+
+  if (form.mode === 'CHECKED_IN' || (now >= inDate && now < outDate && form.mode !== 'RESERVED')) {
+    updateRoomStatus(form.roomNumber, 'OCCUPIED');
   } else {
-    updateRoomStatus(form.roomNumber, "RESERVED");
+    updateRoomStatus(form.roomNumber, 'RESERVED');
   }
 
-  // Update Room Status Matrix
   try {
     updateRoomStatusMatrix(ss);
-  } catch(e) {
-    Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
 
   return {
     success: true,
-    message: "Đã lưu lịch đặt phòng thành công cho khách " + form.guestName,
+    message: 'Đã lưu lịch đặt phòng thành công cho khách ' + form.guestName,
     bookingId: bookingId
   };
 }
@@ -747,23 +998,19 @@ function saveBooking(form) {
  * Saves a grouped batch of bookings (group booking).
  */
 function saveGroupBookings(form) {
-  var ss = getSpreadsheet();
-  initializeSheets(ss);
+  var ss = ensureDatabaseReady_(getSpreadsheet());
 
-  // Check overlaps for all rooms first!
   for (var i = 0; i < form.rooms.length; i++) {
     var rObj = form.rooms[i];
-    var rNum = (typeof rObj === "object" && rObj !== null) ? rObj.roomNumber.toString() : rObj.toString();
+    var rNum = (typeof rObj === 'object' && rObj !== null) ? String(rObj.roomNumber) : String(rObj);
     checkBookingOverlap(rNum, form.checkIn, form.checkOut);
   }
 
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
-  var groupCode = form.groupCode || ("GRP-" + Date.now());
+  var bookingData = getSheetData_(ss, 'Bookings');
+  var groupCode = form.groupCode || ('GRP-' + Date.now());
   var bookingsCreated = [];
+  var rowsToAppend = [];
 
-  // Calculate nights
   var nights = 1;
   try {
     var start = new Date(form.checkIn);
@@ -773,67 +1020,65 @@ function saveGroupBookings(form) {
     var timeDiff = end.getTime() - start.getTime();
     nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
     if (nights <= 0) nights = 1;
-  } catch(e) {}
+  } catch (e) {}
 
-  for (var i = 0; i < form.rooms.length; i++) {
-    var rObj = form.rooms[i];
-    var rNum = (typeof rObj === "object" && rObj !== null) ? rObj.roomNumber.toString() : rObj.toString();
-    var bookingId = "BK-" + Date.now() + "-" + i;
+  var roomStatusMap = {};
+  var nowSeed = Date.now();
 
+  for (var k = 0; k < form.rooms.length; k++) {
+    var roomObj = form.rooms[k];
+    var roomNumber = (typeof roomObj === 'object' && roomObj !== null) ? String(roomObj.roomNumber) : String(roomObj);
+    var bookingId = 'BK-' + nowSeed + '-' + k;
+
+    var customRoomPrice = (form.customPrices && form.customPrices[roomNumber]) ? Number(form.customPrices[roomNumber]) : 0;
     var roomTotal = 0;
-    var customRoomPrice = (form.customPrices && form.customPrices[rNum]) ? Number(form.customPrices[rNum]) : 0;
+
     if (customRoomPrice > 0) {
       roomTotal = customRoomPrice * nights;
-    } else if (form.pricingMode === "FLEX" || form.pricingMode === "FLEX_TOTAL") {
-      // Split the flex price among all rooms in the group
+    } else if (form.pricingMode === 'FLEX' || form.pricingMode === 'FLEX_TOTAL') {
       roomTotal = Number(form.flexPrice || 0) / (form.rooms.length || 1);
     } else {
-      roomTotal = calculateRoomPrice(rNum, form.checkIn, form.checkOut);
+      roomTotal = calculateRoomPrice(roomNumber, form.checkIn, form.checkOut);
     }
 
-    // Allocate deposit to the first room of the group only, or split it? Let's assign deposit fully to the first, and 0 to others.
-    var depositAllocation = (i === 0) ? Number(form.deposit || 0) : 0;
+    var depositAllocation = (k === 0) ? Number(form.deposit || 0) : 0;
 
-    // Create booking row using dense array
-    var rowData = [];
-    var lastCol = bookingsSheet.getLastColumn() || 15;
-    for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-      rowData.push("");
-    }
-    if (bHeaders["Booking ID"] !== undefined) rowData[bHeaders["Booking ID"]] = bookingId;
-    if (bHeaders["Room Number"] !== undefined) rowData[bHeaders["Room Number"]] = rNum;
-    if (bHeaders["Guest Name"] !== undefined) rowData[bHeaders["Guest Name"]] = form.guestName + " (Đoàn)";
-    if (bHeaders["Phone"] !== undefined) rowData[bHeaders["Phone"]] = form.phone || "";
-    if (bHeaders["Check In"] !== undefined) rowData[bHeaders["Check In"]] = form.checkIn;
-    if (bHeaders["Check Out"] !== undefined) rowData[bHeaders["Check Out"]] = form.checkOut;
-    if (bHeaders["Status"] !== undefined) rowData[bHeaders["Status"]] = form.mode; // "CHECKED_IN" or "RESERVED"
-    if (bHeaders["Notes"] !== undefined) rowData[bHeaders["Notes"]] = "Mã đoàn: " + groupCode;
-    if (bHeaders["Room Total"] !== undefined) rowData[bHeaders["Room Total"]] = roomTotal;
-    if (bHeaders["Deposit"] !== undefined) rowData[bHeaders["Deposit"]] = depositAllocation;
-    if (bHeaders["Minibar Total"] !== undefined) rowData[bHeaders["Minibar Total"]] = 0;
-    if (bHeaders["Compensation"] !== undefined) rowData[bHeaders["Compensation"]] = 0;
-    if (bHeaders["Payment Method"] !== undefined) rowData[bHeaders["Payment Method"]] = "";
-    if (bHeaders["Created At"] !== undefined) rowData[bHeaders["Created At"]] = new Date().toISOString();
-    if (bHeaders["Group Code"] !== undefined) rowData[bHeaders["Group Code"]] = groupCode;
+    rowsToAppend.push(buildBookingRow_(bookingData.headers, bookingData.lastCol, {
+      bookingId: bookingId,
+      roomNumber: roomNumber,
+      guestName: (form.guestName || '') + ' (Đoàn)',
+      phone: form.phone || '',
+      checkIn: form.checkIn,
+      checkOut: form.checkOut,
+      status: form.mode,
+      notes: 'Mã đoàn: ' + groupCode,
+      roomTotal: roomTotal,
+      deposit: depositAllocation,
+      minibarTotal: 0,
+      compensation: 0,
+      paymentMethod: '',
+      createdAt: new Date().toISOString(),
+      groupCode: groupCode
+    }));
 
-    bookingsSheet.appendRow(rowData);
-
-    // Update individual room status
-    updateRoomStatus(rNum, form.mode === "CHECKED_IN" ? "OCCUPIED" : "RESERVED");
+    roomStatusMap[roomNumber] = (form.mode === 'CHECKED_IN') ? 'OCCUPIED' : 'RESERVED';
     bookingsCreated.push(bookingId);
   }
 
-  // Update Room Status Matrix
+  appendRowsBatch_(bookingData.sheet, rowsToAppend);
+  batchUpdateRoomStatuses_(roomStatusMap);
+
   try {
     updateRoomStatusMatrix(ss);
-  } catch(e) {
-    Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
 
   return {
     success: true,
-    message: "Đã tạo đặt phòng cho đoàn thành công cho " + form.rooms.length + " phòng. Mã đoàn: " + groupCode,
-    groupCode: groupCode
+    message: 'Đã tạo đặt phòng cho đoàn thành công cho ' + form.rooms.length + ' phòng. Mã đoàn: ' + groupCode,
+    groupCode: groupCode,
+    bookingIds: bookingsCreated
   };
 }
 
@@ -842,17 +1087,14 @@ function saveGroupBookings(form) {
  */
 function updateRoomStatus(roomNumber, newStatus) {
   var ss = getSpreadsheet();
-  var roomsSheet = ss.getSheetByName("Rooms");
-  var rData = roomsSheet.getDataRange().getValues();
-  var rHeaders = getSheetHeadersMap(roomsSheet);
+  var roomData = getSheetData_(ss, 'Rooms');
+  var rowNumber = findRowById_(roomData.values, roomData.headers, 'Room Number', roomNumber);
 
-  for (var i = 1; i < rData.length; i++) {
-    if (rData[i][rHeaders["Room Number"]].toString() === roomNumber.toString()) {
-      roomsSheet.getRange(i + 1, rHeaders["Status"] + 1).setValue(newStatus);
-      break;
-    }
-  }
-  // KHÔNG gọi ép buộc tạo lại ma trận màu Hiện trạng đặt phòng ở đây nữa!
+  if (rowNumber === -1) return;
+
+  var row = roomData.sheet.getRange(rowNumber, 1, 1, roomData.lastCol).getValues()[0];
+  row[roomData.headers['Status']] = newStatus;
+  roomData.sheet.getRange(rowNumber, 1, 1, roomData.lastCol).setValues([row]);
 }
 
 /**
@@ -860,28 +1102,23 @@ function updateRoomStatus(roomNumber, newStatus) {
  */
 function checkInReservedBooking(payload) {
   var ss = getSpreadsheet();
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
   var bookingId = payload.bookingId;
-  for (var i = 1; i < bData.length; i++) {
-    if (bData[i][bHeaders["Booking ID"]] === bookingId) {
-      bookingsSheet.getRange(i + 1, bHeaders["Status"] + 1).setValue("CHECKED_IN");
-      var roomNumber = bData[i][bHeaders["Room Number"]].toString();
-      updateRoomStatus(roomNumber, "OCCUPIED");
+  var roomNumber = '';
 
-      // Update Room Status Matrix
-      try {
-        updateRoomStatusMatrix(ss);
-      } catch(e) {
-        Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
-      }
+  updateBookingRowById_(bookingId, function(row, headers) {
+    row[headers['Status']] = 'CHECKED_IN';
+    roomNumber = String(row[headers['Room Number']]);
+  });
 
-      return { success: true, message: "Nhận phòng thành công!" };
-    }
+  updateRoomStatus(roomNumber, 'OCCUPIED');
+
+  try {
+    updateRoomStatusMatrix(ss);
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
-  throw new Error("Không tìm thấy mã đặt phòng để nhận phòng: " + bookingId);
+
+  return { success: true, message: 'Nhận phòng thành công!' };
 }
 
 /**
@@ -889,34 +1126,26 @@ function checkInReservedBooking(payload) {
  */
 function cancelReservation(payload) {
   var ss = getSpreadsheet();
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
   var bookingId = payload.bookingId;
-  var reason = payload.reason || "Hủy theo yêu cầu khách";
+  var reason = payload.reason || 'Hủy theo yêu cầu khách';
+  var roomNumber = '';
 
-  for (var i = 1; i < bData.length; i++) {
-    if (bData[i][bHeaders["Booking ID"]] === bookingId) {
-      bookingsSheet.getRange(i + 1, bHeaders["Status"] + 1).setValue("CANCELLED");
-      var currentNotes = bData[i][bHeaders["Notes"]] || "";
-      var updatedNotes = currentNotes + (currentNotes ? " | " : "") + "Lý do hủy: " + reason;
-      bookingsSheet.getRange(i + 1, bHeaders["Notes"] + 1).setValue(updatedNotes);
+  updateBookingRowById_(bookingId, function(row, headers) {
+    var currentNotes = row[headers['Notes']] || '';
+    row[headers['Status']] = 'CANCELLED';
+    row[headers['Notes']] = currentNotes + (currentNotes ? ' | ' : '') + 'Lý do hủy: ' + reason;
+    roomNumber = String(row[headers['Room Number']]);
+  });
 
-      var roomNumber = bData[i][bHeaders["Room Number"]].toString();
-      updateRoomStatus(roomNumber, "AVAILABLE");
+  updateRoomStatus(roomNumber, 'AVAILABLE');
 
-      // Update Room Status Matrix
-      try {
-        updateRoomStatusMatrix(ss);
-      } catch(e) {
-        Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
-      }
-
-      return { success: true, message: "Hủy đặt phòng thành công!" };
-    }
+  try {
+    updateRoomStatusMatrix(ss);
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
-  throw new Error("Không tìm thấy mã đặt phòng để hủy: " + bookingId);
+
+  return { success: true, message: 'Hủy đặt phòng thành công!' };
 }
 
 /**
@@ -924,42 +1153,35 @@ function cancelReservation(payload) {
  */
 function addMinibarUsage(payload) {
   var ss = getSpreadsheet();
-  var servicesSheet = ss.getSheetByName("Services");
-  var sData = servicesSheet.getDataRange().getValues();
-  var sHeaders = getSheetHeadersMap(servicesSheet);
+  var serviceData = getSheetData_(ss, 'Services');
+  var miniData = getSheetData_(ss, 'MinibarUsage');
 
   var sCode = payload.serviceCode;
   var price = 0;
-  for (var i = 1; i < sData.length; i++) {
-    if (sData[i][sHeaders["Code"]] === sCode) {
-      price = Number(sData[i][sHeaders["Price"]]);
+
+  for (var i = 1; i < serviceData.values.length; i++) {
+    if (serviceData.values[i][serviceData.headers['Code']] === sCode) {
+      price = Number(serviceData.values[i][serviceData.headers['Price']]);
       break;
     }
   }
 
-  if (price === 0) price = 20000; // default backup fallback
+  if (price === 0) price = 20000;
 
-  // Append minibar record using dense array
-  var miniSheet = ss.getSheetByName("MinibarUsage");
-  var mHeaders = getSheetHeadersMap(miniSheet);
-  
-  var rowData = [];
-  var lastCol = miniSheet.getLastColumn() || 5;
-  for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-    rowData.push("");
-  }
-  if (mHeaders["Booking ID"] !== undefined) rowData[mHeaders["Booking ID"]] = payload.bookingId;
-  if (mHeaders["Service Code"] !== undefined) rowData[mHeaders["Service Code"]] = sCode;
-  if (mHeaders["Qty"] !== undefined) rowData[mHeaders["Qty"]] = Number(payload.qty || 1);
-  if (mHeaders["Price"] !== undefined) rowData[mHeaders["Price"]] = price;
-  if (mHeaders["Timestamp"] !== undefined) rowData[mHeaders["Timestamp"]] = new Date().toISOString();
+  var row = createDenseRow_(miniData.lastCol);
+  row[miniData.headers['Booking ID']] = payload.bookingId;
+  row[miniData.headers['Service Code']] = sCode;
+  row[miniData.headers['Qty']] = Number(payload.qty || 1);
+  row[miniData.headers['Price']] = price;
+  row[miniData.headers['Timestamp']] = new Date().toISOString();
 
-  miniSheet.appendRow(rowData);
+  appendRowsBatch_(miniData.sheet, [row]);
+  updateBookingTotalsFast_(payload.bookingId);
 
-  // Recalculate Booking minibar totals
-  getBookingDetail(payload.bookingId); // Updates auto-sync totals in Sheet
-
-  return { success: true, message: "Đã ghi nhận dịch vụ minibar!" };
+  return {
+    success: true,
+    message: 'Đã ghi nhận dịch vụ minibar!'
+  };
 }
 
 /**
@@ -967,26 +1189,21 @@ function addMinibarUsage(payload) {
  */
 function addCompensation(payload) {
   var ss = getSpreadsheet();
-  var compSheet = ss.getSheetByName("Compensations");
-  var cHeaders = getSheetHeadersMap(compSheet);
+  var compData = getSheetData_(ss, 'Compensations');
 
-  // Append compensation using dense array
-  var rowData = [];
-  var lastCol = compSheet.getLastColumn() || 4;
-  for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-    rowData.push("");
-  }
-  if (cHeaders["Booking ID"] !== undefined) rowData[cHeaders["Booking ID"]] = payload.bookingId;
-  if (cHeaders["Item Name"] !== undefined) rowData[cHeaders["Item Name"]] = payload.item;
-  if (cHeaders["Amount"] !== undefined) rowData[cHeaders["Amount"]] = Number(payload.amount);
-  if (cHeaders["Timestamp"] !== undefined) rowData[cHeaders["Timestamp"]] = new Date().toISOString();
+  var row = createDenseRow_(compData.lastCol);
+  row[compData.headers['Booking ID']] = payload.bookingId;
+  row[compData.headers['Item Name']] = payload.item;
+  row[compData.headers['Amount']] = Number(payload.amount);
+  row[compData.headers['Timestamp']] = new Date().toISOString();
 
-  compSheet.appendRow(rowData);
+  appendRowsBatch_(compData.sheet, [row]);
+  updateBookingTotalsFast_(payload.bookingId);
 
-  // Recalculate Booking totals
-  getBookingDetail(payload.bookingId);
-
-  return { success: true, message: "Đã thêm phụ phí đền bù thành công!" };
+  return {
+    success: true,
+    message: 'Đã thêm phụ phí đền bù thành công!'
+  };
 }
 
 /**
@@ -994,41 +1211,40 @@ function addCompensation(payload) {
  */
 function transferBooking(payload) {
   var ss = getSpreadsheet();
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
   var bookingId = payload.bookingId;
-  var targetRoom = payload.targetRoom.toString();
+  var targetRoom = String(payload.targetRoom);
+  var sourceRoom = '';
+  var checkIn = '';
+  var checkOut = '';
 
   var detail = getBookingDetail(bookingId);
-  var booking = detail.booking;
+  checkIn = detail.booking.checkIn;
+  checkOut = detail.booking.checkOut;
 
-  // Validate overlap on target room excluding this booking ID
-  checkBookingOverlap(targetRoom, booking.checkIn, booking.checkOut, bookingId);
+  checkBookingOverlap(targetRoom, checkIn, checkOut, bookingId);
 
-  for (var i = 1; i < bData.length; i++) {
-    if (bData[i][bHeaders["Booking ID"]] === bookingId) {
-      var sourceRoom = bData[i][bHeaders["Room Number"]].toString();
-      
-      // Update room number on the booking row
-      bookingsSheet.getRange(i + 1, bHeaders["Room Number"] + 1).setValue(targetRoom);
-      
-      // Update room statuses accordingly
-      updateRoomStatus(sourceRoom, "AVAILABLE");
-      updateRoomStatus(targetRoom, "OCCUPIED");
+  updateBookingRowById_(bookingId, function(row, headers) {
+    sourceRoom = String(row[headers['Room Number']]);
+    row[headers['Room Number']] = targetRoom;
+  });
 
-      // Update Room Status Matrix
-      try {
-        updateRoomStatusMatrix(ss);
-      } catch(e) {
-        Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
-      }
+  batchUpdateRoomStatuses_((function() {
+    var map = {};
+    map[sourceRoom] = 'AVAILABLE';
+    map[targetRoom] = 'OCCUPIED';
+    return map;
+  })());
 
-      return { success: true, message: "Chuyển từ phòng " + sourceRoom + " sang " + targetRoom + " thành công!" };
-    }
+  try {
+    updateRoomStatusMatrix(ss);
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
-  throw new Error("Không tìm thấy mã đặt phòng để chuyển.");
+
+  return {
+    success: true,
+    message: 'Chuyển từ phòng ' + sourceRoom + ' sang ' + targetRoom + ' thành công!'
+  };
 }
 
 /**
@@ -1036,32 +1252,28 @@ function transferBooking(payload) {
  */
 function checkoutBooking(payload) {
   var ss = getSpreadsheet();
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
   var bookingId = payload.bookingId;
-  var paymentMethod = payload.paymentMethod || "Tiền mặt";
+  var paymentMethod = payload.paymentMethod || 'Tiền mặt';
+  var roomNumber = '';
 
-  for (var i = 1; i < bData.length; i++) {
-    if (bData[i][bHeaders["Booking ID"]] === bookingId) {
-      bookingsSheet.getRange(i + 1, bHeaders["Status"] + 1).setValue("COMPLETED");
-      bookingsSheet.getRange(i + 1, bHeaders["Payment Method"] + 1).setValue(paymentMethod);
-      
-      var roomNumber = bData[i][bHeaders["Room Number"]].toString();
-      updateRoomStatus(roomNumber, "AVAILABLE");
+  updateBookingRowById_(bookingId, function(row, headers) {
+    row[headers['Status']] = 'COMPLETED';
+    row[headers['Payment Method']] = paymentMethod;
+    roomNumber = String(row[headers['Room Number']]);
+  });
 
-      // Update Room Status Matrix
-      try {
-        updateRoomStatusMatrix(ss);
-      } catch(e) {
-        Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
-      }
+  updateRoomStatus(roomNumber, 'AVAILABLE');
 
-      return { success: true, message: "Đã thanh toán & hoàn tất trả phòng " + roomNumber + "!" };
-    }
+  try {
+    updateRoomStatusMatrix(ss);
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
-  throw new Error("Không tìm thấy lượt đặt phòng để thanh toán.");
+
+  return {
+    success: true,
+    message: 'Đã thanh toán & hoàn tất trả phòng ' + roomNumber + '!'
+  };
 }
 
 /**
@@ -1069,30 +1281,25 @@ function checkoutBooking(payload) {
  */
 function setMaintenance(payload) {
   var ss = getSpreadsheet();
-  var roomsSheet = ss.getSheetByName("Rooms");
-  var rData = roomsSheet.getDataRange().getValues();
-  var rHeaders = getSheetHeadersMap(roomsSheet);
+  var roomNumber = String(payload.roomNumber);
+  var isMaintenance = !!payload.maintenance;
+  var note = payload.note || '';
 
-  var rNum = payload.roomNumber.toString();
-  var isMaintenance = payload.maintenance;
-  var note = payload.note || "";
+  updateRoomRowByNumber_(roomNumber, function(row, headers) {
+    row[headers['Status']] = isMaintenance ? 'MAINTENANCE' : 'AVAILABLE';
+    row[headers['Notes']] = note;
+  });
 
-  for (var i = 1; i < rData.length; i++) {
-    if (rData[i][rHeaders["Room Number"]].toString() === rNum) {
-      roomsSheet.getRange(i + 1, rHeaders["Status"] + 1).setValue(isMaintenance ? "MAINTENANCE" : "AVAILABLE");
-      roomsSheet.getRange(i + 1, rHeaders["Notes"] + 1).setValue(note);
-
-      // Update Room Status Matrix
-      try {
-        updateRoomStatusMatrix(ss);
-      } catch(e) {
-        Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
-      }
-
-      return { success: true, message: "Cập nhật trạng thái bảo trì phòng " + rNum + " thành công!" };
-    }
+  try {
+    updateRoomStatusMatrix(ss);
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
-  throw new Error("Không tìm thấy mã phòng.");
+
+  return {
+    success: true,
+    message: 'Cập nhật trạng thái bảo trì phòng ' + roomNumber + ' thành công!'
+  };
 }
 
 /**
@@ -1359,198 +1566,118 @@ function updateAppSettings(form) {
 }
 
 /**
- * Robust Sync function that merges and stores the state backup from the React frontend applet.
+ * Robust Sync function that merges and stores the state backup from the React frontend applet in bulk.
  */
 function syncDataFromWebApp(payload) {
-  var ss = getSpreadsheet();
-  initializeSheets(ss);
+  var ss = ensureDatabaseReady_(getSpreadsheet());
 
   var roomsList = payload.rooms || [];
   var bookingsList = payload.bookings || [];
 
-  // 1. Sync Rooms
-  var roomsSheet = ss.getSheetByName("Rooms");
-  var rData = roomsSheet.getDataRange().getValues();
-  var rHeaders = getSheetHeadersMap(roomsSheet);
-  var existingRooms = {};
+  var roomsSheet = ss.getSheetByName('Rooms');
+  var bookingsSheet = ss.getSheetByName('Bookings');
 
-  // Safeguard headers
-  if (rHeaders["Room Number"] === undefined) {
-    var roomHeaders = ["Room Number", "Floor", "Type", "Status", "Weekday Price", "Weekend Price", "Notes"];
-    roomsSheet.getRange(1, 1, 1, roomHeaders.length).setValues([roomHeaders]);
-    rHeaders = getSheetHeadersMap(roomsSheet);
-  }
+  var roomHeaders = ['Room Number', 'Floor', 'Type', 'Status', 'Weekday Price', 'Weekend Price', 'Notes'];
+  var bookingHeaders = [
+    'Booking ID', 'Room Number', 'Guest Name', 'Phone', 'Check In',
+    'Check Out', 'Status', 'Notes', 'Room Total', 'Deposit',
+    'Minibar Total', 'Compensation', 'Payment Method', 'Created At', 'Group Code'
+  ];
 
-  for (var i = 1; i < rData.length; i++) {
-    var rNumVal = rData[i][rHeaders["Room Number"]];
-    if (rNumVal === undefined || rNumVal === null) continue;
-    var rNum = rNumVal.toString().trim();
-    if (!rNum) continue;
-    existingRooms[rNum] = i + 1; // row index
-  }
+  if (!roomsSheet) roomsSheet = getOrCreateSheet(ss, 'Rooms', roomHeaders);
+  if (!bookingsSheet) bookingsSheet = getOrCreateSheet(ss, 'Bookings', bookingHeaders);
 
-  for (var i = 0; i < roomsList.length; i++) {
-    var room = roomsList[i];
-    if (!room || room.id === undefined || room.id === null) continue;
-    var rNum = room.id.toString();
-    var statusStr = (room.status || "available").toString().toUpperCase();
-    if (statusStr === "ACTIVE") statusStr = "OCCUPIED"; // Map correctly
+  var roomValues = roomsList.map(function(room) {
+    var statusStr = String(room.status || 'available').toUpperCase();
+    if (statusStr === 'ACTIVE') statusStr = 'OCCUPIED';
 
-    if (existingRooms[rNum]) {
-      // Update room details
-      var rowIdx = existingRooms[rNum];
-      if (rHeaders["Floor"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Floor"] + 1).setValue(room.floor);
-      if (rHeaders["Type"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Type"] + 1).setValue(room.type);
-      if (rHeaders["Status"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Status"] + 1).setValue(statusStr);
-      if (rHeaders["Notes"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Notes"] + 1).setValue(room.notes || "");
-      if (rHeaders["Weekday Price"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Weekday Price"] + 1).setValue(room.weekdayPrice || (room.type.includes("VIP") ? 1700000 : 1400000));
-      if (rHeaders["Weekend Price"] !== undefined) roomsSheet.getRange(rowIdx, rHeaders["Weekend Price"] + 1).setValue(room.weekendPrice || (room.type.includes("VIP") ? 1900000 : 1600000));
-    } else {
-      // Append new room using dense array
-      var rowData = [];
-      var lastCol = roomsSheet.getLastColumn() || 7;
-      for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-        rowData.push("");
-      }
-      if (rHeaders["Room Number"] !== undefined) rowData[rHeaders["Room Number"]] = rNum;
-      if (rHeaders["Floor"] !== undefined) rowData[rHeaders["Floor"]] = room.floor;
-      if (rHeaders["Type"] !== undefined) rowData[rHeaders["Type"]] = room.type;
-      if (rHeaders["Status"] !== undefined) rowData[rHeaders["Status"]] = statusStr;
-      if (rHeaders["Weekday Price"] !== undefined) rowData[rHeaders["Weekday Price"]] = room.weekdayPrice || (room.type.includes("VIP") ? 1700000 : 1400000);
-      if (rHeaders["Weekend Price"] !== undefined) rowData[rHeaders["Weekend Price"]] = room.weekendPrice || (room.type.includes("VIP") ? 1900000 : 1600000);
-      if (rHeaders["Notes"] !== undefined) rowData[rHeaders["Notes"]] = room.notes || "";
-      roomsSheet.appendRow(rowData);
-    }
-  }
-
-  // 2. Sync Bookings
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bData = bookingsSheet.getDataRange().getValues();
-  var bHeaders = getSheetHeadersMap(bookingsSheet);
-
-  // Safeguard headers
-  if (bHeaders["Booking ID"] === undefined) {
-    var bookingHeaders = [
-      "Booking ID", "Room Number", "Guest Name", "Phone", "Check In", 
-      "Check Out", "Status", "Notes", "Room Total", "Deposit", 
-      "Minibar Total", "Compensation", "Payment Method", "Created At", "Group Code"
+    return [
+      String(room.id || ''),
+      Number(room.floor || 0),
+      room.type || '',
+      statusStr,
+      Number(room.weekdayPrice || 0),
+      Number(room.weekendPrice || 0),
+      room.notes || ''
     ];
-    bookingsSheet.getRange(1, 1, 1, bookingHeaders.length).setValues([bookingHeaders]);
-    bHeaders = getSheetHeadersMap(bookingsSheet);
+  });
+
+  var currentRoomRows = roomsSheet.getLastRow();
+  if (currentRoomRows > 1) {
+    roomsSheet.getRange(2, 1, currentRoomRows - 1, 7).clearContent();
+  }
+  if (roomValues.length) {
+    roomsSheet.getRange(2, 1, roomValues.length, 7).setValues(roomValues);
   }
 
-  // Find and delete stale temporary bookings (live checked-in or reserved that no longer exist)
-  var incomingIds = {};
-  for (var k = 0; k < bookingsList.length; k++) {
-    if (bookingsList[k] && bookingsList[k].id) {
-      incomingIds[bookingsList[k].id.toString()] = true;
-    }
-  }
-
-  for (var rIdx = bData.length; rIdx >= 2; rIdx--) {
-    var rowIdVal = bData[rIdx - 1][bHeaders["Booking ID"]];
-    if (rowIdVal === undefined || rowIdVal === null) continue;
-    var rowId = rowIdVal.toString().trim();
-    if (rowId.indexOf("B_active_") === 0 || rowId.indexOf("R_res_") === 0) {
-      if (!incomingIds[rowId]) {
-        bookingsSheet.deleteRow(rIdx);
-      }
-    }
-  }
-
-  // Reload bData and rebuild fresh existingBookings map
-  bData = bookingsSheet.getDataRange().getValues();
-  var existingBookings = {};
-  for (var i = 1; i < bData.length; i++) {
-    var bIdVal = bData[i][bHeaders["Booking ID"]];
-    if (bIdVal === undefined || bIdVal === null) continue;
-    var bId = bIdVal.toString().trim();
-    if (!bId) continue;
-    existingBookings[bId] = i + 1; // row index
-  }
-
-  // Service price configuration dictionary
   var MINIBAR_PRICES = {
-    "mi_coc": 20000,
-    "bim_bim": 15000,
-    "snack_khoai_tay": 50000,
-    "mit_say": 70000,
-    "bo_kho": 100000,
-    "nuoc_loc": 10000,
-    "red_bull": 20000,
-    "bia_halong": 25000,
-    "oreo": 20000
+    'mi_coc': 20000,
+    'bim_bim': 15000,
+    'snack_khoai_tay': 50000,
+    'mit_say': 70000,
+    'bo_kho': 100000,
+    'nuoc_loc': 10000,
+    'red_bull': 20000,
+    'bia_halong': 25000,
+    'oreo': 20000
   };
 
+  var bookingRows = [];
   for (var i = 0; i < bookingsList.length; i++) {
     var booking = bookingsList[i];
     if (!booking || booking.id === undefined || booking.id === null) continue;
-    var bId = booking.id.toString();
-    var statusStr = (booking.status || "reserved").toString().toUpperCase();
-    if (statusStr === "ACTIVE") statusStr = "CHECKED_IN";
 
-    var checkInVal = booking.checkIn || "";
-    var checkOutVal = booking.checkOut || "";
-    var roomTotal = Number((booking.checkoutDetails && booking.checkoutDetails.roomPrice !== undefined) ? booking.checkoutDetails.roomPrice : (booking.totalPrice || 0));
-    var deposit = Number((booking.checkoutDetails && booking.checkoutDetails.deposit !== undefined) ? booking.checkoutDetails.deposit : 0);
     var minibarTotal = 0;
-    var compensation = Number((booking.checkoutDetails && booking.checkoutDetails.compensation !== undefined) ? booking.checkoutDetails.compensation : 0);
-
-    // Compute minibar usage total from details (quantity multiplied by standard price)
     if (booking.checkoutDetails && booking.checkoutDetails.minibar) {
       for (var key in booking.checkoutDetails.minibar) {
         var qty = Number(booking.checkoutDetails.minibar[key] || 0);
-        var normKey = key.toString().toLowerCase().trim();
-        var itemPrice = MINIBAR_PRICES[normKey] || 0;
-        minibarTotal += qty * itemPrice;
+        var normKey = String(key).toLowerCase().trim();
+        minibarTotal += qty * Number(MINIBAR_PRICES[normKey] || 0);
       }
     }
 
-    var rIdStr = booking.roomId ? booking.roomId.toString() : "";
+    var statusStr2 = String(booking.status || 'reserved').toUpperCase();
+    if (statusStr2 === 'ACTIVE') statusStr2 = 'CHECKED_IN';
 
-    if (existingBookings[bId]) {
-      var rowIdx = existingBookings[bId];
-      if (bHeaders["Room Number"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Room Number"] + 1).setValue(rIdStr);
-      if (bHeaders["Guest Name"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Guest Name"] + 1).setValue(booking.guestName || "");
-      if (bHeaders["Check In"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Check In"] + 1).setValue(checkInVal);
-      if (bHeaders["Check Out"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Check Out"] + 1).setValue(checkOutVal);
-      if (bHeaders["Status"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Status"] + 1).setValue(statusStr);
-      if (bHeaders["Notes"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Notes"] + 1).setValue(booking.notes || "");
-      if (bHeaders["Room Total"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Room Total"] + 1).setValue(roomTotal);
-      if (bHeaders["Deposit"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Deposit"] + 1).setValue(deposit);
-      if (bHeaders["Minibar Total"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Minibar Total"] + 1).setValue(minibarTotal);
-      if (bHeaders["Compensation"] !== undefined) bookingsSheet.getRange(rowIdx, bHeaders["Compensation"] + 1).setValue(compensation);
-    } else {
-      // Append booking using dense array to prevent column shifting
-      var rowData = [];
-      var lastCol = bookingsSheet.getLastColumn() || 15;
-      for (var colIdx = 0; colIdx < lastCol; colIdx++) {
-        rowData.push("");
+    bookingRows.push(buildBookingRow_(
+      (function() {
+        var map = {};
+        for (var h = 0; h < bookingHeaders.length; h++) map[bookingHeaders[h]] = h;
+        return map;
+      })(),
+      bookingHeaders.length,
+      {
+        bookingId: String(booking.id),
+        roomNumber: booking.roomId ? String(booking.roomId) : '',
+        guestName: booking.guestName || '',
+        phone: booking.phone || '',
+        checkIn: booking.checkIn || '',
+        checkOut: booking.checkOut || '',
+        status: statusStr2,
+        notes: booking.notes || '',
+        roomTotal: Number((booking.checkoutDetails && booking.checkoutDetails.roomPrice !== undefined) ? booking.checkoutDetails.roomPrice : (booking.totalPrice || 0)),
+        deposit: Number((booking.checkoutDetails && booking.checkoutDetails.deposit !== undefined) ? booking.checkoutDetails.deposit : 0),
+        minibarTotal: minibarTotal,
+        compensation: Number((booking.checkoutDetails && booking.checkoutDetails.compensation !== undefined) ? booking.checkoutDetails.compensation : 0),
+        paymentMethod: (booking.checkoutDetails && booking.checkoutDetails.paymentMethod) ? booking.checkoutDetails.paymentMethod : '',
+        createdAt: booking.createdAt || new Date().toISOString(),
+        groupCode: booking.groupCode || ''
       }
-      if (bHeaders["Booking ID"] !== undefined) rowData[bHeaders["Booking ID"]] = bId;
-      if (bHeaders["Room Number"] !== undefined) rowData[bHeaders["Room Number"]] = rIdStr;
-      if (bHeaders["Guest Name"] !== undefined) rowData[bHeaders["Guest Name"]] = booking.guestName || "";
-      if (bHeaders["Phone"] !== undefined) rowData[bHeaders["Phone"]] = "";
-      if (bHeaders["Check In"] !== undefined) rowData[bHeaders["Check In"]] = checkInVal;
-      if (bHeaders["Check Out"] !== undefined) rowData[bHeaders["Check Out"]] = checkOutVal;
-      if (bHeaders["Status"] !== undefined) rowData[bHeaders["Status"]] = statusStr;
-      if (bHeaders["Notes"] !== undefined) rowData[bHeaders["Notes"]] = booking.notes || "";
-      if (bHeaders["Room Total"] !== undefined) rowData[bHeaders["Room Total"]] = roomTotal;
-      if (bHeaders["Deposit"] !== undefined) rowData[bHeaders["Deposit"]] = deposit;
-      if (bHeaders["Minibar Total"] !== undefined) rowData[bHeaders["Minibar Total"]] = minibarTotal;
-      if (bHeaders["Compensation"] !== undefined) rowData[bHeaders["Compensation"]] = compensation;
-      if (bHeaders["Payment Method"] !== undefined) rowData[bHeaders["Payment Method"]] = "";
-      if (bHeaders["Created At"] !== undefined) rowData[bHeaders["Created At"]] = booking.createdAt || new Date().toISOString();
-      if (bHeaders["Group Code"] !== undefined) rowData[bHeaders["Group Code"]] = "";
-      bookingsSheet.appendRow(rowData);
-    }
+    ));
   }
 
-  // Update Room Status Matrix (Hiện trạng đặt phòng)
+  var currentBookingRows = bookingsSheet.getLastRow();
+  if (currentBookingRows > 1) {
+    bookingsSheet.getRange(2, 1, currentBookingRows - 1, bookingHeaders.length).clearContent();
+  }
+  if (bookingRows.length) {
+    bookingsSheet.getRange(2, 1, bookingRows.length, bookingHeaders.length).setValues(bookingRows);
+  }
+
   try {
     updateRoomStatusMatrix(ss);
-  } catch(e) {
-    Logger.log("Lỗi cập nhật Hiện trạng đặt phòng: " + e.toString());
+  } catch (e) {
+    Logger.log('Lỗi cập nhật Hiện trạng đặt phòng: ' + e.toString());
   }
 
   return {
@@ -1574,10 +1701,13 @@ function updateRoomStatusMatrix(ss) {
 
   // Get or create sheet
   var sheet = ss.getSheetByName(sheetName);
+  var isNew = false;
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
+    isNew = true;
   } else {
-    sheet.clear(); // Clear old content and styling
+    // Clear only text content to preserve conditional formatting, row heights, and column widths
+    sheet.clearContents();
   }
 
   // Generate headers for all days of the current month
@@ -1592,36 +1722,34 @@ function updateRoomStatusMatrix(ss) {
 
   // Write headers
   sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.setFrozenRows(1);
-  sheet.setFrozenColumns(2);
+  
+  if (isNew) {
+    sheet.setFrozenRows(1);
+    sheet.setFrozenColumns(2);
+    sheet.setRowHeight(1, 28);
+    sheet.setColumnWidth(1, 85);  // Room number
+    sheet.setColumnWidth(2, 95);  // Room type
+  }
 
-  // Style headers: dark slate color scheme
+  // Style headers
   var headerRange = sheet.getRange(1, 1, 1, headers.length);
   headerRange.setBackground("#0f172a") // slate-900
              .setFontColor("#f8fafc")  // slate-50
              .setFontWeight("bold")
              .setHorizontalAlignment("center")
              .setVerticalAlignment("middle");
-  sheet.setRowHeight(1, 28);
 
-  // Set column widths in bulk
-  sheet.setColumnWidth(1, 85);  // Room number
-  sheet.setColumnWidth(2, 95);  // Room type
-  if (headers.length > 2) {
+  if (headers.length > 2 && isNew) {
     sheet.setColumnWidths(3, headers.length - 2, 110);
   }
 
-  // Load rooms data
-  var roomsSheet = ss.getSheetByName("Rooms");
-  if (!roomsSheet) return;
-  var roomsData = roomsSheet.getDataRange().getValues();
-  var rHeaders = getSheetHeadersMap(roomsSheet);
-
+  // Load rooms data using helper
+  var roomData = getSheetData_(ss, "Rooms");
   var rooms = [];
-  for (var i = 1; i < roomsData.length; i++) {
-    var rNum = roomsData[i][rHeaders["Room Number"]];
-    var rType = roomsData[i][rHeaders["Type"]];
-    var rStatus = roomsData[i][rHeaders["Status"]];
+  for (var i = 1; i < roomData.values.length; i++) {
+    var rNum = roomData.values[i][roomData.headers["Room Number"]];
+    var rType = roomData.values[i][roomData.headers["Type"]];
+    var rStatus = roomData.values[i][roomData.headers["Status"]];
     if (rNum) {
       rooms.push({
         id: rNum.toString(),
@@ -1636,30 +1764,31 @@ function updateRoomStatusMatrix(ss) {
     return a.id.localeCompare(b.id, undefined, {numeric: true, sensitivity: 'base'});
   });
 
-  // Load bookings
-  var bookingsSheet = ss.getSheetByName("Bookings");
-  var bookings = [];
-  if (bookingsSheet) {
-    var bookingsData = bookingsSheet.getDataRange().getValues();
-    var bHeaders = getSheetHeadersMap(bookingsSheet);
-    for (var i = 1; i < bookingsData.length; i++) {
-      var bId = bookingsData[i][bHeaders["Booking ID"]];
-      var rNum = bookingsData[i][bHeaders["Room Number"]];
-      var gName = bookingsData[i][bHeaders["Guest Name"]] || "Khách";
-      var checkIn = bookingsData[i][bHeaders["Check In"]];
-      var checkOut = bookingsData[i][bHeaders["Check Out"]];
-      var bStatus = bookingsData[i][bHeaders["Status"]];
+  // Load bookings and index them by room to avoid nested loops (extremely fast!)
+  var bookingData = getSheetData_(ss, "Bookings");
+  var bookingsByRoom = {};
+  
+  for (var i = 1; i < bookingData.values.length; i++) {
+    var bId = bookingData.values[i][bookingData.headers["Booking ID"]];
+    var rNum = bookingData.values[i][bookingData.headers["Room Number"]];
+    var gName = bookingData.values[i][bookingData.headers["Guest Name"]] || "Khách";
+    var checkIn = bookingData.values[i][bookingData.headers["Check In"]];
+    var checkOut = bookingData.values[i][bookingData.headers["Check Out"]];
+    var bStatus = bookingData.values[i][bookingData.headers["Status"]];
 
-      if (bId && rNum && checkIn && checkOut && bStatus !== "CANCELLED") {
-        bookings.push({
-          id: bId.toString(),
-          roomId: rNum.toString(),
-          guestName: gName.toString(),
-          checkIn: checkIn,
-          checkOut: checkOut,
-          status: bStatus.toString().toUpperCase()
-        });
+    if (bId && rNum && checkIn && checkOut && bStatus !== "CANCELLED") {
+      var roomId = rNum.toString();
+      if (!bookingsByRoom[roomId]) {
+        bookingsByRoom[roomId] = [];
       }
+      bookingsByRoom[roomId].push({
+        id: bId.toString(),
+        roomId: roomId,
+        guestName: gName.toString(),
+        checkIn: checkIn,
+        checkOut: checkOut,
+        status: bStatus.toString().toUpperCase()
+      });
     }
   }
 
@@ -1671,20 +1800,17 @@ function updateRoomStatusMatrix(ss) {
   }
 
   function parseDateString(val) {
-    if (val instanceof Date) return val;
-    var d = new Date(val);
-    if (!isNaN(d.getTime())) return d;
-    return new Date();
+    var d = parseSafeDate(val);
+    return d ? d : new Date();
   }
 
-  // Check occupancy status of a room on a given day
+  // Check occupancy status of a room on a given day using our index map
   function getCellStatus(room, checkDate) {
     var checkTime = startOfDay(checkDate).getTime();
+    var roomBookings = bookingsByRoom[room.id] || [];
 
-    for (var i = 0; i < bookings.length; i++) {
-      var b = bookings[i];
-      if (b.roomId !== room.id) continue;
-
+    for (var i = 0; i < roomBookings.length; i++) {
+      var b = roomBookings[i];
       var inDate = startOfDay(parseDateString(b.checkIn));
       var outDate = startOfDay(parseDateString(b.checkOut));
 
@@ -1705,59 +1831,80 @@ function updateRoomStatusMatrix(ss) {
 
   // Populate matrix values and styles
   var values = [];
-  var backgrounds = [];
-  var fontColors = [];
-  var alignments = [];
-
   for (var r = 0; r < rooms.length; r++) {
     var room = rooms[r];
     var rowValues = [room.id, room.type];
-    var rowBg = ["#ffffff", "#f1f5f9"];
-    var rowFont = ["#0f172a", "#334155"];
-    var rowAlign = ["center", "center"];
 
     for (var d = 0; d < dates.length; d++) {
       var cellData = getCellStatus(room, dates[d]);
 
       var text = "Trống";
-      var bg = "#10b981"; // emerald-500 (emerald green)
-      var font = "#ffffff";
-
       if (cellData.status === "occupied") {
         text = "Đang ở (" + cellData.guestName + ")";
-        bg = "#f43f5e"; // rose-500 (rose pink/red)
       } else if (cellData.status === "reserved") {
         text = "Đã đặt (" + cellData.guestName + ")";
-        bg = "#fbbf24"; // amber-400 (warm gold/amber)
-        font = "#0f172a"; // high contrast dark text
       } else if (cellData.status === "maintenance") {
         text = "Bảo trì";
-        bg = "#334155"; // slate-700 (dark slate gray)
       }
 
       rowValues.push(text);
-      rowBg.push(bg);
-      rowFont.push(font);
-      rowAlign.push("center");
     }
-
     values.push(rowValues);
-    backgrounds.push(rowBg);
-    fontColors.push(rowFont);
-    alignments.push(rowAlign);
   }
 
   if (values.length > 0) {
     var range = sheet.getRange(2, 1, values.length, headers.length);
-    range.setValues(values)
-         .setBackgrounds(backgrounds)
-         .setFontColors(fontColors)
-         .setHorizontalAlignments(alignments)
+    range.setValues(values);
+
+    // Apply row heights in bulk
+    sheet.setRowHeights(2, values.length, 24);
+
+    // Enforce high-performance conditional format rules
+    var rules = sheet.getConditionalFormatRules();
+    if (rules.length === 0 || isNew) {
+      var colorRange = sheet.getRange(2, 3, values.length, headers.length - 2);
+
+      var ruleEmpty = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith("Trống")
+        .setBackground("#10b981")
+        .setFontColor("#ffffff")
+        .setRanges([colorRange])
+        .build();
+
+      var ruleOccupied = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith("Đang ở")
+        .setBackground("#f43f5e")
+        .setFontColor("#ffffff")
+        .setRanges([colorRange])
+        .build();
+
+      var ruleReserved = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith("Đã đặt")
+        .setBackground("#fbbf24")
+        .setFontColor("#0f172a")
+        .setRanges([colorRange])
+        .build();
+
+      var ruleMaintenance = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith("Bảo trì")
+        .setBackground("#334155")
+        .setFontColor("#ffffff")
+        .setRanges([colorRange])
+        .build();
+
+      sheet.setConditionalFormatRules([ruleEmpty, ruleOccupied, ruleReserved, ruleMaintenance]);
+    }
+
+    // Set layout parameters and alignments in bulk
+    sheet.getRange(2, 1, values.length, headers.length)
+         .setHorizontalAlignment("center")
          .setVerticalAlignment("middle")
          .setFontWeight("bold");
-
-    // Set height for all data rows in bulk
-    sheet.setRowHeights(2, values.length, 24);
+         
+    // Set standard white background for columns A-B to look perfectly clean
+    sheet.getRange(2, 1, values.length, 2)
+         .setBackgrounds(values.map(function() { return ["#ffffff", "#f1f5f9"]; }))
+         .setFontColors(values.map(function() { return ["#0f172a", "#334155"]; }));
   }
 }
 
@@ -1767,11 +1914,7 @@ function updateRoomStatusMatrix(ss) {
 function getRoomBookingHistory(roomNumber) {
   try {
     var ss = getSpreadsheet();
-    var sheet = ss.getSheetByName("Bookings");
-    if (!sheet) return [];
-    
-    var data = sheet.getDataRange().getValues();
-    var headers = getSheetHeadersMap(sheet);
+    var bookingData = getSheetData_(ss, 'Bookings');
     var history = [];
     
     // Nhãn trạng thái hiển thị bằng tiếng Việt
@@ -1782,15 +1925,22 @@ function getRoomBookingHistory(roomNumber) {
       "CANCELLED": "Đã hủy đơn"
     };
 
-    for (var i = 1; i < data.length; i++) {
-      var rNum = data[i][headers["Room Number"]];
-      if (rNum && rNum.toString() === roomNumber.toString()) {
-        var rawStatus = data[i][headers["Status"]].toString().toUpperCase();
+    var rNumIdx = bookingData.headers["Room Number"];
+    var bIdIdx = bookingData.headers["Booking ID"];
+    var gNameIdx = bookingData.headers["Guest Name"];
+    var checkInIdx = bookingData.headers["Check In"];
+    var checkOutIdx = bookingData.headers["Check Out"];
+    var statusIdx = bookingData.headers["Status"];
+
+    for (var i = 1; i < bookingData.values.length; i++) {
+      var rNum = bookingData.values[i][rNumIdx];
+      if (rNum && String(rNum) === String(roomNumber)) {
+        var rawStatus = String(bookingData.values[i][statusIdx] || '').toUpperCase();
         history.push({
-          id: data[i][headers["Booking ID"]],
-          guestName: data[i][headers["Guest Name"]],
-          checkIn: data[i][headers["Check In"]],
-          checkOut: data[i][headers["Check Out"]],
+          id: bookingData.values[i][bIdIdx],
+          guestName: bookingData.values[i][gNameIdx] || "Khách",
+          checkIn: bookingData.values[i][checkInIdx],
+          checkOut: bookingData.values[i][checkOutIdx],
           status: rawStatus,
           statusLabel: statusLabels[rawStatus] || rawStatus
         });
@@ -1806,5 +1956,206 @@ function getRoomBookingHistory(roomNumber) {
   } catch (error) {
     Logger.log("Lỗi trong getRoomBookingHistory: " + error.toString());
     throw new Error(error.toString());
+  }
+}
+
+/**
+ * Compiles the entire Sheets database (Rooms, Bookings) into a JSON backup file on Google Drive.
+ */
+function createDriveBackupFile() {
+  try {
+    var ss = getSpreadsheet();
+    
+    // 1. Fetch Rooms Data
+    var rooms = [];
+    var roomsSheet = ss.getSheetByName("Rooms");
+    if (roomsSheet) {
+      var roomData = getSheetData_(ss, "Rooms");
+      var rNumIdx = roomData.headers["Room Number"];
+      var floorIdx = roomData.headers["Floor"];
+      var typeIdx = roomData.headers["Type"];
+      var statusIdx = roomData.headers["Status"];
+      var weekdayIdx = roomData.headers["Weekday Price"];
+      var weekendIdx = roomData.headers["Weekend Price"];
+      var notesIdx = roomData.headers["Notes"];
+      
+      for (var i = 1; i < roomData.values.length; i++) {
+        var row = roomData.values[i];
+        var idVal = row[rNumIdx];
+        if (idVal !== undefined && idVal !== null && idVal !== "") {
+          rooms.push({
+            id: idVal.toString(),
+            floor: Number(row[floorIdx] || 0),
+            type: row[typeIdx] || "",
+            status: row[statusIdx] || "AVAILABLE",
+            weekdayPrice: Number(row[weekdayIdx] || 0),
+            weekendPrice: Number(row[weekendIdx] || 0),
+            notes: row[notesIdx] || ""
+          });
+        }
+      }
+    }
+    
+    // 2. Fetch Bookings Data
+    var bookings = [];
+    var bookingsSheet = ss.getSheetByName("Bookings");
+    if (bookingsSheet) {
+      var bookingData = getSheetData_(ss, "Bookings");
+      var bIdIdx = bookingData.headers["Booking ID"];
+      var rNumIdx = bookingData.headers["Room Number"];
+      var gNameIdx = bookingData.headers["Guest Name"];
+      var phoneIdx = bookingData.headers["Phone"];
+      var checkInIdx = bookingData.headers["Check In"];
+      var checkOutIdx = bookingData.headers["Check Out"];
+      var statusIdx = bookingData.headers["Status"];
+      var notesIdx = bookingData.headers["Notes"];
+      var roomTotalIdx = bookingData.headers["Room Total"];
+      var depositIdx = bookingData.headers["Deposit"];
+      var minibarIdx = bookingData.headers["Minibar Total"];
+      var compensationIdx = bookingData.headers["Compensation"];
+      var paymentMethodIdx = bookingData.headers["Payment Method"];
+      var createdAtIdx = bookingData.headers["Created At"];
+      var groupCodeIdx = bookingData.headers["Group Code"];
+      
+      for (var j = 1; j < bookingData.values.length; j++) {
+        var brow = bookingData.values[j];
+        var bIdVal = brow[bIdIdx];
+        if (bIdVal !== undefined && bIdVal !== null && bIdVal !== "") {
+          var roomTotal = Number(brow[roomTotalIdx] || 0);
+          var minibarTotal = Number(brow[minibarIdx] || 0);
+          var compTotal = Number(brow[compensationIdx] || 0);
+          var totalPrice = roomTotal + minibarTotal + compTotal;
+          
+          bookings.push({
+            id: bIdVal.toString(),
+            roomId: (brow[rNumIdx] || "").toString(),
+            guestName: brow[gNameIdx] || "",
+            phone: (brow[phoneIdx] || "").toString(),
+            checkIn: brow[checkInIdx] || "",
+            checkOut: brow[checkOutIdx] || "",
+            status: brow[statusIdx] || "RESERVED",
+            notes: brow[notesIdx] || "",
+            totalPrice: totalPrice,
+            deposit: Number(brow[depositIdx] || 0),
+            createdAt: brow[createdAtIdx] || new Date().toISOString(),
+            groupCode: brow[groupCodeIdx] || ""
+          });
+        }
+      }
+    }
+    
+    // Compile to backup JSON format
+    var backupObj = {
+      rooms: rooms,
+      bookings: bookings
+    };
+    var fileContent = JSON.stringify(backupObj, null, 2);
+    
+    // Save to Google Drive
+    var fileName = "hotel_backup_data.json";
+    var files = DriveApp.getFilesByName(fileName);
+    var file;
+    if (files.hasNext()) {
+      file = files.next();
+      file.setContent(fileContent);
+    } else {
+      file = DriveApp.createFile(fileName, fileContent, MimeType.PLAIN_TEXT);
+    }
+    
+    return {
+      success: true,
+      message: "Tạo file sao lưu JSON thành công trên Google Drive!",
+      fileName: fileName,
+      fileId: file.getId(),
+      content: fileContent,
+      roomCount: rooms.length,
+      bookingCount: bookings.length
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: "Lỗi tạo file sao lưu: " + err.toString()
+    };
+  }
+}
+
+/**
+ * Reads hotel_backup_data.json from Google Drive and restores it into the Spreadsheet.
+ */
+function restoreFromBackupJsonFile() {
+  try {
+    var fileName = "hotel_backup_data.json";
+    var files = DriveApp.getFilesByName(fileName);
+    if (!files.hasNext()) {
+      return {
+        success: false,
+        message: "Không tìm thấy file sao lưu hotel_backup_data.json trên Google Drive. Bạn cần tạo hoặc đồng bộ sao lưu trước!"
+      };
+    }
+    
+    var file = files.next();
+    var content = file.getBlob().getDataAsString();
+    var data = JSON.parse(content);
+    
+    var rooms = data.rooms || [];
+    var bookings = data.bookings || [];
+    
+    // Normalize data format for sync function compatibility
+    var normalizedRooms = rooms.map(function(r) {
+      return {
+        id: (r.id || r.room_id || r.roomNumber || "").toString(),
+        floor: Number(r.floor !== undefined ? r.floor : 0),
+        type: r.type || r.room_type || "",
+        status: r.status || "AVAILABLE",
+        weekdayPrice: Number(r.weekdayPrice || r.weekday_price || 0),
+        weekendPrice: Number(r.weekendPrice || r.weekend_price || 0),
+        notes: r.notes || ""
+      };
+    });
+    
+    var normalizedBookings = bookings.map(function(b) {
+      var checkDetails = b.checkoutDetails || b.checkout_details || null;
+      if (!checkDetails && (b.minibarTotal || b.compensation)) {
+        checkDetails = {
+          minibar: {},
+          deposit: b.deposit || 0,
+          roomPrice: b.totalPrice || 0,
+          compensation: b.compensation || 0,
+          paymentMethod: b.paymentMethod || ""
+        };
+      }
+      return {
+        id: (b.id || b.booking_id || "").toString(),
+        roomId: (b.roomId || b.room_id || b.roomNumber || "").toString(),
+        guestName: b.guestName || b.guest_name || "",
+        phone: (b.phone || "").toString(),
+        checkIn: b.checkIn || b.check_in || "",
+        checkOut: b.checkOut || b.check_out || "",
+        status: b.status || "RESERVED",
+        notes: b.notes || "",
+        totalPrice: Number(b.totalPrice || b.total_price || 0),
+        createdAt: b.createdAt || b.created_at || new Date().toISOString(),
+        groupCode: b.groupCode || b.group_code || "",
+        checkoutDetails: checkDetails
+      };
+    });
+    
+    var result = syncDataFromWebApp({
+      rooms: normalizedRooms,
+      bookings: normalizedBookings
+    });
+    
+    return {
+      success: true,
+      message: "Đã phục hồi dữ liệu thành công từ file sao lưu JSON trên Google Drive!",
+      roomCount: normalizedRooms.length,
+      bookingCount: normalizedBookings.length,
+      details: result
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: "Lỗi khôi phục dữ liệu: " + err.toString()
+    };
   }
 }

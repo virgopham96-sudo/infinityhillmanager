@@ -35,6 +35,17 @@ service cloud.firestore {
         && data.createdAt is string && data.createdAt.size() <= 50;
     }
 
+    function isValidBackupLog(data) {
+      return data.keys().hasAll(['id', 'fileName', 'timestamp', 'success'])
+        && data.id is string && data.id.size() <= 128
+        && data.fileName is string && data.fileName.size() <= 200
+        && data.timestamp is string && data.timestamp.size() <= 50
+        && data.success is bool
+        && (!data.keys().hasAny(['fileId']) || data.fileId == null || (data.fileId is string && data.fileId.size() <= 128))
+        && (!data.keys().hasAny(['error']) || data.error == null || (data.error is string && data.error.size() <= 1000))
+        && (!data.keys().hasAny(['operatorEmail']) || data.operatorEmail == null || (data.operatorEmail is string && data.operatorEmail.size() <= 200));
+    }
+
     match /rooms/{roomId} {
       allow read: if true;
       allow create: if isValidId(roomId) && isValidRoom(incoming());
@@ -47,6 +58,13 @@ service cloud.firestore {
       allow create: if isValidId(bookingId) && isValidBooking(incoming());
       allow update: if isValidId(bookingId) && isValidBooking(incoming());
       allow delete: if isValidId(bookingId);
+    }
+
+    match /backup_logs/{logId} {
+      allow read: if true;
+      allow create: if isValidId(logId) && isValidBackupLog(incoming());
+      allow update: if isValidId(logId) && isValidBackupLog(incoming());
+      allow delete: if isValidId(logId);
     }
   }
 }
