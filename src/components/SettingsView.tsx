@@ -366,10 +366,10 @@ export default function SettingsView() {
     }
   };
   
-  // Hotel info state
-  const [hotelName, setHotelName] = useState(() => localStorage.getItem("hotelName") || "Infinity Hill Hotel");
-  const [hotelPhone, setHotelPhone] = useState(() => localStorage.getItem("hotelPhone") || "0383696666");
-  const [hotelAddress, setHotelAddress] = useState(() => localStorage.getItem("hotelAddress") || "Đảo Quan Lạn, Vân Đồn, Quảng Ninh");
+  // Hotel info state (fixed values)
+  const hotelName = "Infinity Hill Hotel";
+  const hotelPhone = "0383696666";
+  const hotelAddress = "Đảo Quan Lạn, Vân Đồn, Quảng Ninh";
   const [accentColor, setAccentColor] = useState(() => localStorage.getItem("hotelAccent") || "#004b93");
 
   // Theme support
@@ -571,13 +571,16 @@ export default function SettingsView() {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                   Tên khách sạn / Resort
                 </label>
-                <input
-                  type="text"
-                  value={hotelName}
-                  onChange={(e) => setHotelName(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  placeholder="Nhập tên resort, villa..."
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={hotelName}
+                    readOnly
+                    disabled
+                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 rounded-lg cursor-not-allowed font-medium pr-10"
+                  />
+                  <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -585,35 +588,38 @@ export default function SettingsView() {
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                     Điện thoại liên hệ
                   </label>
-                  <input
-                    type="text"
-                    value={hotelPhone}
-                    onChange={(e) => setHotelPhone(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Hotline đặt phòng"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={hotelPhone}
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 rounded-lg cursor-not-allowed font-medium pr-10"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                     Địa chỉ
                   </label>
-                  <input
-                    type="text"
-                    value={hotelAddress}
-                    onChange={(e) => setHotelAddress(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                    placeholder="Địa chỉ chi nhánh"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={hotelAddress}
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 rounded-lg cursor-not-allowed font-medium pr-10"
+                    />
+                    <Lock className="w-4 h-4 text-slate-400 absolute right-3.5 top-3" />
+                  </div>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSaveProfile}
-                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm transition-colors shadow-sm cursor-pointer"
-              >
-                Cập nhật cấu hình
-              </button>
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Thông tin địa điểm đã được chốt cố định và không thể sửa đổi.</span>
+              </div>
             </div>
           </div>
 

@@ -197,16 +197,16 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="p-3 sm:p-5">
+      <div className="mb-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Xem theo khách đặt</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">Xem theo khách đặt</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">
             Danh sách khách hàng, đoàn khách và thông tin phòng
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="relative flex-1 sm:w-80">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="relative flex-1 sm:w-72">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <Search className="w-4 h-4 text-slate-400" />
             </span>
@@ -215,7 +215,7 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
               placeholder="Tìm khách hàng hoặc phòng..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
+              className="w-full pl-9 pr-8 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
             />
             {searchTerm && (
               <button
@@ -229,7 +229,7 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
+            className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 bg-white dark:bg-slate-800 dark:text-slate-100 shadow-sm transition-all outline-none"
           >
             <option value="Tất cả">Tất cả trạng thái</option>
             <option value="Đã đặt trước">Đã đặt trước</option>
@@ -240,7 +240,7 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
             <button
               id="btn-export-excel"
               onClick={handleExportExcel}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors shrink-0 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-medium rounded-lg shadow-sm transition-colors shrink-0 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               Tải Excel danh sách
@@ -251,22 +251,22 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
 
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium border-b border-slate-200 dark:border-slate-700">
+          <table className="w-full text-left text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold border-b border-slate-200 dark:border-slate-700">
               <tr>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[180px]">Khách/ Đoàn khách</th>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Tổng số phòng</th>
-                <th className="px-4 py-4 min-w-[200px]">Phòng đặt</th>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Ngày check-in</th>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Ngày check-out</th>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Tổng số ngày</th>
-                <th className="px-4 py-4 whitespace-nowrap min-w-[150px]">Trạng thái</th>
+                <th className="px-3 py-3 whitespace-nowrap min-w-[140px]">Khách/ Đoàn khách</th>
+                <th className="px-2.5 py-3 whitespace-nowrap text-center min-w-[95px]">Tổng số phòng</th>
+                <th className="px-3 py-3 min-w-[120px]">Phòng đặt</th>
+                <th className="px-2.5 py-3 whitespace-nowrap min-w-[120px]">Ngày check-in</th>
+                <th className="px-2.5 py-3 whitespace-nowrap min-w-[120px]">Ngày check-out</th>
+                <th className="px-2.5 py-3 whitespace-nowrap text-center min-w-[80px]">Tổng số ngày</th>
+                <th className="px-3 py-3 whitespace-nowrap text-center min-w-[110px]">Trạng thái</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredData.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
                     {data.length === 0 
                       ? "Chưa có thông tin khách đặt nào" 
                       : "Không tìm thấy khách hàng nào khớp với từ khóa tìm kiếm"}
@@ -285,34 +285,36 @@ export default function GuestView({ onEditGroup }: GuestViewProps) {
                         }
                     }}
                   >
-                    <td className="px-4 py-4 font-medium text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                      {item.guestName || "Khách vô danh"}
+                    <td className="px-3 py-2.5 font-semibold text-slate-800 dark:text-slate-200">
+                      <div className="truncate max-w-[200px]" title={item.guestName || "Khách vô danh"}>
+                        {item.guestName || "Khách vô danh"}
+                      </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="font-medium text-slate-800 dark:text-slate-200">{total}</div>
+                    <td className="px-2.5 py-2.5 text-center whitespace-nowrap">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">{total}</div>
                       {typesString && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                           ({typesString})
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-1.5">
+                    <td className="px-3 py-2.5">
+                      <div className="flex flex-wrap gap-1">
                         {item.rooms.sort().map((roomId) => (
-                          <span key={roomId} className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded text-xs border border-slate-200 dark:border-slate-700">
+                          <span key={roomId} className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded text-[11px] border border-slate-200 dark:border-slate-700">
                             {roomId}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">{formatDate(item.checkIn)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap">{formatDate(item.checkOut)}</td>
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-2.5 py-2.5 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatDate(item.checkIn)}</td>
+                    <td className="px-2.5 py-2.5 whitespace-nowrap text-slate-700 dark:text-slate-300">{formatDate(item.checkOut)}</td>
+                    <td className="px-2.5 py-2.5 text-center font-medium whitespace-nowrap">
                       {item.checkIn && item.checkOut ? Math.max(1, Math.ceil(Math.abs(new Date(item.checkOut).getTime() - new Date(item.checkIn).getTime()) / (1000 * 60 * 60 * 24))) : "-"}
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 text-center whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-full uppercase tracking-wider ${
+                        className={`inline-block px-2.5 py-0.5 text-[10px] sm:text-[11px] font-semibold rounded-full uppercase tracking-wider ${
                           item.status === "Đã nhận phòng"
                             ? "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
                             : item.status === "Đã đặt trước"

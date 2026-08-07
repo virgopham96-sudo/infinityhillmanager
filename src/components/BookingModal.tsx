@@ -12,6 +12,8 @@ import {
   ShieldAlert,
   CalendarPlus,
   Trash2,
+  Utensils,
+  Coffee,
 } from "lucide-react";
 
 interface BookingModalProps {
@@ -109,11 +111,23 @@ export default function BookingModal({
     { id: "oreo", name: "Bánh Oreo", price: 20000 },
   ];
 
+  const diningItems = [
+    { id: "an_uong_200", name: "Suất 200.000 đ", level: "200k", price: 200000 },
+    { id: "an_uong_250", name: "Suất 250.000 đ", level: "250k", price: 250000 },
+    { id: "an_uong_350", name: "Suất 350.000 đ", level: "350k", price: 350000 },
+  ];
+
   const minibarTotal = minibarItems.reduce(
     (sum, item) => sum + item.price * (minibar[item.id] || 0),
     0,
   );
-  const totalSurcharge = minibarTotal + (compensation || 0);
+
+  const diningTotal = diningItems.reduce(
+    (sum, item) => sum + item.price * (minibar[item.id] || 0),
+    0,
+  );
+
+  const totalSurcharge = minibarTotal + diningTotal + (compensation || 0);
 
   const defaultCalculatedPrice = calculateTotalPrice(
     checkIn,
@@ -828,6 +842,16 @@ export default function BookingModal({
                       </span>
                     </div>
                   )}
+                  {diningTotal > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Chi phí ăn uống:
+                      </span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        {formatCurrency(diningTotal)}
+                      </span>
+                    </div>
+                  )}
                   {compensation > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -867,76 +891,173 @@ export default function BookingModal({
               </div>
 
               {room.status === "occupied" && (
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-2">
-                    Minibar & Dịch vụ thêm
-                  </h4>
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg flex flex-col gap-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-1">
-                      {minibarItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-1.5 p-2.5 bg-white dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-sm"
-                        >
-                          <div className="flex justify-between items-center">
-                            <span
-                              className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate mr-2"
-                              title={item.name}
-                            >
-                              {item.name}
-                            </span>
-                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">
-                              {formatCurrency(item.price)}
-                            </span>
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                  {/* Minibar & Dịch vụ thêm */}
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-2.5 flex items-center gap-2">
+                      <Coffee className="w-4 h-4 text-amber-500" />
+                      Minibar & Dịch vụ thêm
+                    </h4>
+                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-48 overflow-y-auto pr-1">
+                        {minibarItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex flex-col gap-1.5 p-2.5 bg-white dark:bg-slate-700 rounded-md border border-slate-200 dark:border-slate-600 shadow-sm"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span
+                                className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate mr-2"
+                                title={item.name}
+                              >
+                                {item.name}
+                              </span>
+                              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                                {formatCurrency(item.price)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-600 pt-1.5 mt-0.5">
+                              <button
+                                type="button"
+                                className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center font-medium transition-colors cursor-pointer"
+                                onClick={() =>
+                                  setMinibar((prev) => ({
+                                    ...prev,
+                                    [item.id]: Math.max(
+                                      0,
+                                      (prev[item.id] || 0) - 1,
+                                    ),
+                                  }))
+                                }
+                              >
+                                -
+                              </button>
+                              <span className="text-xs font-bold w-6 text-center text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 py-1 rounded">
+                                {minibar[item.id] || 0}
+                              </span>
+                              <button
+                                type="button"
+                                className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center font-medium transition-colors cursor-pointer"
+                                onClick={() =>
+                                  setMinibar((prev) => ({
+                                    ...prev,
+                                    [item.id]: (prev[item.id] || 0) + 1,
+                                  }))
+                                }
+                              >
+                                +
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-600 pt-1.5 mt-0.5">
-                            <button
-                              className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center font-medium transition-colors cursor-pointer"
-                              onClick={() =>
-                                setMinibar((prev) => ({
-                                  ...prev,
-                                  [item.id]: Math.max(
-                                    0,
-                                    (prev[item.id] || 0) - 1,
-                                  ),
-                                }))
-                              }
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-bold w-6 text-center text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 py-1 rounded">
-                              {minibar[item.id] || 0}
-                            </span>
-                            <button
-                              className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center font-medium transition-colors cursor-pointer"
-                              onClick={() =>
-                                setMinibar((prev) => ({
-                                  ...prev,
-                                  [item.id]: (prev[item.id] || 0) + 1,
-                                }))
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                        Giá trị đền bù (VNĐ)
-                      </label>
-                      <input
-                        type="text"
-                        value={compensation === 0 ? "" : new Intl.NumberFormat("vi-VN").format(compensation)}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/[^0-9]/g, "");
-                          setCompensation(raw ? parseInt(raw, 10) : 0);
-                        }}
-                        placeholder="Nhập số tiền đền bù nếu có..."
-                        className="w-full border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-700 dark:text-slate-100 shadow-sm"
-                      />
+                  </div>
+
+                  {/* Chi phí ăn uống */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <Utensils className="w-4 h-4 text-orange-500" />
+                        Chi phí ăn uống
+                      </h4>
+                      {diningTotal > 0 && (
+                        <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                          Thành tiền: {formatCurrency(diningTotal)}
+                        </span>
+                      )}
                     </div>
+                    <div className="bg-orange-50/40 dark:bg-slate-800 border border-orange-200/70 dark:border-slate-700 p-3 rounded-lg">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                        Điền số suất ăn cho các mức giá 200k, 250k, 350k:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {diningItems.map((item) => {
+                          const qty = minibar[item.id] || 0;
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex flex-col justify-between gap-1.5 p-2.5 bg-white dark:bg-slate-700 rounded-md border border-orange-200/60 dark:border-slate-600 shadow-sm"
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                  {item.name}
+                                </span>
+                                <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/40 px-1.5 py-0.5 rounded">
+                                  {item.level}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                                  Số suất:
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                                    onClick={() =>
+                                      setMinibar((prev) => ({
+                                        ...prev,
+                                        [item.id]: Math.max(0, (prev[item.id] || 0) - 1),
+                                      }))
+                                    }
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="w-12 h-6 text-center font-bold text-xs text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded outline-none focus:ring-1 focus:ring-orange-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    value={qty || 0}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value || "0", 10);
+                                      setMinibar((prev) => ({
+                                        ...prev,
+                                        [item.id]: isNaN(val) ? 0 : Math.max(0, val),
+                                      }));
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="w-6 h-6 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                                    onClick={() =>
+                                      setMinibar((prev) => ({
+                                        ...prev,
+                                        [item.id]: (prev[item.id] || 0) + 1,
+                                      }))
+                                    }
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              {qty > 0 && (
+                                <div className="text-right text-[11px] font-semibold text-orange-600 dark:text-orange-400 pt-1 border-t border-slate-100 dark:border-slate-600">
+                                  = {formatCurrency(qty * item.price)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Giá trị đền bù */}
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-lg">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Giá trị đền bù (VNĐ)
+                    </label>
+                    <input
+                      type="text"
+                      value={compensation === 0 ? "" : new Intl.NumberFormat("vi-VN").format(compensation)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        setCompensation(raw ? parseInt(raw, 10) : 0);
+                      }}
+                      placeholder="Nhập số tiền đền bù nếu có..."
+                      className="w-full border-slate-300 dark:border-slate-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none border bg-white dark:bg-slate-700 dark:text-slate-100 shadow-sm"
+                    />
                   </div>
                 </div>
               )}

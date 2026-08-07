@@ -69,15 +69,12 @@ export default function App() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loginError, setLoginError] = useState("");
 
-  // Migration / Initialization hook for the requested hotel profile info
+  // Force fixed hotel profile info
   useEffect(() => {
-    const currentName = localStorage.getItem("hotelName");
-    if (!currentName || currentName === "Infinity Hill" || currentName.trim() === "") {
-      localStorage.setItem("hotelName", "Infinity Hill Hotel");
-      localStorage.setItem("hotelPhone", "0383696666");
-      localStorage.setItem("hotelAddress", "Đảo Quan Lạn, Vân Đồn, Quảng Ninh");
-      window.dispatchEvent(new Event("hotel-name-updated"));
-    }
+    localStorage.setItem("hotelName", "Infinity Hill Hotel");
+    localStorage.setItem("hotelPhone", "0383696666");
+    localStorage.setItem("hotelAddress", "Đảo Quan Lạn, Vân Đồn, Quảng Ninh");
+    window.dispatchEvent(new Event("hotel-name-updated"));
   }, []);
 
   useEffect(() => {

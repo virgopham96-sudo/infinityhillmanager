@@ -46,6 +46,14 @@ const MINIBAR_ITEMS = [
   { id: "oreo", name: "Bánh Oreo", price: 20000 },
 ];
 
+const DINING_ITEMS = [
+  { id: "an_uong_200", name: "Suất 200k", price: 200000 },
+  { id: "an_uong_250", name: "Suất 250k", price: 250000 },
+  { id: "an_uong_350", name: "Suất 350k", price: 350000 },
+];
+
+const ALL_ADDON_ITEMS = [...MINIBAR_ITEMS, ...DINING_ITEMS];
+
 export default function RevenueReport({
   bookings,
   onRemoveBooking,
@@ -66,7 +74,7 @@ export default function RevenueReport({
   const [editCompensation, setEditCompensation] = useState(0);
   const [editNotes, setEditNotes] = useState("");
 
-  const editMinibarTotal = MINIBAR_ITEMS.reduce(
+  const editMinibarTotal = ALL_ADDON_ITEMS.reduce(
     (sum, item) => sum + item.price * (editMinibar[item.id] || 0),
     0
   );
@@ -516,6 +524,68 @@ export default function RevenueReport({
                             }))
                           }
                           className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+                <label className="block text-sm font-semibold text-slate-800 dark:text-slate-100 mb-2">
+                  Chi phí ăn uống
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {DINING_ITEMS.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 rounded-lg border border-orange-200/60 dark:border-slate-700 bg-orange-50/40 dark:bg-slate-800/50"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                          {item.name}
+                        </p>
+                        <p className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold">
+                          {new Intl.NumberFormat("vi-VN").format(item.price)} đ
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditMinibar((prev) => ({
+                              ...prev,
+                              [item.id]: Math.max(0, (prev[item.id] || 0) - 1),
+                            }))
+                          }
+                          className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          className="w-9 h-5 text-center font-bold text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          value={editMinibar[item.id] || 0}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value || "0", 10);
+                            setEditMinibar((prev) => ({
+                              ...prev,
+                              [item.id]: isNaN(val) ? 0 : Math.max(0, val),
+                            }));
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditMinibar((prev) => ({
+                              ...prev,
+                              [item.id]: (prev[item.id] || 0) + 1,
+                            }))
+                          }
+                          className="w-5 h-5 flex items-center justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50"
                         >
                           +
                         </button>
