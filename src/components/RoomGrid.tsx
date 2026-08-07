@@ -49,7 +49,7 @@ export default function RoomGrid({ rooms, onRoomSelect }: RoomGridProps) {
   return (
     <div className="space-y-4 sm:space-y-6 pb-8 sm:pb-12">
       {/* Dynamic Filter panel combining Room Status pills & Room Type dropdown */}
-      <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+      <div className="glass-panel p-3 sm:p-4 rounded-xl flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         {/* Left Side: Status Pill Buttons */}
         <div className="flex flex-wrap gap-2 items-center w-full md:w-auto">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1.5 flex-none select-none">

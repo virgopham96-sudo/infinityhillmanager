@@ -16,7 +16,7 @@ export default function UserGuide() {
 
       <div className="space-y-12">
         {/* Section 1 */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <section className="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 hidden md:block opacity-5">
             <Map className="w-32 h-32" />
           </div>
@@ -60,7 +60,7 @@ export default function UserGuide() {
         </section>
 
         {/* Section 2 */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <section className="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 hidden md:block opacity-5">
             <CalendarRange className="w-32 h-32" />
           </div>
@@ -83,7 +83,7 @@ export default function UserGuide() {
         </section>
 
         {/* Section 3 */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <section className="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 hidden md:block opacity-5">
             <Users className="w-32 h-32" />
           </div>
@@ -107,7 +107,7 @@ export default function UserGuide() {
         </section>
 
         {/* Section 4 */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <section className="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 hidden md:block opacity-5">
             <BarChart3 className="w-32 h-32" />
           </div>
@@ -131,7 +131,7 @@ export default function UserGuide() {
         </section>
 
         {/* Section 5 */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+        <section className="glass-panel rounded-2xl p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 hidden md:block opacity-5">
             <Save className="w-32 h-32" />
           </div>

@@ -633,8 +633,8 @@ export default function BookingModal({
           </div>
         </div>
       )}
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+      <div className="glass-modal rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <div className="flex flex-col border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
           <div className="px-6 py-4 flex justify-between items-center">
             <div className="flex items-center gap-3">

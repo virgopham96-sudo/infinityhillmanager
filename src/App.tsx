@@ -193,13 +193,17 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 w-full max-w-sm">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Ambient background blobs for login */}
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-500/25 dark:bg-blue-600/20 rounded-full blur-3xl animate-blob-1 pointer-events-none"></div>
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-500/25 dark:bg-indigo-600/20 rounded-full blur-3xl animate-blob-2 pointer-events-none"></div>
+
+        <div className="glass-modal p-6 sm:p-8 rounded-2xl w-full max-w-sm relative z-10">
           <div className="flex flex-col items-center mb-8">
             <button 
               type="button"
               onClick={() => navigate('/')}
-              className="p-2 mb-4 w-16 h-16 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              className="p-2 mb-4 w-16 h-16 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md shadow-sm border border-white/60 dark:border-slate-700/60 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
               title="Về trang chủ"
             >
               <img src="https://lh3.googleusercontent.com/pw/AP1GczMk0hS3jdTwzJkHeGWSWRjqaUS5YYGFB5KbMDMeFlBdpving26XUlJjNeBV5Hgu1LMFBhJva188u3oI3ki789nXcjxoVTfjk5LDpRs7y0gszs7daOP8=s512" alt="Logo" className="w-full h-full object-contain" />
@@ -207,7 +211,7 @@ export default function App() {
             <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight text-center">
               Infinity Hill Manager
             </h1>
-            <p className="text-slate-500 text-sm mt-2 text-center">
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 text-center">
               Vui lòng đăng nhập để tiếp tục
             </p>
           </div>
@@ -285,19 +289,24 @@ export default function App() {
   const maintenanceRooms = rooms.filter((r) => getLiveRoomState(r).status === "maintenance").length;
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 font-sans relative">
+    <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950 font-sans relative overflow-hidden">
       
+      {/* Glassmorphism Ambient Glow Background Blobs */}
+      <div className="fixed -top-32 -left-32 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-blob-1 z-0"></div>
+      <div className="fixed top-1/3 right-0 w-[30rem] h-[30rem] bg-indigo-400/15 dark:bg-indigo-600/15 rounded-full blur-3xl pointer-events-none animate-blob-2 z-0"></div>
+      <div className="fixed -bottom-32 left-1/3 w-96 h-96 bg-sky-400/20 dark:bg-sky-600/15 rounded-full blur-3xl pointer-events-none animate-blob-3 z-0"></div>
+
       {/* Backdrop */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/50 md:hidden transition-opacity"
+          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm md:hidden transition-opacity"
           onClick={() => setIsMobileMenuOpen(false)}
         ></div>
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#004b93] dark:bg-slate-950 shadow-2xl md:shadow-none transform transition-transform duration-300 ease-in-out md:relative md:scale-100 md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 glass-sidebar shadow-2xl md:shadow-none transform transition-transform duration-300 ease-in-out md:relative md:scale-100 md:translate-x-0 ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -328,7 +337,7 @@ export default function App() {
       </div>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden w-full relative z-10">
-        <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 md:px-8 py-3 md:py-5 flex items-center justify-between z-10 shrink-0">
+        <header className="glass-header px-3 md:px-8 py-3 md:py-5 flex items-center justify-between z-10 shrink-0">
           <div className="flex items-center gap-2 md:gap-3">
             <button
               className="md:hidden p-1.5 md:p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg shrink-0"

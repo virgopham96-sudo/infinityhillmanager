@@ -216,7 +216,7 @@ export default function RevenueReport({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="glass-panel p-6 rounded-2xl">
           <div className="flex items-center gap-4 mb-4">
             <div className="bg-emerald-100 dark:bg-emerald-900/30 p-3 rounded-xl">
               <TrendingUp className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -230,7 +230,7 @@ export default function RevenueReport({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm mt-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+          <div className="flex items-center gap-2 text-sm mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800">
             <span
               className={`font-semibold ${growthRate >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
             >
@@ -241,7 +241,7 @@ export default function RevenueReport({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="glass-panel p-6 rounded-2xl">
           <div className="flex items-center gap-4 mb-4">
             <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-xl">
               <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -255,7 +255,7 @@ export default function RevenueReport({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm mt-4 pt-4 border-t border-slate-50 dark:border-slate-800">
+          <div className="flex items-center gap-2 text-sm mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800">
             <span className="text-slate-500 dark:text-slate-400">
               Gồm{" "}
               <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -267,7 +267,7 @@ export default function RevenueReport({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+      <div className="glass-panel rounded-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
           <h3 className="font-semibold text-slate-800 dark:text-slate-100">Lịch sử giao dịch</h3>
           <button

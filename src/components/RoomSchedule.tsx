@@ -285,7 +285,7 @@ export default function RoomSchedule({ rooms, onBookRoom, onEditGuest, isPublicR
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full">
+    <div className="glass-panel rounded-xl overflow-hidden flex flex-col h-full">
       {/* Header Month Navigation */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 gap-4">
         <div className="flex items-center justify-between w-full md:w-auto gap-2">

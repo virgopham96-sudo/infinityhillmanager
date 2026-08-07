@@ -12,22 +12,22 @@ interface RoomCardProps {
 
 const statusConfig = {
   available: {
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50",
+    color: "bg-emerald-50/75 dark:bg-emerald-950/35 text-emerald-800 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60 backdrop-blur-md shadow-sm hover:shadow-emerald-500/10",
     dot: "bg-emerald-500",
     label: "Phòng trống",
   },
   occupied: {
-    color: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/50",
+    color: "bg-rose-50/75 dark:bg-rose-950/35 text-rose-800 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60 backdrop-blur-md shadow-sm hover:shadow-rose-500/10",
     dot: "bg-rose-500",
     label: "Đang ở",
   },
   reserved: {
-    color: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/50",
+    color: "bg-amber-50/75 dark:bg-amber-950/35 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60 backdrop-blur-md shadow-sm hover:shadow-amber-500/10",
     dot: "bg-amber-500",
     label: "Đã đặt",
   },
   maintenance: {
-    color: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+    color: "bg-slate-100/75 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/60 backdrop-blur-md shadow-sm",
     dot: "bg-slate-500",
     label: "Bảo trì",
   },
